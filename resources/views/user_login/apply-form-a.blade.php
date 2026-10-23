@@ -1218,6 +1218,7 @@ exit; -->
 
                                     <div class="col-md-6">
                                         <input type="hidden" name="ownership_type[]" value="pt">
+                                        {{-- <input type="text" name="row_index[]" value="1"> --}}
                                         <div class="row align-items-center">
                                             <div class="col-12 col-md-12">
                                                 <label for="Name">(i) Full name and house address of partners <span
@@ -1663,7 +1664,7 @@ exit; -->
                                             </th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    
 
                                     <tbody>
 
@@ -6993,66 +6994,77 @@ let proprietorCount = initialDraftCount || 0;
         let editIndex = null;
 
         // Show partner form
-        $("#add-partner").on("click", function() {
-            let rowCount = $("#partner-section table tbody tr").length;
+      $("#add-partner").on("click", function () {
+                let $tbody = $("#partner-section table.head_label_partner tbody");
+                let rowCount = $tbody.find("tr").length;
 
+                if (rowCount >= 5) {
+                    Swal.fire({
+                        title: "Partner Entry Exists!",
+                        width: 450,
+                        text: "You can only add a maximum of 5 partners",
+                        icon: "warning",
+                        confirmButtonText: "OK",
+                        confirmButtonColor: "#3085d6"
+                    });
+                    return;
+                }
 
-            if (rowCount >= 5) {
+                // Get the last saved partner row index
+                let lastRowIndex = 0;
 
-                Swal.fire({
-                    title: "Partner Entry Exists!",
-                    width: 450,
-                    text: "You can only add a maximum of 5 partners",
-                    icon: "warning",
-                    confirmButtonText: "OK",
-                    confirmButtonColor: "#3085d6"
-                });
+                if (rowCount > 0) {
+                    let value = $tbody
+                        .find("tr:last input[name='row_index[]']")
+                        .val();
 
-                // alert("You can only add a maximum of 6 partners.");
-                return;
-            }
+                    lastRowIndex = parseInt(value, 10);
 
-            resetPartnerForm();
-            let $section = $("#partnersfill-section");
+                    if (isNaN(lastRowIndex)) {
+                        lastRowIndex = rowCount;
+                    }
+                }
 
+                // Calculate next row index
+                let nextRowIndex = lastRowIndex + 1;
 
+                resetPartnerForm();
 
-            // $section.find("input, select").val("");
-            $section.find(".qualification").val("").trigger("change");
-            $section.find(".file-link").html("");
-            $("#partnersfill-section").slideDown();
-            // $("#partner-section table tbody").append(newRow);
-            $section.find(".upload-btn")
-                // .attr("data-row_index", rowCount)
-                // .data("row_index", rowCount);
+                let $section = $("#partnersfill-section");
 
-                .attr("data-row-index", rowCount)
-                .data("rowIndex", rowCount);
-            // updatePartnerRowIndex(rowCount);
-        });
+                $section.find(".qualification").val("").trigger("change");
+                $section.find(".file-link, .age-file-link").html("");
 
+                // Set row index in the partner form
+                $section.find("input[name='row_index[]']")
+                    .val(nextRowIndex);
 
+                // Set row index on both upload buttons
+                $section.find(".upload-btn")
+                    .attr("data-row-index", nextRowIndex)
+                    .data("rowIndex", nextRowIndex);
 
-        // $("#add-partner").on("click", function() {
-        //     resetPartnerForm();
+                $section.attr("data-row-index", nextRowIndex);
 
-        //     let rowCount = $("#partner-section table tbody tr").length;
-        //     if (rowCount >= 6) {
-        //         alert("You can only add a maximum of 6 partners.");
-        //         return; // stop here
-        //     }
-        //     $("#partnersfill-section").slideDown();
-        //     if ($("#cancel_update").length === 0) {
-        //         $("#save_partner").after(`
-    //     <button type="button" id="cancel_update" class="btn btn-danger ms-2">Cancel</button>
-    // `);
-        //     }
-        // });
+                // Show partner form
+                $section.slideDown();
+
+                console.log("Next partner row index:", nextRowIndex);
+            });
 
         // Save or Update Partner
         $("#save_partner").on("click", function() {
 
             let $section = $("#partnersfill-section");
+
+            let rowIndex = parseInt(
+                $section.attr("data-row-index") || "1",
+                10
+            );
+
+            if (isNaN(rowIndex) || rowIndex < 1) {
+                rowIndex = 1;
+            }
 
             let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
 
@@ -7961,15 +7973,15 @@ let proprietorCount = initialDraftCount || 0;
 
             // ================= CHECK COMPETENCY =================
 
-            if (
-                competency === "yes" &&
-                certNo &&
-                firstIssueYMD &&
-                validityFromYMD &&
-                validityToYMD
-            ) {
-                checkCompetencyCertificate();
-            }
+            // if (
+            //     competency === "yes" &&
+            //     certNo &&
+            //     firstIssueYMD &&
+            //     validityFromYMD &&
+            //     validityToYMD
+            // ) {
+            //     checkCompetencyCertificate();
+            // }
 
 
             // ================= SHOW FORM =================
@@ -8042,52 +8054,66 @@ let proprietorCount = initialDraftCount || 0;
         let directoreditIndex = null;
 
         // Show partner form
-        $("#add-director").on("click", function() {
-            let rowCount = $("#director-section table tbody tr").length;
+      
+        $("#add-director").on("click", function () {
+
+            let $tbody = $("#director-section table tbody");
+            let rowCount = $tbody.find("tr").length;
+
+            // Maximum 10 directors
+            if (rowCount >= 10) {
+                Swal.fire({
+                    title: "Directors Entry Exists!",
+                    width: 450,
+                    text: "You can only add a maximum of 10 Directors.",
+                    icon: "warning",
+                    confirmButtonText: "OK",
+                    confirmButtonColor: "#3085d6"
+                });
+                return;
+            }
+
+            // Get the last saved director row index
+            let lastRowIndex = 0;
+
+            if (rowCount > 0) {
+                let value = $tbody
+                    .find("tr:last input[name='row_index[]']")
+                    .val();
+
+                lastRowIndex = parseInt(value, 10);
+
+                if (isNaN(lastRowIndex)) {
+                    lastRowIndex = rowCount;
+                }
+            }
+
+            // Calculate next row index
+            let nextRowIndex = lastRowIndex + 1;
 
             let directorSection = $("#directorfill-section");
 
-            let directorInput = directorSection.find("input[name='proprietor_name[]']");
+            let directorInput = directorSection.find(
+                "input[name='proprietor_name[]']"
+            );
 
-            if (rowCount == 0) {
-
+            // Preserve existing director name logic
+            if (rowCount === 0) {
                 let userName = @json(Auth::user()->first_name . ' ' . Auth::user()->last_name);
-
 
                 $("#proprietor_name")
                     .val(userName)
                     .prop("readonly", true);
-
             } else {
-
                 directorInput
                     .val("")
                     .prop("readonly", false);
             }
 
-            if (rowCount >= 10) {
-
-                Swal.fire({
-                    title: "Directors Entry Exists!",
-                    width: 450,
-                    text: "You can only add a maximum of 10 Directors..",
-                    icon: "warning",
-                    confirmButtonText: "OK",
-                    confirmButtonColor: "#3085d6"
-                });
-
-                // alert("You can only add a maximum of 6 partners.");
-                return;
-            }
-
-            /* ===========================
-               CHECK MANAGING DIRECTOR EXISTS
-               ============================ */
-
+            // Check whether a managing director already exists
             let mdExists = false;
 
-            $("#director-section table tbody tr").each(function() {
-
+            $tbody.find("tr").each(function () {
                 let md = $(this)
                     .find("td.md-column")
                     .attr("data-managing_director");
@@ -8097,37 +8123,45 @@ let proprietorCount = initialDraftCount || 0;
                 }
             });
 
+            // Preserve managing director visibility logic
             if (mdExists) {
-
                 $(".managing-director-wrapper").hide();
 
                 $("#is_managing_director")
                     .prop("checked", false);
-
             } else {
-
                 $(".managing-director-wrapper").show();
             }
 
-
+            // Reset director form
             resetDirectorForm();
-            $("#directorfill-section").slideDown();
 
             let $section = $("#directorfill-section");
 
-            // $section.find("input, select").val("");
-            $section.find(".qualification").val("").trigger("change");
-            $section.find(".file-link").html("");
-            // $("#directorfill-section").slideDown();
-            // $("#partner-section table tbody").append(newRow);
+            $section.find(".qualification")
+                .val("")
+                .trigger("change");
+
+            $section.find(".file-link, .age-file-link").html("");
+
+            // Set row index in the director form
+            $section.find("input[name='row_index[]']")
+                .val(nextRowIndex);
+
+            // Set row index on both upload buttons
             $section.find(".upload-btn")
-                // .attr("data-row_index", rowCount)
-                // .data("row_index", rowCount);
+                .attr("data-row-index", nextRowIndex)
+                .data("rowIndex", nextRowIndex);
 
-                .attr("data-row-index", rowCount)
-                .data("rowIndex", rowCount);
+            // Set row index on director form section
+            $section.attr("data-row-index", nextRowIndex);
 
+            // Show director form
+            $section.slideDown();
+
+            console.log("Next director row index:", nextRowIndex);
         });
+
 
 
 

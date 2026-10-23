@@ -438,729 +438,923 @@ class DocumentUploadController extends Controller
         }
     }
 
-    public function uploadownershipdeed(Request $request)
-    {
-        try {
+    
+public function uploadownershipdeed(Request $request)
+{
+    try {
+        $sessionId = session()->getId();
 
-            // ======================================================
-            // 1. VALIDATE FILE EXISTENCE
-            // ======================================================
+        // ======================================================
+        // 1. VALIDATE FILE EXISTENCE
+        // ======================================================
 
-            $fileInputs = $request->files->all();
+        $fileInputs = $request->files->all();
 
-            if (empty($fileInputs)) {
-                return response()->json([
-                    'status' => 'error',
-                    'msg'    => 'No file received',
-                ], 422);
-            }
+        if (empty($fileInputs)) {
+            return response()->json([
+                'status' => 'error',
+                'msg'    => 'No file received',
+            ], 422);
+        }
 
-            $fileField = array_key_first($fileInputs);
-            $fileValue = $fileInputs[$fileField];
+        $fileField = array_key_first($fileInputs);
+        $fileValue = $fileInputs[$fileField];
 
-            // ======================================================
-            // 2. VALIDATION
-            // ======================================================
+        // ======================================================
+        // 2. VALIDATION
+        // ======================================================
 
-            $rules = [
-                'module'            => 'required',
-                'document_category' => 'required',
-                'license_name'      => 'required',
-                'form_name'         => 'required',
-            ];
+        $rules = [
+            'module'            => 'required',
+            'document_category' => 'required',
+            'license_name'      => 'required',
+            'form_name'         => 'required',
+        ];
 
-            if (is_array($fileValue)) {
-                $rules[$fileField] = 'required|array';
-                $rules[$fileField . '.*'] = 'required|file|mimes:pdf|max:250';
-            } else {
-                $rules[$fileField] = 'required|file|mimes:pdf|max:250';
-            }
+        if (is_array($fileValue)) {
+            $rules[$fileField] = 'required|array';
+            $rules[$fileField . '.*'] = 'required|file|mimes:pdf|max:250';
+        } else {
+            $rules[$fileField] = 'required|file|mimes:pdf|max:250';
+        }
 
-            $request->validate($rules);
+        $request->validate($rules);
 
-            $files = is_array($fileValue)
-                ? $fileValue
-                : [$fileValue];
+        $files = is_array($fileValue)
+            ? $fileValue
+            : [$fileValue];
 
-            // ======================================================
-            // 3. RECORD ID
-            // Empty record_id = temporary upload
-            // Existing record_id = update actual tables
-            // ======================================================
+        // ======================================================
+        // 3. RECORD ID
+        // ======================================================
 
-            $recordId = trim((string) $request->input('record_id', ''));
+        $recordId = trim(
+            (string) $request->input('record_id', '')
+        );
 
-            $recordId = $recordId !== '' && $recordId !== 'null'
-                ? $recordId
+        $recordId = $recordId !== '' && $recordId !== 'null'
+            ? $recordId
+            : null;
+
+        // ======================================================
+        // 4. APPLICATION ID
+        // ======================================================
+
+        $applicationId = $recordId !== null
+            ? $recordId
+            : $sessionId;
+
+        // ======================================================
+        // 5. LOGIN ID
+        // ======================================================
+
+        $loginId = auth()->user()->login_id;
+
+        // ======================================================
+        // 6. DESTINATION FOLDER
+        // ======================================================
+
+        $pathData = DocPathController::getPath($request);
+
+        $dbFilePath = trim($pathData->filepath_pro, '/\\');
+
+        $folderPath = public_path($dbFilePath);
+
+        if (!File::exists($folderPath)) {
+            File::makeDirectory($folderPath, 0755, true);
+        }
+
+        $documentCategory = trim(
+            (string) $request->input('document_category')
+        );
+
+        $subCategory = trim(
+            (string) $request->input('document_sub_category', '')
+        );
+
+        $uploadedFiles = [];
+        $counter = 1;
+
+        // ======================================================
+        // 7. PROCESS EACH FILE
+        // ======================================================
+
+        foreach ($files as $file) {
+
+            $originalName = $file->getClientOriginalName();
+
+            $equipCode = is_numeric($request->equip_code)
+                ? $request->equip_code
                 : null;
 
-            // ======================================================
-            // 4. APPLICATION ID
-            // Empty record_id = use session ID
-            // Present record_id = use existing application ID
-            // ======================================================
+            $qcCode = is_numeric($request->qc_code)
+                ? $request->qc_code
+                : null;
+
+            $rowIndex = is_numeric($request->row_index)
+                ? (int) $request->row_index
+                : null;
+
+            // ==================================================
+            // 8. FIND EXISTING TEMP DOCUMENT
+            // ==================================================
+
+            $existing = null;
+
+            if ($recordId === null) {
+
+                $existingQuery = DB::table(
+                    'tnelb_temp_uploaded_documents'
+                )
+                    ->where('login_id', $loginId)
+                    ->where('application_id', $applicationId)
+                    ->where('module', $request->module)
+                    ->where('form_name', $request->form_name)
+                    ->where('document_category', $documentCategory);
+
+                if ($subCategory !== '') {
+                    $existingQuery->where(
+                        'document_sub_category',
+                        $subCategory
+                    );
+                }
+
+                if (in_array($subCategory, ['OED', 'AP'], true)) {
+                    $existingQuery
+                        ->where(
+                            'ownership_type',
+                            $request->ownership_type
+                        )
+                        ->where('row_index', $rowIndex);
+                }
+
+                if (in_array($subCategory, ['QAD', 'QCD', 'SS'], true)) {
+                    $existingQuery->where('row_index', $rowIndex);
+                }
+
+                if ($subCategory === 'ED') {
+                    $existingQuery->where('equip_code', $equipCode);
+                }
+
+                if ($subCategory === 'QD') {
+                    $existingQuery->where('qc_code', $qcCode);
+                }
+
+                if ($subCategory === 'OHD') {
+                    $existingQuery->where(
+                        'ownership_type',
+                        $request->ownership_type
+                    );
+                }
+
+                $existing = $existingQuery
+                    ->orderByDesc('id')
+                    ->first();
+            }
+
+            // ==================================================
+            // 9. GET EXISTING MAIN-TABLE FILE PATH
+            // ==================================================
+
+            $oldStoredPath = null;
 
             if ($recordId !== null) {
 
-                $applicationId = $recordId;
+                switch ($documentCategory) {
+
+                    case 'ownership_doc':
+
+                        $oldStoredPath = DB::table('ccl_forma_meta')
+                            ->where('application_id', $applicationId)
+                            ->value('ownership_doc');
+
+                        break;
+
+                    case 'bank_doc':
+
+                        $oldStoredPath = DB::table('tnelb_banksolvency_a')
+                            ->where('application_id', $applicationId)
+                            ->value('bank_doc');
+
+                        break;
+
+                    case 'Address_proof':
+
+                        $oldStoredPath = DB::table('tnelb_addressproof_cl')
+                            ->where('application_id', $applicationId)
+                            ->value('file_doc');
+
+                        break;
+
+                    case 'other_doc':
+
+                        $oldStoredPath = DB::table('tnelb_attachments_cl')
+                            ->where('application_id', $applicationId)
+                            ->where('type', $request->ownership_type)
+                            ->value('file_doc');
+
+                        break;
+
+                    case 'instrument_test_report':
+
+                        if (!$equipCode) {
+                            throw new \RuntimeException(
+                                'Equipment ID is required for the test report.'
+                            );
+                        }
+
+                        $oldStoredPath = DB::table('tnelb_equimentsuser_cl')
+                            ->where('application_id', $applicationId)
+                            ->where('equipment_id', $equipCode)
+                            ->value('testreport_file');
+
+                        break;
+
+                    case 'instrument_purchase_report':
+
+                        if (!$equipCode) {
+                            throw new \RuntimeException(
+                                'Equipment ID is required for the purchase report.'
+                            );
+                        }
+
+                        $oldStoredPath = DB::table('tnelb_equimentsuser_cl')
+                            ->where('application_id', $applicationId)
+                            ->where('equipment_id', $equipCode)
+                            ->value('purchasereport_file');
+
+                        break;
+
+                    case 'app_doc':
+                    case 'cons_doc':
+
+                        if ($rowIndex === null) {
+                            throw new \RuntimeException(
+                                'Row index is required for QC/QSC staff documents.'
+                            );
+                        }
+
+                        $oldStoredPath = DB::table('cl_staff_tbl')
+                            ->where('application_id', $applicationId)
+                            ->where('row_index', $rowIndex)
+                            ->whereIn('staff_category', ['QC', 'QSC'])
+                            ->value($documentCategory);
+
+                        break;
+
+                    case 'age_proof':
+                    case 'educ_qual_proof':
+
+                        if ($rowIndex === null) {
+                            throw new \RuntimeException(
+                                'Row index is required for ownership documents.'
+                            );
+                        }
+
+                        if (empty($request->ownership_type)) {
+                            throw new \RuntimeException(
+                                'Ownership type is required for ownership documents.'
+                            );
+                        }
+
+                        $dbColumn = $documentCategory === 'educ_qual_proof'
+                            ? 'educational_proof'
+                            : 'age_proof';
+
+                        $oldStoredPath = DB::table('cl_ownership_table')
+                            ->where('application_id', $applicationId)
+                            ->where(
+                                'ownership_type',
+                                $request->ownership_type
+                            )
+                            ->where('row_index', $rowIndex)
+                            ->value($dbColumn);
+
+                        break;
+
+                    case 'specimen_sign':
+
+                        if ($rowIndex === null) {
+                            throw new \RuntimeException(
+                                'Row index is required for specimen sign.'
+                            );
+                        }
+
+                        $oldStoredPath = DB::table('cl_forma_signs')
+                            ->where('application_id', $applicationId)
+                            ->where('row_index', $rowIndex)
+                            ->value('specimen_sign');
+
+                        break;
+                }
+            }
+
+            // ==================================================
+            // 10. GENERATE FILE NAME
+            // ==================================================
+
+            $date = now()->format('Ymd');
+            $time = now()->timezone('Asia/Kolkata')->format('Hi');
+
+            $formCode = $request->form_code;
+            $moduleCode = strtoupper($pathData->module_code);
+
+            if ($existing) {
+
+                // Preserve existing temporary filename.
+                $fileName = $existing->file_name;
+
             } else {
 
-                if (!session()->has('application_id')) {
-                    $applicationId = session()->getId();
+                switch ($subCategory) {
 
-                    session(['application_id' => $applicationId]);
-                } else {
-                    $applicationId = session('application_id');
+                    case 'OED':
+                    case 'AP':
+
+                        $fileName = $date . '_' . $time . '_' .
+                            $loginId . '_L' . $formCode . '_' .
+                            strtoupper($request->ownership_type) .
+                            $moduleCode . $rowIndex . '.pdf';
+
+                        break;
+
+                    case 'QAD':
+                    case 'QCD':
+                    case 'SS':
+
+                        $fileName = $date . '_' . $time . '_' .
+                            $loginId . '_L' . $formCode . '_' .
+                            $moduleCode . $rowIndex . '.pdf';
+
+                        break;
+
+                    case 'OHD':
+
+                        $fileName = $date . '_' . $time . '_' .
+                            $loginId . '_L' . $formCode . '_' .
+                            $request->ownership_type . '_' .
+                            $moduleCode . '.pdf';
+
+                        break;
+
+                    case 'ED':
+
+                        $fileName = $date . '_' . $time . '_' .
+                            $loginId . '_L' . $formCode . '_' .
+                            $request->ownership_type . '_' .
+                            $moduleCode . $equipCode . '.pdf';
+
+                        break;
+
+                    case 'QD':
+
+                        $fileName = $date . '_' . $time . '_' .
+                            $loginId . '_L' . $formCode .
+                            $moduleCode . $qcCode . '.pdf';
+
+                        break;
+
+                    default:
+
+                        $fileName = $date . '_' . $time . '_' .
+                            $loginId . '_L' . $formCode . '_' .
+                            $moduleCode . '.pdf';
+
+                        break;
                 }
             }
 
-            // ======================================================
-            // 5. LOGIN ID
-            // ======================================================
-
-            $loginId = auth()->user()->login_id;
-
-            // ======================================================
-            // 6. FILE PATH
-            // ======================================================
-
-            $pathData = DocPathController::getPath($request);
-
-            $dbFilePath = trim($pathData->filepath_pro, '/\\');
-
-            $folderPath = public_path($dbFilePath);
-
-            if (!\File::exists($folderPath)) {
-                \File::makeDirectory($folderPath, 0755, true);
+            // Keep the main-table document filename when replacing.
+            if ($recordId !== null && !empty($oldStoredPath)) {
+                $fileName = basename(
+                    str_replace('\\', '/', $oldStoredPath)
+                );
             }
 
-            $documentCategory = trim(
-                (string) $request->input('document_category')
-            );
+            // ==================================================
+            // 11. SAFELY REPLACE FILE IN DESTINATION FOLDER
+            // ==================================================
 
-            $subCategory = trim(
-                (string) $request->input('document_sub_category', '')
-            );
+            $destination = $folderPath . DIRECTORY_SEPARATOR . $fileName;
 
-            $uploadedFiles = [];
-            $counter = 1;
+            $stagingName = uniqid('upload_', true) . '.tmp';
 
-            // ======================================================
-            // 7. PROCESS EACH FILE
-            // ======================================================
+            $stagingPath = $folderPath . DIRECTORY_SEPARATOR . $stagingName;
 
-            foreach ($files as $file) {
+            $backupName = uniqid('backup_', true) . '.tmp';
 
-                $originalName = $file->getClientOriginalName();
+            $backupPath = $folderPath . DIRECTORY_SEPARATOR . $backupName;
 
-                $equipCode = is_numeric($request->equip_code)
-                    ? $request->equip_code
-                    : null;
+            $backupCreated = false;
 
-                $qcCode = is_numeric($request->qc_code)
-                    ? $request->qc_code
-                    : null;
+            try {
 
-                $rowIndex = is_numeric($request->row_index)
-                    ? (int) $request->row_index
-                    : null;
+                // Move the new upload into the destination folder first.
+                $file->move($folderPath, $stagingName);
 
-                // ==================================================
-                // 8. FIND EXISTING TEMP DOCUMENT
-                // Only when record_id is empty
-                // ==================================================
+                if (!File::exists($stagingPath)) {
+                    throw new \RuntimeException(
+                        'The uploaded file could not be staged.'
+                    );
+                }
 
-                $existing = null;
+                // Preserve the existing destination file until replacement
+                // has been prepared successfully.
+                if (File::exists($destination)) {
 
-                if ($recordId === null) {
-
-                    $existingQuery = DB::table('tnelb_temp_uploaded_documents')
-                        ->where('login_id', $loginId)
-                        ->where('application_id', $applicationId)
-                        ->where('module', $request->module)
-                        ->where('form_name', $request->form_name)
-                        ->where('document_category', $documentCategory);
-
-                    if ($subCategory !== '') {
-                        $existingQuery->where(
-                            'document_sub_category',
-                            $subCategory
+                    if (!File::move($destination, $backupPath)) {
+                        throw new \RuntimeException(
+                            'Could not back up the existing destination file.'
                         );
                     }
 
-                    if (in_array($subCategory, ['OED', 'AP'])) {
-                        $existingQuery
-                            ->where('ownership_type', $request->ownership_type)
+                    $backupCreated = true;
+                }
+
+                // Move the staged PDF into its final location.
+                if (!File::move($stagingPath, $destination)) {
+                    throw new \RuntimeException(
+                        'Could not move the new PDF into the destination folder.'
+                    );
+                }
+
+            } catch (\Throwable $fileException) {
+
+                // Remove incomplete replacement if one was created.
+                if (File::exists($destination) && $backupCreated) {
+                    File::delete($destination);
+                }
+
+                // Restore the previous destination file.
+                if ($backupCreated && File::exists($backupPath)) {
+                    File::move($backupPath, $destination);
+                }
+
+                if (File::exists($stagingPath)) {
+                    File::delete($stagingPath);
+                }
+
+                throw $fileException;
+            }
+
+            $finalPath = $dbFilePath . '/' . $fileName;
+
+            // ==================================================
+            // 12. UPDATE ACTUAL TABLES OR TEMPORARY TABLE
+            // ==================================================
+
+            if ($recordId !== null) {
+
+                switch ($documentCategory) {
+
+                    // ------------------------------------------
+                    // OWNERSHIP DOCUMENT
+                    // ------------------------------------------
+
+                    case 'ownership_doc':
+
+                        DB::table('ccl_forma_meta')->updateOrInsert(
+                            ['application_id' => $applicationId],
+                            [
+                                'ownership_doc' => $finalPath,
+                                'updated_at'    => now(),
+                            ]
+                        );
+
+                        break;
+
+                    // ------------------------------------------
+                    // BANK SOLVENCY
+                    // ------------------------------------------
+
+                    case 'bank_doc':
+
+                        DB::table('tnelb_banksolvency_a')->updateOrInsert(
+                            ['application_id' => $applicationId],
+                            [
+                                'login_id'     => $loginId,
+                                'form_name'    => $request->form_name,
+                                'license_name' => $request->license_name,
+                                'bank_doc'     => $finalPath,
+                                'updated_at'   => now(),
+                                'status'       => '1',
+                            ]
+                        );
+
+                        break;
+
+                    // ------------------------------------------
+                    // ADDRESS PROOF
+                    // ------------------------------------------
+
+                    case 'Address_proof':
+
+                        DB::table('tnelb_addressproof_cl')->updateOrInsert(
+                            ['application_id' => $applicationId],
+                            [
+                                'login_id'     => $loginId,
+                                'form_name'    => $request->form_name,
+                                'license_name' => $request->license_name,
+                                'file_doc'     => $finalPath,
+                                'updated_at'   => now(),
+                            ]
+                        );
+
+                        break;
+
+                    // ------------------------------------------
+                    // OTHER DOCUMENTS
+                    // ------------------------------------------
+
+                    case 'other_doc':
+
+                        DB::table('tnelb_attachments_cl')->updateOrInsert(
+                            [
+                                'application_id' => $applicationId,
+                                'type' => $request->ownership_type,
+                            ],
+                            [
+                                'login_id'     => $loginId,
+                                'form_name'    => $request->form_name,
+                                'license_name' => $request->license_name,
+                                'file_doc'     => $finalPath,
+                                'updated_at'   => now(),
+                                'created_at'   => now(),
+                            ]
+                        );
+
+                        break;
+
+                    // ------------------------------------------
+                    // EQUIPMENT TEST REPORT
+                    // ------------------------------------------
+
+                    case 'instrument_test_report':
+
+                        DB::table('tnelb_equimentsuser_cl')->updateOrInsert(
+                            [
+                                'application_id' => $applicationId,
+                                'equipment_id' => $equipCode,
+                            ],
+                            [
+                                'testreport_file' => $finalPath,
+                                'updated_at' => now(),
+                            ]
+                        );
+
+                        break;
+
+                    // ------------------------------------------
+                    // EQUIPMENT PURCHASE REPORT
+                    // ------------------------------------------
+
+                    case 'instrument_purchase_report':
+
+                        DB::table('tnelb_equimentsuser_cl')->updateOrInsert(
+                            [
+                                'application_id' => $applicationId,
+                                'equipment_id' => $equipCode,
+                            ],
+                            [
+                                'purchasereport_file' => $finalPath,
+                                'updated_at' => now(),
+                            ]
+                        );
+
+                        break;
+
+                    // ------------------------------------------
+                    // QC / QSC STAFF DOCUMENTS
+                    // ------------------------------------------
+
+                    case 'app_doc':
+                    case 'cons_doc':
+
+                        if ($rowIndex === null) {
+                            throw new \RuntimeException(
+                                'Row index is required for QC/QSC staff documents.'
+                            );
+                        }
+
+                        // Preserve the existing QC behavior.
+                        // Pass staff_category=QSC in the request when needed.
+                        $staffCategory = strtoupper(
+                            trim((string) $request->input(
+                                'staff_category',
+                                'QC'
+                            ))
+                        );
+
+                        if (!in_array($staffCategory, ['QC', 'QSC'], true)) {
+                            throw new \RuntimeException(
+                                'A valid staff_category (QC or QSC) is required.'
+                            );
+                        }
+
+                        $staff = DB::table('cl_staff_tbl')
+                            ->where('application_id', $applicationId)
+                            ->where('row_index', $rowIndex)
+                            ->where('staff_category', $staffCategory)
+                            ->first();
+
+                        if ($staff) {
+
+                            DB::table('cl_staff_tbl')
+                                ->where('id', $staff->id)
+                                ->update([
+                                    $documentCategory => $finalPath,
+                                    'updated_at' => now(),
+                                ]);
+
+                        } else {
+
+                            DB::table('cl_staff_tbl')->insert([
+                                'application_id' => $applicationId,
+                                'row_index' => $rowIndex,
+                                'staff_category' => $staffCategory,
+                                'staff_flag' => '1',
+                                'login_id' => $loginId,
+                                $documentCategory => $finalPath,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+
+                        break;
+
+                    // ------------------------------------------
+                    // AGE PROOF / EDUCATIONAL QUALIFICATION
+                    // ------------------------------------------
+
+                    case 'age_proof':
+                    case 'educ_qual_proof':
+
+                        if ($rowIndex === null) {
+                            throw new \RuntimeException(
+                                'Row index is required for ownership documents.'
+                            );
+                        }
+
+                        if (empty($request->ownership_type)) {
+                            throw new \RuntimeException(
+                                'Ownership type is required for ownership documents.'
+                            );
+                        }
+
+                        $dbColumn = $documentCategory === 'educ_qual_proof'
+                            ? 'educational_proof'
+                            : 'age_proof';
+
+                        $ownershipQuery = DB::table('cl_ownership_table')
+                            ->where('application_id', $applicationId)
+                            ->where(
+                                'ownership_type',
+                                $request->ownership_type
+                            )
                             ->where('row_index', $rowIndex);
-                    }
 
-                    if (in_array($subCategory, ['QAD', 'QCD', 'SS'])) {
-                        $existingQuery->where('row_index', $rowIndex);
-                    }
+                        $existingOwnership = $ownershipQuery->first();
 
-                    if ($subCategory === 'ED') {
-                        $existingQuery->where('equip_code', $equipCode);
-                    }
+                        $ownershipData = [
+                            'login_id' => $loginId,
+                            $dbColumn => $finalPath,
+                            'updated_at' => now(),
+                        ];
 
-                    if ($subCategory === 'QD') {
-                        $existingQuery->where('qc_code', $qcCode);
-                    }
+                        if ($existingOwnership) {
 
-                    if ($subCategory === 'OHD') {
-                        $existingQuery->where(
-                            'ownership_type',
-                            $request->ownership_type
-                        );
-                    }
-
-                    $existing = $existingQuery
-                        ->orderByDesc('id')
-                        ->first();
-                }
-
-                // ==================================================
-                // 9. FIND CURRENT MAIN-TABLE FILE WHEN record_id EXISTS
-                // Reuse its filename so the replacement keeps the same name.
-                // ==================================================
-
-                $oldStoredPath = null;
-
-                if ($recordId !== null) {
-                    switch ($documentCategory) {
-                        case 'ownership_doc':
-                            $oldStoredPath = DB::table('ccl_forma_meta')
+                            DB::table('cl_ownership_table')
                                 ->where('application_id', $applicationId)
-                                ->value('ownership_doc');
-                            break;
+                                ->where(
+                                    'ownership_type',
+                                    $request->ownership_type
+                                )
+                                ->where('row_index', $rowIndex)
+                                ->update($ownershipData);
 
-                        case 'bank_doc':
-                            $oldStoredPath = DB::table('tnelb_banksolvency_a')
-                                ->where('application_id', $applicationId)
-                                ->value('bank_doc');
-                            break;
+                        } else {
 
-                        case 'Address_proof':
-                            $oldStoredPath = DB::table('tnelb_addressproof_cl')
-                                ->where('application_id', $applicationId)
-                                ->value('file_doc');
-                            break;
+                            DB::table('cl_ownership_table')->insert(
+                                array_merge(
+                                    [
+                                        'application_id' => $applicationId,
+                                        'ownership_type' => $request->ownership_type,
+                                        'row_index' => $rowIndex,
+                                        'created_at' => now(),
+                                    ],
+                                    $ownershipData
+                                )
+                            );
+                        }
 
-                        case 'other_doc':
-                            $oldStoredPath = DB::table('tnelb_attachments_cl')
-                                ->where('application_id', $applicationId)
-                                ->where('type', $request->ownership_type)
-                                ->value('file_doc');
-                            break;
+                        break;
 
-                        case 'instrument_test_report':
-                            if (!$equipCode) {
-                                throw new \RuntimeException('Equipment ID is required for the test report.');
-                            }
-                            $oldStoredPath = DB::table('tnelb_equimentsuser_cl')
-                                ->where('application_id', $applicationId)
-                                ->where('equipment_id', $equipCode)
-                                ->value('testreport_file');
-                            break;
+                    // ------------------------------------------
+                    // SPECIMEN SIGN
+                    // ------------------------------------------
 
-                        case 'instrument_purchase_report':
-                            if (!$equipCode) {
-                                throw new \RuntimeException('Equipment ID is required for the purchase report.');
-                            }
-                            $oldStoredPath = DB::table('tnelb_equimentsuser_cl')
-                                ->where('application_id', $applicationId)
-                                ->where('equipment_id', $equipCode)
-                                ->value('purchasereport_file');
-                            break;
+                    case 'specimen_sign':
 
-                        // QC / QSC staff appointment and consent documents
-                        case 'app_doc':
-                        case 'cons_doc':
-                            if ($rowIndex === null) {
-                                throw new \RuntimeException(
-                                    'Row index is required for QC/QSC staff documents.'
-                                );
-                            }
+                        if ($rowIndex === null) {
+                            throw new \RuntimeException(
+                                'Row index is required for specimen sign.'
+                            );
+                        }
 
-                            $staffQuery = DB::table('cl_staff_tbl')
+                        $signRecord = DB::table('cl_forma_signs')
+                            ->where('application_id', $applicationId)
+                            ->where('row_index', $rowIndex)
+                            ->first();
+
+                        if ($signRecord) {
+
+                            DB::table('cl_forma_signs')
                                 ->where('application_id', $applicationId)
                                 ->where('row_index', $rowIndex)
-                                ->whereIn('staff_category', ['QC', 'QSC']);
+                                ->update([
+                                    'specimen_sign' => $finalPath,
+                                    'updated_at' => now(),
+                                ]);
 
-                            $oldStoredPath = $staffQuery->value($documentCategory);
-                            break;
+                        } else {
+
+                            DB::table('cl_forma_signs')->insert([
+                                'login_id' => $loginId,
+                                'application_id' => $applicationId,
+                                'form_name' => $request->input('form_name'),
+                                'cert_name' => $request->input('cert_name'),
+                                'form_code' => $request->input('form_code'),
+                                'name_of_authorised_to_sign' =>
+                                    $request->input(
+                                        'name_of_authorised_to_sign'
+                                    ),
+                                'age_of_authorised_to_sign' =>
+                                    $request->input(
+                                        'age_of_authorised_to_sign'
+                                    ),
+                                'qualification_of_authorised_to_sign' =>
+                                    $request->input(
+                                        'qualification_of_authorised_to_sign'
+                                    ),
+                                'designation_of_authorised_to_sign' =>
+                                    $request->input(
+                                        'designation_of_authorised_to_sign'
+                                    ),
+                                'specimen_sign' => $finalPath,
+                                'row_index' => $rowIndex,
+                                'flag' => 1,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+
+                        break;
+
+                    // ------------------------------------------
+                    // UNKNOWN DOCUMENT CATEGORY
+                    // ------------------------------------------
+
+                    default:
+
+                        throw new \RuntimeException(
+                            'Main-table mapping is not configured for document category: ' .
+                            $documentCategory .
+                            ', subcategory: ' . $subCategory
+                        );
+                }
+
+                // ==============================================
+                // 13. REMOVE OLD FILE FROM ANOTHER FOLDER
+                // Only after the database update succeeds.
+                // ==============================================
+
+                if (!empty($oldStoredPath)) {
+
+                    $normalizedOldPath = str_replace(
+                        '\\',
+                        '/',
+                        $oldStoredPath
+                    );
+
+                    $oldAbsolutePath = str_starts_with(
+                        $normalizedOldPath,
+                        '/'
+                    )
+                        ? $normalizedOldPath
+                        : public_path(
+                            ltrim($normalizedOldPath, '/')
+                        );
+
+                    $oldRealPath = realpath($oldAbsolutePath);
+                    $newRealPath = realpath($destination);
+
+                    if (
+                        is_file($oldAbsolutePath) &&
+                        $oldRealPath !== false &&
+                        (
+                            $newRealPath === false ||
+                            $oldRealPath !== $newRealPath
+                        )
+                    ) {
+                        File::delete($oldAbsolutePath);
                     }
                 }
 
-                // ==================================================
-                // 10. GENERATE FILE NAME
-                // ==================================================
+            } else {
 
-                $date = now()->format('Ymd');
-                $time = now()->timezone('Asia/Kolkata')->format('Hi');
-
-                $formCode = $request->form_code;
-                $moduleCode = strtoupper($pathData->module_code);
+                // ==============================================
+                // 14. TEMPORARY DOCUMENT TABLE
+                // ==============================================
 
                 if ($existing) {
 
-                    // Keep the same filename when replacing a temp file.
-                    $fileName = $existing->file_name;
-                } else {
-
-                    switch ($subCategory) {
-
-                        case 'OED':
-                        case 'AP':
-
-                            $fileName = $date . '_' . $time . '_' .
-                                $loginId . '_L' . $formCode . '_' .
-                                strtoupper($request->ownership_type) .
-                                $moduleCode . $rowIndex . '.pdf';
-
-                            break;
-
-                        case 'QAD':
-                        case 'QCD':
-                        case 'SS':
-
-                            $fileName = $date . '_' . $time . '_' .
-                                $loginId . '_L' . $formCode . '_' .
-                                $moduleCode . $rowIndex . '.pdf';
-
-                            break;
-
-                        case 'OHD':
-
-                            $fileName = $date . '_' . $time . '_' .
-                                $loginId . '_L' . $formCode . '_' .
-                                $request->ownership_type . '_' .
-                                $moduleCode . '.pdf';
-
-                            break;
-
-                        case 'ED':
-
-                            $fileName = $date . '_' . $time . '_' .
-                                $loginId . '_L' . $formCode . '_' .
-                                $request->ownership_type . '_' .
-                                $moduleCode . $equipCode . '.pdf';
-
-                            break;
-
-                        case 'QD':
-
-                            $fileName = $date . '_' . $time . '_' .
-                                $loginId . '_L' . $formCode .
-                                $moduleCode . $qcCode . '.pdf';
-
-                            break;
-
-                        default:
-
-                            $fileName = $date . '_' . $time . '_' .
-                                $loginId . '_L' . $formCode . '_' .
-                                $moduleCode . '.pdf';
-
-                            break;
-                    }
-                }
-
-                // If updating an existing application's document, retain the
-                // currently stored filename when one already exists. The new
-                // upload will replace that filename in $folderPath.
-                if ($recordId !== null && !empty($oldStoredPath)) {
-                    $fileName = basename(str_replace('\\', '/', $oldStoredPath));
-                }
-
-                // ==================================================
-                // 11. REPLACE EXISTING FILE OR SAVE NEW FILE
-                // ==================================================
-
-                $destination = $folderPath . DIRECTORY_SEPARATOR . $fileName;
-
-                if (\File::exists($destination)) {
-                    \File::delete($destination);
-                }
-
-                $file->move($folderPath, $fileName);
-
-                $finalPath = $dbFilePath . '/' . $fileName;
-
-                // ==================================================
-                // 11. EXISTING APPLICATION: ACTUAL TABLES
-                // record_id present = do not insert into temp table
-                // ==================================================
-
-                if ($recordId !== null) {
-
-                    // dd($documentCategory); exit;
-
-                    switch ($documentCategory) {
-
-                        // ------------------------------------------
-                        // OWNERSHIP DOCUMENT
-                        // ------------------------------------------
-                        case 'ownership_doc':
-
-                            DB::table('ccl_forma_meta')->updateOrInsert(
-                                ['application_id' => $applicationId],
-                                [
-                                    'ownership_doc' => $finalPath,
-                                    'updated_at'    => now(),
-                                ]
-                            );
-
-                            break;
-
-                        // ------------------------------------------
-                        // BANK SOLVENCY DOCUMENT
-                        // ------------------------------------------
-                        case 'bank_doc':
-
-                            DB::table('tnelb_banksolvency_a')->updateOrInsert(
-                                ['application_id' => $applicationId],
-                                [
-                                    'login_id'     => $loginId,
-                                    'form_name'    => $request->form_name,
-                                    'license_name' => $request->license_name,
-                                    'bank_doc'     => $finalPath,
-                                    'updated_at'   => now(),
-                                    'status'       => '1',
-                                ]
-                            );
-
-                            break;
-
-                        // ------------------------------------------
-                        // ADDRESS PROOF
-                        // ------------------------------------------
-                        case 'Address_proof':
-
-                            DB::table('tnelb_addressproof_cl')->updateOrInsert(
-                                ['application_id' => $applicationId],
-                                [
-                                    'login_id'     => $loginId,
-                                    'form_name'    => $request->form_name,
-                                    'license_name' => $request->license_name,
-                                    'file_doc'     => $finalPath,
-                                    'updated_at'   => now(),
-                                ]
-                            );
-
-                            break;
-
-                        // ------------------------------------------
-                        // OTHER DOCUMENTS
-                        // ------------------------------------------
-                        case 'other_doc':
-
-                            DB::table('tnelb_attachments_cl')->updateOrInsert(
-                                [
-                                    'application_id' => $applicationId,
-                                    'type'            => $request->ownership_type,
-                                ],
-                                [
-                                    'login_id'     => $loginId,
-                                    'form_name'    => $request->form_name,
-                                    'license_name' => $request->license_name,
-                                    'file_doc'     => $finalPath,
-                                    'updated_at'   => now(),
-                                    'created_at'   => now(),
-                                ]
-                            );
-
-                            break;
-
-                        // ------------------------------------------
-                        // EQUIPMENT TEST REPORT
-                        // ------------------------------------------
-                        case 'instrument_test_report':
-
-                            if (!$equipCode) {
-                                throw new \RuntimeException(
-                                    'Equipment ID is required for the test report.'
-                                );
-                            }
-
-                            DB::table('tnelb_equimentsuser_cl')->updateOrInsert(
-                                [
-                                    'application_id' => $applicationId,
-                                    'equipment_id'   => $equipCode,
-                                ],
-                                [
-                                    'testreport_file' => $finalPath,
-                                    'updated_at'      => now(),
-                                ]
-                            );
-
-                            break;
-
-                        // ------------------------------------------
-                        // EQUIPMENT PURCHASE REPORT
-                        // ------------------------------------------
-                        case 'instrument_purchase_report':
-
-                            if (!$equipCode) {
-                                throw new \RuntimeException(
-                                    'Equipment ID is required for the purchase report.'
-                                );
-                            }
-
-                            DB::table('tnelb_equimentsuser_cl')->updateOrInsert(
-                                [
-                                    'application_id' => $applicationId,
-                                    'equipment_id'   => $equipCode,
-                                ],
-                                [
-                                    'purchasereport_file' => $finalPath,
-                                    'updated_at'          => now(),
-                                ]
-                            );
-
-                            break;
-
-                        // ------------------------------------------
-                        // QC / QSC STAFF DOCUMENTS
-                        // ------------------------------------------
-                        case 'app_doc':
-                        case 'cons_doc':
-
-                            if ($rowIndex === null) {
-                                throw new \RuntimeException(
-                                    'Row index is required for QC/QSC staff documents.'
-                                );
-                            }
-
-                            // The request must identify whether this is QC or QSC.
-                            $staffCategory = 'QC'; // Default to QC if not provided
-
-                            if (!in_array($staffCategory, ['QC', 'QSC'], true)) {
-                                throw new \RuntimeException(
-                                    'A valid staff_category (QC or QSC) is required.'
-                                );
-                            }
-
-                            // Find the staff row using its actual identity.
-                            $staff = DB::table('cl_staff_tbl')
-                                ->where('application_id', $applicationId)
-                                ->where('row_index', $rowIndex)
-                                ->where('staff_category', 'QC')
-                                ->first();
-
-                            if ($staff) {
-
-                                // Existing record: update only the uploaded document field.
-                                DB::table('cl_staff_tbl')
-                                    ->where('id', $staff->id)
-                                    ->update([
-                                        'staff_category'      => $staffCategory,
-                                        $documentCategory => $finalPath,
-                                        'updated_at'       => now(),
-                                    ]);
-                            } else {
-
-                                // Missing record: insert a new staff row.
-                                DB::table('cl_staff_tbl')->insert([
-                                    'application_id' => $applicationId,
-                                    'row_index'      => $rowIndex,
-                                    'staff_category' => 'QC',
-                                    'staff_flag' => '1',
-                                    'login_id'     => $loginId,
-                                    $documentCategory => $finalPath,
-                                    'created_at'     => now(),
-                                    'updated_at'     => now(),
-                                ]);
-                            }
-
-                            break;
-
-                                                // ------------------------------------------
-                            // SPECIMEN SIGN
-                            // ------------------------------------------
-                            case 'specimen_sign':
-
-                                if ($rowIndex === null) {
-                                    throw new \RuntimeException(
-                                        'Row index is required for specimen sign.'
-                                    );
-                                }
-
-                                // Find the existing record using application ID + row index.
-                                $signRecord = DB::table('cl_forma_signs')
-                                    ->where('application_id', $applicationId)
-                                    ->where('row_index', $rowIndex)
-                                    ->first();
-
-                                if ($signRecord) {
-
-                                    // Existing record: update only the specimen sign file path.
-                                    DB::table('cl_forma_signs')
-                                        ->where('application_id', $applicationId)
-                                        ->where('row_index', $rowIndex)
-                                        ->update([
-                                            'specimen_sign' => $finalPath,
-                                            'updated_at'    => now(),
-                                        ]);
-
-                                } else {
-
-                                    // Missing record: insert a new row.
-                                    DB::table('cl_forma_signs')->insert([
-                                        'login_id' => $loginId,
-                                        'application_id' => $applicationId,
-                                        'form_name' => $request->input('form_name'),
-                                        'cert_name' => $request->input('cert_name'),
-                                        'form_code' => $request->input('form_code'),
-                                        'name_of_authorised_to_sign' => $request->input(
-                                            'name_of_authorised_to_sign'
-                                        ),
-                                        'age_of_authorised_to_sign' => $request->input(
-                                            'age_of_authorised_to_sign'
-                                        ),
-                                        'qualification_of_authorised_to_sign' => $request->input(
-                                            'qualification_of_authorised_to_sign'
-                                        ),
-                                        'designation_of_authorised_to_sign' => $request->input(
-                                            'designation_of_authorised_to_sign'
-                                        ),
-                                        'specimen_sign' => $finalPath,
-                                        'row_index' => $rowIndex,
-                                        'flag' => 1,
-                                        'created_at' => now(),
-                                        'updated_at' => now(),
-                                    ]);
-                                }
-
-                                break;
-
-                        // ------------------------------------------
-                        // UNKNOWN DOCUMENT CATEGORY
-                        // ------------------------------------------
-                        default:
-
-                            throw new \RuntimeException(
-                                'Main-table mapping is not configured for document category: ' .
-                                    $documentCategory .
-                                    ', subcategory: ' . $subCategory
-                            );
-                    }
-
-                    // The database now points to the replacement. If the old
-                    // file was stored in a different folder, remove that stale
-                    // file after the new upload and database update succeeded.
-                    if (!empty($oldStoredPath)) {
-                        $normalizedOldPath = str_replace('\\', '/', $oldStoredPath);
-                        $oldAbsolutePath = str_starts_with($normalizedOldPath, '/')
-                            ? $normalizedOldPath
-                            : public_path(ltrim($normalizedOldPath, '/'));
-
-                        if (is_file($oldAbsolutePath) && realpath($oldAbsolutePath) !== realpath($destination)) {
-                            \File::delete($oldAbsolutePath);
-                        }
-                    }
-                } else {
-
-                    // ==============================================
-                    // 12. NEW APPLICATION: TEMPORARY TABLE
-                    // Empty record_id = session-based application ID
-                    // is_final = 1 for insert and replacement
-                    // ==============================================
-
-                    if ($existing) {
-
-                        // Replace existing temporary document.
-                        // Keep its ID and filename unchanged.
-
-                        DB::table('tnelb_temp_uploaded_documents')
-                            ->where('id', $existing->id)
-                            ->update([
-                                'ownership_type'        => $request->ownership_type,
-                                'document_sub_category' => $subCategory,
-                                'original_pdfname'      => $originalName,
-                                'file_path'             => $dbFilePath,
-                                'is_final'              => '1',
-                                'uploaded_at'           => now(),
-                                'updated_at'            => now(),
-                            ]);
-                    } else {
-
-                        // Insert new temporary document with is_final = 1.
-
-                        DB::table('tnelb_temp_uploaded_documents')->insert([
-                            'login_id'              => $loginId,
-                            'application_id'        => $applicationId,
-                            'record_id_app'         => null,
-                            'form_name'             => $request->form_name,
-                            'license_name'          => $request->license_name,
-                            'module'                => $request->module,
-                            'ownership_type'        => $request->ownership_type,
-                            'document_category'     => $documentCategory,
+                    DB::table('tnelb_temp_uploaded_documents')
+                        ->where('id', $existing->id)
+                        ->update([
+                            'ownership_type' => $request->ownership_type,
                             'document_sub_category' => $subCategory,
-                            'original_pdfname'      => $originalName,
-                            'file_name'             => $fileName,
-                            'file_path'             => $dbFilePath,
-                            'ownership_count'       => $counter,
-                            'appl_type'             => $request->appl_type,
-                            'row_index'             => $rowIndex,
-                            'equip_code'            => $equipCode,
-                            'qc_code'               => $qcCode,
-                            'uploaded_at'           => now(),
-                            'is_final'              => '1',
-                            'created_at'            => now(),
-                            'updated_at'            => now(),
+                            'original_pdfname' => $originalName,
+                            'file_name' => $fileName,
+                            'file_path' => $dbFilePath,
+                            'is_final' => '1',
+                            'uploaded_at' => now(),
+                            'updated_at' => now(),
                         ]);
 
-                        // Preserve the existing temporary mapping logic.
+                } else {
 
-                        // DB::table('cl_temp_mapping')->insert([
-                        //     'login_id'       => $loginId,
-                        //     'temp_app_id'    => $applicationId,
-                        //     'application_id' => '',
-                        //     'form_name'      => $request->form_name,
-                        //     'license_name'   => $request->license_name,
-                        //     'date'           => now()->toDateString(),
-                        //     'created_at'     => now(),
-                        //     'updated_at'     => now(),
-                        // ]);
-                    }
+                    DB::table('tnelb_temp_uploaded_documents')->insert([
+                        'login_id' => $loginId,
+                        'application_id' => $applicationId,
+                        'record_id_app' => null,
+                        'form_name' => $request->form_name,
+                        'license_name' => $request->license_name,
+                        'module' => $request->module,
+                        'ownership_type' => $request->ownership_type,
+                        'document_category' => $documentCategory,
+                        'document_sub_category' => $subCategory,
+                        'original_pdfname' => $originalName,
+                        'file_name' => $fileName,
+                        'file_path' => $dbFilePath,
+                        'ownership_count' => $counter,
+                        'appl_type' => $request->appl_type,
+                        'row_index' => $rowIndex,
+                        'equip_code' => $equipCode,
+                        'qc_code' => $qcCode,
+                        'uploaded_at' => now(),
+                        'is_final' => '1',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
-
-                // ==================================================
-                // 13. BUILD RESPONSE
-                // ==================================================
-
-                $uploadedFiles[] = [
-                    'file_name' => $fileName,
-                    'file_url'  => asset($finalPath),
-                ];
-
-                $counter++;
             }
 
-            // ======================================================
-            // 14. SUCCESS RESPONSE
-            // ======================================================
+            // ==============================================
+            // 15. REMOVE BACKUP AFTER SUCCESSFUL DB UPDATE
+            // ==============================================
 
-            return response()->json([
-                'status' => 'success',
-                'files'  => $uploadedFiles,
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+            if (File::exists($backupPath)) {
+                File::delete($backupPath);
+            }
 
-            return response()->json([
-                'status' => 'validation_error',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
+            // ==============================================
+            // 16. BUILD RESPONSE
+            // ==============================================
 
-            return response()->json([
-                'status'  => 'error',
-                'message' => $e->getMessage(),
-                'line'    => $e->getLine(),
-                'file'    => $e->getFile(),
-            ], 500);
+            $uploadedFiles[] = [
+                'file_name' => $fileName,
+                'file_url' => asset($finalPath),
+            ];
+
+            $counter++;
         }
+
+        // ======================================================
+        // 17. SUCCESS RESPONSE
+        // ======================================================
+
+        return response()->json([
+            'status' => 'success',
+            'files' => $uploadedFiles,
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+
+        return response()->json([
+            'status' => 'validation_error',
+            'errors' => $e->errors(),
+        ], 422);
+
+    } catch (\Throwable $e) {
+
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+        ], 500);
     }
+}
 
 
 
@@ -1436,19 +1630,19 @@ class DocumentUploadController extends Controller
                     ]);
 
 
-                    DB::table('cl_temp_mapping')->insert([
-                        'login_id' => $loginId,
-                        'temp_app_id' => $applicationId,
+                    // DB::table('cl_temp_mapping')->insert([
+                    //     'login_id' => $loginId,
+                    //     'temp_app_id' => $applicationId,
 
-                        'application_id' => '',
-                        'form_name' => $request->form_name,
-                        'license_name' => $request->license_name,
+                    //     'application_id' => '',
+                    //     'form_name' => $request->form_name,
+                    //     'license_name' => $request->license_name,
 
-                        'date' => now()->toDateString(),
+                    //     'date' => now()->toDateString(),
 
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                    //     'created_at' => now(),
+                    //     'updated_at' => now(),
+                    // ]);
                 }
 
                 $counter++;
