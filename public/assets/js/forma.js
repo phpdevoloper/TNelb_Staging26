@@ -1814,11 +1814,6 @@ $(document).ready(function () {
 
         });
 
-
-        // ==========================================================
-        // DEBUG
-        // ==========================================================
-
         // ==========================================================
         // MINIMUM ONE QC / QSC
         // ==========================================================
@@ -2621,11 +2616,7 @@ $(document).ready(function () {
 
                 validityTo
 
-            )
-
-
-                .then(function (response) {
-
+            ).then(function (response) {
 
                     // ==================================================
                     // CERTIFICATE VALIDATION FAILED
@@ -2674,15 +2665,8 @@ $(document).ready(function () {
                             .val(returnedHolderName);
 
                     }
-
-
-
                     return true;
-
-                })
-
-
-                .catch(function (xhr) {
+                }).catch(function (xhr) {
 
 
                     staffValidationPassed = false;
@@ -3567,8 +3551,6 @@ $(document).ready(function () {
                     }).then((result) => {
                         if (result.isConfirmed) {
                             formData.append("check_value", "YES");
-                            console.log(formData);
-                            return false;
                             showDeclarationPopupformA(formData);
                         } else {
                             formData.append("check_value", "NO");
@@ -3641,13 +3623,12 @@ $(document).ready(function () {
                     });
                     return;
                 }
-
                 // Store fees values in formData
                 formData.set("total_fees", response.fees_details.total_fees);
                 formData.set("basic_fees", response.fees_details.basic_fees);
                 formData.set("lateFees", response.fees_details.lateFees);
                 formData.set("late_months", response.fees_details.late_months);
-                formData.set("dbNow", response.fees_details.dbNow);
+                formData.set("dbNow", response.fees_details.dbNow || "");
                 formData.set("licenseName", response.licenseName);
                 formData.set("qcfee", response.fees_details.qcfee);
 
@@ -3662,28 +3643,6 @@ $(document).ready(function () {
                     let parts = fees_start_date.split("-"); // ["2025","01","27"]
                     fees_start_date = `${parts[2]}-${parts[1]}-${parts[0]}`; // DD-MM-YYYY
                 }
-
-                // Convert Delta to HTML
-                // let form_instruct = response.instructions;
-
-                // let html = "";
-                // try {
-                //     const delta = JSON.parse(form_instruct);
-                //     const converter = new QuillDeltaToHtmlConverter(delta.ops, {
-                //         multiLineParagraph: true,
-                //         listItemTag: "li",
-                //         paragraphTag: "p",
-                //     });
-                //     html = converter.convert();
-                // } catch (e) {
-                //     console.error("Delta parse failed. Showing raw text.");
-                //     html = `<p>${form_instruct}</p>`;
-                // }
-
-                // Insert instructions only (not replacing values above)
-
-
-
 
                 submitFormAFinal(formData, "submit");
 
@@ -3761,7 +3720,7 @@ $(document).ready(function () {
                 let lateFees = formData.get("lateFees") || 0;
                 let lateMonths = formData.get("late_months") || 0;
 
-                let dbNow = formData.get("dbNow");
+                let dbNow = response.dbNow || "";
                 
 
 
@@ -3817,9 +3776,6 @@ $(document).ready(function () {
                         window.licenseName = licence_name;
                         window.formName = $("#form_name").val();
 
-                        console.log(window.paymentAppId, window.paymentFormType, window.licenseName, window.formName);
-                        return false;
-
                         // Show success modal
                         $("#paymentSuccessModalcontractor").modal({
                             backdrop: "static",
@@ -3859,6 +3815,7 @@ $(document).ready(function () {
                         qcfees,
                         licenseName,
                         formName,
+                        lateMonths,
                     );
                 }
 
@@ -3899,6 +3856,7 @@ $(document).ready(function () {
         qcfees,
         licenseName,
         formName,
+        lateMonths,
     ) {
         // alert(licenseName);
         Swal.fire({
@@ -3976,23 +3934,33 @@ $(document).ready(function () {
             buttonsStyling: false,
             preConfirm: () => {
                 try {
-                    const payuWin = window.open('', 'tnelb_payu_gateway');
+                    const contractorPayu = window.CONTRACTOR_PAYU_CONFIG || {};
+                    if (!contractorPayu.payuInitiateUrl) {
+                        throw new Error('Contractor payment URL is not configured.');
+                    }
+
+                    const payuWin = window.open('', 'tnelb_contractor_payu_gateway');
                     if (!payuWin) {
                         throw new Error('Please allow pop-ups for this site to open the payment window.');
                     }
 
+                    const payableAmount = parseFloat(amount) || 0;
+                    if (payableAmount < 0.01) {
+                        throw new Error('Payable amount is missing. Please refresh and try again.');
+                    }
+
                     const form = document.createElement('form');
                     form.method = 'POST';
-                    form.action = cfg.payuInitiateUrl;
-                    form.target = 'tnelb_payu_gateway';
+                    form.action = contractorPayu.payuInitiateUrl;
+                    form.target = 'tnelb_contractor_payu_gateway';
 
                     const fields = {
-                        _token: $('meta[name="csrf-token"]').attr("content"),
+                        _token: contractorPayu.csrfToken || $('meta[name="csrf-token"]').attr("content"),
                         application_id: application_id,
-                        amount: amount ?? total_fees ?? 0,
-                        actual_fees: actual_fees ?? 0,
-                        lateFee: lateFee ?? 0,
-                        lateMonths: lateMonths ?? 0,
+                        amount: payableAmount,
+                        actual_fees: parseFloat(basic_fees) || 0,
+                        lateFee: parseFloat(lateFees) || 0,
+                        lateMonths: parseInt(lateMonths, 10) || 0,
                     };
 
                     Object.keys(fields).forEach((name) => {
@@ -4007,50 +3975,42 @@ $(document).ready(function () {
                     form.submit();
                     form.remove();
 
-                    watchPayUPaymentProgress({
+                    window.__contractorPayUStarted = true;
+                    watchContractorPayUPaymentProgress({
                         applicationId: application_id,
-                        applicantName: applicantName,
-                        amount: amount ?? total_fees ?? 0,
-                        formType: form_type,
-                        licenceName: licence_name,
+                        loginId: loginId,
+                        transactionId: transactionId,
                         transactionDate: transactionDate,
+                        licenceName: licence_name,
+                        formType: form_type,
+                        basicFees: basic_fees,
+                        lateFees: lateFees,
+                        lateFeeRow: lateFeeRow,
+                        applicantName: applicantName,
+                        amount: payableAmount,
+                        dbNow: dbNow,
+                        licenseName: licenseName,
+                        formName: formName,
                         payuWin: payuWin,
                     });
                     return false;
                 } catch (error) {
-                    console.error('Payment initiation failed:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Payment Error',
-                        text: 'Please try again or contact support.',
-                    });
+                    console.error('Contractor payment initiation failed:', error);
+                    Swal.showValidationMessage(
+                        (error && error.message) ? error.message : 'Please try again or contact support.'
+                    );
+                    return false;
                 }
             },
         }).then((result) => {
-            if (result.isConfirmed && result.value) {
-                showPaymentSuccessPopupformA(
-                    application_id,
-                    loginId,
-                    transactionId,
-                    transactionDate,
-                    licence_name,
-                    form_type,
-                    basic_fees,
-                    lateFees,
-                    lateFeeRow,
-                    applicantName,
-                    amount,
-                    dbNow,
-                    licenseName,
-                    formName,
-                );
+            if (window.__contractorPayUStarted) {
                 return;
             }
             if (result.dismiss === Swal.DismissReason.cancel) {
                 Swal.fire({
-                    title: "Payment Failed!",
-                    text: "Application Saved as Draft",
-                    icon: "error",
+                    title: "Payment Cancelled",
+                    text: "Application is saved. You can pay later from the dashboard.",
+                    icon: "info",
                     timer: 3000,
                     timerProgressBar: true
                 }).then(() => {
@@ -4058,6 +4018,163 @@ $(document).ready(function () {
                 });
             }
         });
+    }
+
+    function watchContractorPayUPaymentProgress(opts) {
+        opts = opts || {};
+        const applicationId = opts.applicationId;
+        if (!applicationId) {
+            return;
+        }
+
+        if (window.__tnelbContractorPayUMessageHandler) {
+            window.removeEventListener('message', window.__tnelbContractorPayUMessageHandler);
+            window.__tnelbContractorPayUMessageHandler = null;
+        }
+
+        let finished = false;
+
+        function finishSuccess(payload) {
+            if (finished) return;
+            finished = true;
+            clearContractorPayUWatch();
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            showPaymentSuccessPopupformA(
+                payload.application_id || applicationId,
+                payload.application_id || opts.loginId || applicationId,
+                payload.txnid || opts.transactionId || '',
+                payload.transaction_date || opts.transactionDate || new Date().toLocaleDateString('en-GB'),
+                payload.licence_name || opts.licenceName,
+                payload.form_type || opts.formType,
+                opts.basicFees,
+                opts.lateFees,
+                opts.lateFeeRow,
+                payload.applicant_name || opts.applicantName,
+                payload.amount != null ? payload.amount : opts.amount,
+                opts.dbNow,
+                payload.licence_name || opts.licenseName,
+                opts.formName
+            );
+        }
+
+        function finishPending(message) {
+            if (finished) return;
+            finished = true;
+            clearContractorPayUWatch();
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            Swal.fire({
+                icon: 'info',
+                title: 'Payment in progress',
+                text: message || 'Payment is being processed. Check the dashboard shortly.',
+                confirmButtonText: 'OK',
+            }).then(() => {
+                window.location.href = BASE_URL + "/dashboard";
+            });
+        }
+
+        function finishFailed(message) {
+            if (finished) return;
+            finished = true;
+            clearContractorPayUWatch();
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment not completed',
+                text: message || 'Payment failed or was cancelled. You can pay again from the dashboard.',
+                confirmButtonText: 'OK',
+            });
+        }
+
+        function clearContractorPayUWatch() {
+            if (window.__tnelbContractorPayUPopupTimer) {
+                clearInterval(window.__tnelbContractorPayUPopupTimer);
+                window.__tnelbContractorPayUPopupTimer = null;
+            }
+            if (window.__tnelbContractorPayUMessageHandler) {
+                window.removeEventListener('message', window.__tnelbContractorPayUMessageHandler);
+                window.__tnelbContractorPayUMessageHandler = null;
+            }
+        }
+
+        Swal.fire({
+            title: 'Waiting for payment',
+            html: `
+                <div style="padding:8px 4px 0;">
+                    <div style="width:56px;height:56px;margin:0 auto 16px;border:4px solid #dbeafe;border-top-color:#0d6efd;border-radius:50%;animation:tnelb-payu-spin .8s linear infinite;"></div>
+                    <p style="margin:0 0 6px;font-size:15px;color:#334155;">Complete payment in the <strong>new window</strong>.</p>
+                    <p style="margin:0;font-size:13px;color:#64748b;">Keep this page open until payment finishes.</p>
+                </div>
+                <style>@keyframes tnelb-payu-spin{to{transform:rotate(360deg)}}</style>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Cancel waiting',
+        }).then(function (result) {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                finished = true;
+                clearContractorPayUWatch();
+            }
+        });
+
+        window.__tnelbContractorPayUMessageHandler = function (event) {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data || {};
+            if (data.type === 'TNELB_PAYU_SUCCESS' && data.payload) {
+                finishSuccess(data.payload);
+            } else if (data.type === 'TNELB_PAYU_FAILED') {
+                const payload = data.payload || {};
+                finishFailed(payload.message || 'Payment failed or was cancelled in the payment window.');
+            } else if (data.type === 'TNELB_PAYU_PENDING') {
+                const payload = data.payload || {};
+                finishPending(payload.message || 'Payment is in progress at your bank.');
+            }
+        };
+        window.addEventListener('message', window.__tnelbContractorPayUMessageHandler);
+
+        if (opts.payuWin) {
+            if (window.__tnelbContractorPayUPopupTimer) {
+                clearInterval(window.__tnelbContractorPayUPopupTimer);
+            }
+            window.__tnelbContractorPayUPopupTimer = setInterval(function () {
+                if (finished) {
+                    clearInterval(window.__tnelbContractorPayUPopupTimer);
+                    window.__tnelbContractorPayUPopupTimer = null;
+                    return;
+                }
+                try {
+                    if (opts.payuWin.closed) {
+                        clearInterval(window.__tnelbContractorPayUPopupTimer);
+                        window.__tnelbContractorPayUPopupTimer = null;
+                        if (!finished) {
+                            finishPending('Payment window was closed. If payment is still processing, check the dashboard.');
+                        }
+                    }
+                } catch (e) {}
+            }, 1500);
+        }
     }
 
     window.paymentAppId = null;
@@ -4102,8 +4219,15 @@ $(document).ready(function () {
             }));
 
         $("#paymentSuccessModalcontractor").modal("show");
+        $("#contractorGoToDashboardBtn").attr("href", window.location.origin + "/dashboard");
 
     }
+
+    $(document).off("click.contractorDashboard", "#contractorGoToDashboardBtn")
+        .on("click.contractorDashboard", "#contractorGoToDashboardBtn", function (e) {
+            e.preventDefault();
+            window.location.href = window.location.origin + "/dashboard";
+        });
 
     function paymentreceiptformA() {
         // alert('1111');
@@ -4214,61 +4338,6 @@ $(document).ready(function () {
             },
         });
     }
-
-    // function verifyCompetencyCertificate(e, btn) {
-    //     e.preventDefault();
-
-    //     const $parent = $(btn).closest('.row');
-    //     let licenseNumber = $parent.find('.competency_number').val().trim();
-    //     const date = $parent.find('.competency_validity').val().trim();
-    //     const resultBox = $parent.find('.competency_verify_result');
-    //     const statusInput = $parent.find('.competency_status'); // hidden input
-
-    //     const prefixPattern = /^(WH|C|B)/i;
-
-    //     if (!licenseNumber || !date) {
-    //         resultBox.text('⚠️ Enter license number and date.');
-    //         statusInput.val("0");
-    //         return;
-    //     }
-
-    //     $(btn).closest('.row').find('.license-status').hide();
-
-    //     if (!prefixPattern.test(licenseNumber)) {
-    //         resultBox.html(`<span class="text-danger">⚠️ License number must start with WH, C, or B.</span>`);
-    //         statusInput.val("0");
-    //         return;
-    //     }
-
-    //     // Remove prefix (optional based on your backend logic)
-    //     licenseNumber = licenseNumber.replace(/^(WH|C|B)/i, '');
-
-    //     resultBox.html(`<span class="text-info">Verifying...</span>`);
-
-    //     $.ajax({
-    //         url: "/verifylicenseformAccc",
-    //         method: 'POST',
-    //         data: {
-    //             license_number: licenseNumber,
-    //             date: date,
-    //             _token: $('meta[name="csrf-token"]').attr('content')
-    //         },
-    //         success: function(response) {
-    //             if (response.exists) {
-    //                 resultBox.html(`<span class="text-success">&#10004; Valid verified.</span>`);
-    //                 statusInput.val("1");
-    //             } else {
-    //                 resultBox.html(`<span class="text-danger">&#10060; Invalid found.</span>`);
-    //                 statusInput.val("0");
-    //             }
-    //         },
-    //         error: function(xhr) {
-    //             resultBox.html(`<span class="text-danger">🚫 Error verifying license. Try again.</span>`);
-    //             statusInput.val("0");
-    //             console.error(xhr.responseText);
-    //         }
-    //     });
-    // }
 
     function verifyCompetencyCertificateincrease(e, btn) {
         e.preventDefault();
@@ -4456,57 +4525,6 @@ $(document).ready(function () {
             },
         });
     }
-
-    // function verifyeaCertificate(e, btn) {
-    //     e.preventDefault();
-
-    //     const $parent = $(btn).closest('.row');
-    //     let licenseNumber = $parent.find('.ea_license_number').val().trim();
-    //     const date = $parent.find('.ea_validity').val().trim();
-    //     const resultBox = $parent.find('.competency_verifyea_result');
-    //     const statusInput = $parent.find('.contactor_license_verify'); // Hidden input
-
-    //     const prefixPattern = /^EA/i;
-
-    //     if (!licenseNumber || !date) {
-    //         resultBox.text('⚠️ Enter license number and date.');
-    //         statusInput.val("0");
-    //         return;
-    //     }
-
-    //     if (!prefixPattern.test(licenseNumber)) {
-    //         resultBox.html(`<span class="text-danger">⚠️ License number must start with EA.</span>`);
-    //         statusInput.val("0");
-    //         return;
-    //     }
-
-    //     licenseNumber = licenseNumber.replace(/^EA/i, '');
-    //     resultBox.html(`<span class="text-info">Verifying...</span>`);
-
-    //     $.ajax({
-    //         url: "/verifylicenseformAea_appl",
-    //         method: 'POST',
-    //         data: {
-    //             license_number: licenseNumber,
-    //             date: date,
-    //             _token: $('meta[name="csrf-token"]').attr('content')
-    //         },
-    //         success: function(response) {
-    //             if (response.exists) {
-    //                 resultBox.html(`<span class="text-success">&#10004; Valid License .</span>`);
-    //                 statusInput.val("1"); // ✅ Change the value in the input box
-    //             } else {
-    //                 resultBox.html(`<span class="text-danger">&#10060; Invalid License .</span>`);
-    //                 statusInput.val("0");
-    //             }
-    //         },
-    //         error: function(xhr) {
-    //             resultBox.html(`<span class="text-danger">🚫 Error verifying license. Try again.</span>`);
-    //             statusInput.val("0");
-    //             console.error(xhr.responseText);
-    //         }
-    //     });
-    // }
 
     // ----recent added---------------------
     function verifyeaCertificateprevoius(e, btn) {

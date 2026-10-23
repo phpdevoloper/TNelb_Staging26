@@ -557,8 +557,9 @@
         display: flex;
         align-items: flex-end;
         justify-content: space-between;
-        gap: 0.5rem;
         margin-top: auto;
+        padding: 5px 1px;
+
     }
 
     .license-card__dates {
@@ -797,6 +798,29 @@
         outline: 2px solid var(--color-primary);
         outline-offset: 3px;
     }
+    .license-card__dates {
+        display: flex;
+        gap: 0.85rem;
+    }
+    .license-card__date-block {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.2;
+    }
+    .license-card__date-label {
+        font-size: 0.54rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.62);
+        margin-bottom: 1px;
+    }
+    .license-card__date-value {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #fff;
+        letter-spacing: 0.01em;
+    }
 
 </style>
 <!-- Notice Alert -->
@@ -905,6 +929,7 @@
                                                 $issuedDate = $workflow->valid_from ? Carbon::parse($workflow->valid_from)->format('d-m-Y') : 'N/A';
                                                 $expiryDate = $workflow->valid_to ? Carbon::parse($workflow->valid_to)->format('d-m-Y') : 'N/A';
                                                 $expiry =  $workflow->valid_to;
+                                                $fromDate = Carbon::parse($workflow->valid_from)->format('d-m-Y');
                                                 $isExpired = $expiry ? Carbon::parse($expiry)->lte($today) : false;
                                             @endphp
 
@@ -927,12 +952,18 @@
                                                             <span class="license-card__date-label">Issued</span>
                                                             <span class="license-card__date-value">{{ $issuedDate }}</span>
                                                         </div>
-                                                        <div class="license-card__date-block">
-                                                            <span class="license-card__date-label">Expiry</span>
-                                                            <span class="license-card__date-value">{{ $expiryDate }}</span>
-                                                        </div>
                                                     </div>
                                                     <span class="license-card__chip">Form {{ $workflow->license_name ?? 'N/A' }}</span>
+                                                </div>
+                                                <div class="license-card__dates">
+                                                    <div class="license-card__date-block">
+                                                        <span class="license-card__date-label">From</span>
+                                                        <span class="license-card__date-value">{{ $fromDate }}</span>
+                                                    </div>
+                                                    <div class="license-card__date-block">
+                                                        <span class="license-card__date-label">To</span>
+                                                        <span class="license-card__date-value">{{ $expiryDate }}</span>
+                                                    </div>
                                                 </div>
 
                                                 @if ($isExpired && $expiry)

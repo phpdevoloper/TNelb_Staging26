@@ -20,7 +20,12 @@ class DynamicSessionCookie
         // PayU surl/furl is a cross-site POST. With SameSite=Lax the browser does NOT
         // send our session cookie. Starting a normal session would queue a NEW session
         // cookie and replace the user's real login.
-        $isPayUCallback = $request->is('payu/success', 'payu/failure');
+        $isPayUCallback = $request->is(
+            'payu/success',
+            'payu/failure',
+            'payu/contractor/success',
+            'payu/contractor/failure'
+        );
         if ($isPayUCallback) {
             config(['session.driver' => 'array']);
         }

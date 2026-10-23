@@ -38,6 +38,7 @@ use App\Http\Controllers\FormWHController;
 use App\Http\Controllers\QCStaffController;
 use App\Http\Controllers\ReturnapplicantController;
 use App\Http\Controllers\DocumentVersion\CcInspectController;
+use App\Http\Controllers\DocumentVersion\ClInspectController;
 use App\Http\Controllers\DocumentVersion\DocumentSampleController;
 use App\Http\Controllers\FormS\FormSDocumentController;
 use App\Http\Controllers\WithoutTmp\WithoutTmpController;
@@ -45,6 +46,7 @@ use App\Http\Controllers\WithoutTmp\WithoutTmpController;
 
 use App\Http\Controllers\FormCLAlteration;
 use App\Http\Controllers\PayUPaymentController;
+use App\Http\Controllers\FormAPayUController;
 use App\Http\Controllers\PaymentMaintenanceController;
 use App\Http\Controllers\PreviewController;
 
@@ -545,6 +547,8 @@ Route::prefix('document-version/sample')->name('document-version.sample.')->grou
     Route::get('/details/{application?}', [DocumentSampleController::class, 'applicationDetails'])->name('details');
     Route::get('/cc-inspect', [CcInspectController::class, 'index'])->name('cc-inspect');
     Route::post('/cc-inspect/delete', [CcInspectController::class, 'destroy'])->name('cc-inspect.delete');
+    Route::get('/cl-inspect', [ClInspectController::class, 'index'])->name('cl-inspect');
+    Route::post('/cl-inspect/delete', [ClInspectController::class, 'destroy'])->name('cl-inspect.delete');
     Route::get('/table-data', [DocumentSampleController::class, 'tableData'])->name('table-data');
     Route::get('/upload', [DocumentSampleController::class, 'upload'])->name('upload');
     Route::post('/upload', [DocumentSampleController::class, 'storeUpload'])->name('upload.store');
@@ -617,6 +621,11 @@ Route::post('/payu/check-status', [PayUPaymentController::class, 'checkStatus'])
     ->name('payu.check_status');
 Route::post('/payu/success', [PayUPaymentController::class, 'success'])->name('payu.success');
 Route::post('/payu/failure', [PayUPaymentController::class, 'failure'])->name('payu.failure');
+
+Route::post('/payu/contractor/initiate', [FormAPayUController::class, 'initiate'])->middleware('auth')
+    ->name('payu.contractor.initiate');
+Route::post('/payu/contractor/success', [FormAPayUController::class, 'success'])->name('payu.contractor.success');
+Route::post('/payu/contractor/failure', [FormAPayUController::class, 'failure'])->name('payu.contractor.failure');
 
 
 

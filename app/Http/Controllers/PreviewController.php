@@ -6,6 +6,7 @@ use App\Models\Admin\Mst_equipment_tbl;
 use App\Models\Tnelb_banksolvency_a;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PreviewController extends BaseController
 {
@@ -94,6 +95,25 @@ class PreviewController extends BaseController
 
         $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
 
+        $authorisedSigns = Schema::hasTable('cl_forma_signs')
+            ? DB::table('cl_forma_signs')->where('application_id', $application_id)->orderBy('row_index')->orderBy('id')->get()
+            : collect();
+
+        $payment = Schema::hasTable('payments')
+            ? DB::table('payments')->where('application_id', $application_id)->orderByDesc('id')->first()
+            : null;
+
+        $clDigitization = Schema::hasTable('mapping_digi_cls')
+            ? DB::table('mapping_digi_cls')->where('application_id', $application_id)->first()
+            : null;
+
+        $equipmentMasters = collect();
+        if ($equipmentlist->isNotEmpty()) {
+            $equipIds = $equipmentlist->pluck('equipment_id')->filter()->unique()->values();
+            if ($equipIds->isNotEmpty() && class_exists(Mst_equipment_tbl::class)) {
+                $equipmentMasters = Mst_equipment_tbl::whereIn('id', $equipIds)->get()->keyBy('id');
+            }
+        }
 
         $maxQcStaff = $qcQscStaffs_details
             ->filter(function ($staff) {
@@ -107,12 +127,13 @@ class PreviewController extends BaseController
         $maxQcCertNo = $maxQcStaff?->staff_cc_no;
         $maxQcValidityDate = $maxQcStaff?->staff_cc_validity_to;
         
-        $applicant_data->appl_type = match(trim($applicant_data->appl_type)) {
+        $applicant_data->appl_type_code = strtoupper(trim((string) ($applicant_data->appl_type ?? '')));
+        $applicant_data->appl_type_label = match ($applicant_data->appl_type_code) {
             'N' => 'New',
             'R' => 'Renewal',
             'D' => 'Digitisation',
             'A' => 'Alteration',
-            default => $applicant_data->appl_type,
+            default => ($applicant_data->appl_type_code !== '' ? $applicant_data->appl_type_code : '—'),
         };
 
         $applicantUser = DB::table('tnelb_registers')
@@ -121,8 +142,36 @@ class PreviewController extends BaseController
 
         foreach ($cl_ownership_table as $owner) {
             $owner->age_proof_url = $this->previewFileUrl($owner->age_proof ?? null);
-            $owner->education_url = $this->previewFileUrl($owner->educational_proof ?? null);
+            $owner->education_url = $this->previewFileUrl($owner->educational_proof ?? $owner->educ_qual_proof ?? null);
         }
+
+        foreach ($staffdetails as $staff) {
+            $staff->appointment_url = $this->previewFileUrl($staff->app_doc ?? $staff->appointment_letter ?? null);
+            $staff->consent_url = $this->previewFileUrl($staff->cons_doc ?? $staff->consent_letter ?? null);
+        }
+
+        foreach ($authorisedSigns as $sign) {
+            $sign->specimen_url = $this->previewFileUrl($sign->specimen_sign ?? null);
+        }
+
+        if ($banksolvency) {
+            $banksolvency->bank_doc_url = $this->previewFileUrl($banksolvency->bank_doc ?? null);
+        }
+
+        if ($addressproof) {
+            $addressproof->file_doc_url = $this->previewFileUrl($addressproof->file_doc ?? null);
+        }
+
+        foreach ($equipmentlist as $equipment) {
+            $equipment->testreport_url = $this->previewFileUrl($equipment->testreport_file ?? null);
+            $equipment->purchasereport_url = $this->previewFileUrl($equipment->purchasereport_file ?? null);
+        }
+
+        foreach ($attachments_cl as $attachment) {
+            $attachment->file_doc_url = $this->previewFileUrl($attachment->file_doc ?? null);
+        }
+
+        $applicant_data->ownership_doc_url = $this->previewFileUrl($applicant_data->ownership_doc ?? null);
 
         $documentCards = $this->previewDocumentCards(
             $applicant_data,
@@ -148,6 +197,7 @@ class PreviewController extends BaseController
 
         return view('user_login.contractor.application_preview', compact(
             'applicant_data',
+            'license_name',
             'license_name_data',
             'cl_ownership_table',
             'staffdetails',
@@ -157,8 +207,13 @@ class PreviewController extends BaseController
             'maxQcCertNo',
             'maxQcValidityDate',
             'equipmentlist',
+            'equipmentMasters',
             'attachments_cl',
             'addressproof',
+            'banksolvency',
+            'authorisedSigns',
+            'payment',
+            'clDigitization',
             'Qcstaffs',
             'applicantUser',
             'documentCards',
