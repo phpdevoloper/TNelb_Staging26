@@ -73,6 +73,9 @@ Route::get('/feedback', [IndexController::class, 'feedback'])->name('feedback');
 
 # Auth: Register/Login
 
+Route::post('/check-mobile', [RegisterController::class, 'checkMobile'])->name('check-mobile');
+Route::post('/generate-otp', [RegisterController::class, 'generateOtp'])->name('generate-otp');
+
 Route::get('/register', [RegisterController::class, 'register'])->name('register');
 Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
 Route::get('/loginpage', [RegisterController::class, 'login'])->name('loginpage');
@@ -339,12 +342,6 @@ Route::post('/form/update/{appl_id}', [FormController::class, 'update'])->name('
 Route::post('/form_w/update/{appl_id}', [FormWController::class, 'updateApplication'])->name('form_w.update');
 Route::post('/form_wh/update/{appl_id}', [FormWHController::class, 'updateApplication'])->name('form_wh.update');
 Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.store');
-
-
-Route::post('/partner/deactivate', [FormAController::class, 'deactivatePartner'])->name('partner.deactivate');
-
-
-
 
 
 # formA QC Check
