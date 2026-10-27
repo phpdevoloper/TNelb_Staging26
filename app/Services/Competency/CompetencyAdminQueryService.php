@@ -268,6 +268,7 @@ class CompetencyAdminQueryService
             ->select(array_merge($this->metaSelectColumns(), [
                 DB::raw('c.certificate_no as license_number'),
                 DB::raw('c.dateof_issue as issued_at'),
+                DB::raw('c.valid_from as valid_from'),
                 DB::raw('c.valid_to as expires_at'),
             ]))
             ->orderByDesc('ta.app_id');

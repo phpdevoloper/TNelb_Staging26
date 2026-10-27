@@ -1431,12 +1431,9 @@
                                                         <th>Staff Name</th>
                                                         <th>Competency Certificate Number <br> Certificate First Issue , <br>Validity From<br> Validity To</th>
                                                         <th>Certificate First Issue , <br>Validity From<br> Validity To</th>
-                                                        <th>Attachments
-                                                        </th>
-                                                        <th>History of Staff
-                                                        </th>
+                                                        <th>Attachments</th>
+                                                        <th>History of Staff</th>
                                                         <th>Verify</th>
-
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -1450,20 +1447,15 @@
 
                                                     <td>
                                                         <div class="file-link">
-                                                        <a href="#" target="_blank">Appointment Letter</a>
+                                                        <a href="{{ asset($staff->app_doc) }}" target="_blank">Appointment Letter</a>
                                                         <br>
-                                                        <a href="#" target="_blank">Consent Letter</a>
+                                                        <a href="{{ asset($staff->cons_doc) }}" target="_blank">Consent Letter</a>
                                                         </div>
                                                     </td>
                                                    <td>
                                                     @if(!empty($staff->staff_cc_no))
-
-
-
                                                         <button type="button"
                                                             class="btn btn-primary verify-staff"
-
-
 
                                                             data-license="{{ $staff->staff_cc_no }}"
 
@@ -1484,12 +1476,8 @@
 
                                                             View History
                                                         </button>
-
                                                     @endif
-
-
                                                 </td>
-
                                             <td class="text-center">
 
                                                 @if($staff->staff_category != 'OTHERS')
@@ -1517,16 +1505,9 @@
                                                                 data-cc-no="{{ $staff->staff_cc_no }}"
                                                                 {{ $verifyFlag == 1 ? 'checked' : '' }}>
                                                         </div>
-
                                                     </div>
-
                                                 @endif
-
                                             </td>
-
-
-
-
                                                     </tr>
                                                     @empty
                                                     <tr>
@@ -1552,9 +1533,6 @@
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($otherstaffdetails as $index => $staff)
-                                                    @php
-                                                        // dd($staff);exit;
-                                                    @endphp
                                                     <tr>
 
 
@@ -4321,10 +4299,6 @@ $(document).on("click", ".verify-cert_ownership", function () {
         let certificate = response.certificate;
         let records = Array.isArray(response.data) ? response.data : [];
 
-        console.log("Certificate:", certificate);
-        console.log("Experience Records:", records);
-        console.log("Experience Count:", records.length);
-
         let result = `
             <div class="competency-result-box">
 
@@ -4919,14 +4893,14 @@ $(document).on("click", ".verify-staff", function () {
                               </td>
                             <td>
                                 ${data.relieve_document
-                                    ? `<a href="${encodeURI('/competency/' + data.relieve_document.replace(/^\/+|^competency\//, ''))}"
+                                    ? `<a href="${data.relieve_document}"
                                         target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
                                     : '-'}
                             </td>
 
                             <td>
                                 ${data.support_document
-                                    ? `<a href="${encodeURI('/competency/' + data.support_document.replace(/^\/+|^competency\//, ''))}"
+                                    ? `<a href="${data.support_document}"
                                         target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
                                     : '-'}
                             </td>
