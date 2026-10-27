@@ -39,27 +39,51 @@ class FormAprocessController extends Controller
 
         // Get all experience records
         $cc_exp = DB::table('cc_exp')
-            ->where('application_id', $application_id)
-            ->orderBy('exp_id', 'DESC')
-            ->get()
-            ->map(function ($item) {
-                foreach (
-                    [
-                        'from_date',
-                        'to_date',
-                        'date_from',
-                        'date_to',
-                        'start_date',
-                        'end_date',
-                    ] as $field
-                ) {
-                    if (isset($item->$field) && !empty($item->$field)) {
-                        $item->$field = \Carbon\Carbon::parse($item->$field)->format('d-m-Y');
-                    }
-                }
+    ->where('application_id', $application_id)
+    ->orderByDesc('exp_id')
+    ->get()
+    ->map(function ($item) {
 
-                return $item;
-            });
+        // Format only date fields that exist in the result.
+        foreach ([
+            'from_date',
+            'to_date',
+            'date_from',
+            'date_to',
+            'start_date',
+            'end_date',
+        ] as $field) {
+            if (
+                property_exists($item, $field) &&
+                !empty($item->$field)
+            ) {
+                $item->$field = \Carbon\Carbon::parse($item->$field)
+                    ->format('d-m-Y');
+            }
+        }
+
+        // Resolve document URLs in the same pass.
+        $documentId = (int) ($item->id ?? $item->exp_id ?? 0);
+
+        foreach ([
+            'support_document',
+            'relieve_document',
+        ] as $field) {
+            $document = $item->$field ?? null;
+
+            $item->$field = !empty($document)
+                ? competency_document_url(
+                    $document,
+                    'experience',
+                    $documentId,
+                    'experience_doc'
+                )
+                : null;
+        }
+
+        return $item;
+    });
+
 
         // Get applicant details
         $applicant_details = DB::table('cc_form_s_meta')
