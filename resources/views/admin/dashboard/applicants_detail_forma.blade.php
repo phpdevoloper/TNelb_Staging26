@@ -1910,20 +1910,6 @@
                                             </div>
 
                                         </div>
-
-
-
-
-
-
-
-
-
-                                        <!-- --------------18--------------------------- -->
-
-
-
-
                                     </div>
                                 </div>
                                 <!-- -------------------------------- -->
@@ -1940,7 +1926,6 @@
                                                         <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        
                                                         <p><strong>{{ $applicant->appl_type ?? 'NA' }}</strong></p>
                                                     </div>
 
@@ -1949,11 +1934,7 @@
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        @if($applicant->application_fee > 0)
-                                                        <p>{{ $applicant->application_fee }}.00</p>
-                                                        @else
-                                                            <p>{{ $applicant->amount }}.00</p>
-                                                        @endif
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
 
                                                     @if ($applicant->late_fee > 0)
@@ -1962,7 +1943,7 @@
                                                         <p><strong>Late fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->late_fee }}.00</p>
+                                                        <p>{{ $applicant->late_fee }}</p>
                                                     </div>
                                                     @endif
 
@@ -1998,14 +1979,13 @@
                                                         <p><strong>Amount</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Payment mode:</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>UPI</p>
-                                                        {{-- <P>{{ $applicant->payment_mode }}</P> --}}
+                                                        <P>{{ $applicant->payment_mode }}</P>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong> Payment Time</strong></p>
@@ -5397,15 +5377,13 @@ $(document).on("click", ".verify-otherstaff", function () {
                               </td>
                             <td>
                                 ${data.relieve_document
-                                    ? `<a href="${encodeURI('/competency/' + data.relieve_document.replace(/^\/+|^competency\//, ''))}"
-                                        target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
+                                    ? `<a href=" ${data.relieve_document}" target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
                                     : '-'}
                             </td>
 
                             <td>
                                 ${data.support_document
-                                    ? `<a href="${encodeURI('/competency/' + data.support_document.replace(/^\/+|^competency\//, ''))}"
-                                        target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
+                                    ? `<a href="${data.support_document}" target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
                                     : '-'}
                             </td>
 
