@@ -469,20 +469,52 @@ function qcReplaceStaffRow(data) {
    CANCEL EDIT MODE
 ============================================================ */
 
-$(document).on("click", "#cancel_qc", function () {
 
-    editingQCRow = null;
-    editingQCData = null;
+$('#cancel_qc').on('click', function () {
 
-    $("#update_qc").hide();
-    $("#save_qc").show();
+    const $section = $('#staffqc_datasection');
 
-    $("#staffqc_datasection").find(".file-link").empty();
+    // Clear all inputs
+    $section.find('input').each(function () {
+        const type = (this.type || '').toLowerCase();
 
-    resetQCStaffForm();
+        if (type === 'file') {
+            this.value = '';
+        } else if (type === 'checkbox' || type === 'radio') {
+            this.checked = false;
+        } else {
+            $(this).val('');
+        }
+    });
 
-    $("#staffqc_datasection").stop(true, true).slideUp();
+    // Restore default category
+    $section.find('input[name="staffqc_category[]"]').val('QC');
+
+    // Clear validation messages
+    $section.find(
+        '.staff-cc-error, .staff-first-issue-error, ' +
+        '.staff-validity-from-error, .staff-validity-to-error, ' +
+        '.staff-verify-error, .qc-staff-errors, ' +
+        '.app_doc_upload_error, .cons_doc_upload_error, .upload-error'
+    ).text('');
+
+    // Clear certificate holder and previews
+    $('#certificate-holder-name').text('');
+    $section.find('.file-link').empty();
+
+    // Reset buttons
+    $('#save_qc').prop('disabled', true);
+
+    $section.find('.upload-btn')
+        .prop('disabled', false)
+        .html('<i class="fa fa-upload"></i> Upload');
+
+    // Smoothly close upload section, then close the entire form
+    $('#qc_upload_section').stop(true, true).slideUp(200, function () {
+        $section.stop(true, true).slideUp(350);
+    });
 });
+
 
 
 /* ============================================================

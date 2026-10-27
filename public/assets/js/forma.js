@@ -512,6 +512,82 @@ $(document).ready(function () {
                     `);
                 }
 
+                                // --------------------------------------------------
+                // OTHER DOCUMENT (OHD)
+                // --------------------------------------------------
+                else if (subCategory === "OHD") {
+
+                    let $container = btn.closest(".file_upload").find(".file-link").first();
+
+                    // Create the container if it doesn't exist
+                    if (!$container.length) {
+                        $container = $('<div class="file-link mt-2"></div>');
+                        btn.closest(".row").append($container);
+                    }
+
+                    // Display the uploaded PDF link
+                    $container.html(`
+                        <a href="${file.file_url}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-primary fw-bold">
+                            <i class="fa fa-file-pdf-o text-danger"></i>
+                            View Document
+                        </a>
+                    `).show();
+                }
+
+
+                        
+            else if (subCategory === "SS") {
+
+                let $row = btn.closest("tr");
+
+                // Find or create the file-link container in this row
+                let $container = $row.find(".file-link").last();
+
+                if (!$container.length) {
+
+                    $container = $(
+                        '<div class="col-md-12 mt-1 col-12 file-link"></div>'
+                    );
+
+                    $row.find("td").eq(4).find(".row").append($container);
+                }
+
+                if (file.file_url && file.file_url.trim() !== "") {
+
+                    $container.html(`
+                        <a href="${file.file_url}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-primary fw-bold">
+
+                            <i class="fa fa-file-pdf-o text-danger"></i>
+                            View Document
+
+                        </a>
+                    `).show();
+
+                    // Clear error only after a URL is available
+                    $row.find(".Doc_upload_error")
+                        .text("")
+                        .hide();
+
+                    $row.find('input[name="specimen_sign[]"]')
+                        .removeClass("is-invalid");
+
+                } else {
+
+                    $container.empty();
+
+                    $row.find(".Doc_upload_error")
+                        .text("Upload failed. Please upload the specimen signature again.")
+                        .show();
+                }
+            }
+
+
 
                 // --------------------------------------------------
                 // QC / QSC APPOINTMENT & CONSENT
@@ -2588,31 +2664,39 @@ $(document).ready(function () {
             }
 
 
-            let holderName = ($row.find(".certificate_holder_name_others").val() || "").trim();
+            let holderName = (
+                    $row.find(".certificate_holder_name_others").val() || ""
+                ).trim();
 
-            let $holderColumn = $row.find(".certificate-holder-column");
-            let $verifyButton = $row.find(".verify-otherstaff");
+                let $holderColumn = $row.find(".certificate-holder-column");
+                let $verifyButton = $row.find(".verify-otherstaff");
 
-            // Remove previous holder-name errors
-            $holderColumn.find(".holder-name-error").remove();
+                // If the holder name is already displayed, remove the error
+                let displayedHolderName = (
+                    $row.find(".certificate-holder").text() || ""
+                ).trim();
 
-            if (holderName === "") {
+                if (holderName !== "" || displayedHolderName !== "") {
+                    $holderColumn.find(".holder-name-error").remove();
+                    $verifyButton.removeClass("btn-danger");
+                } else {
+                    $holderColumn.find(".holder-name-error").remove();
 
-                staffBasicValidationPassed = false;
+                    staffBasicValidationPassed = false;
 
-                // Show error inside certificate holder column
-                $holderColumn.append(
-                    '<span class="holder-name-error text-danger d-block mt-1">' +
-                    'Certificate holder name is missing. Please verify first.' +
-                    '</span>'
-                );
+                    $holderColumn.append(
+                        '<span class="holder-name-error text-danger d-block mt-1">' +
+                        'Certificate holder name is missing. Please verify first.' +
+                        '</span>'
+                    );
 
-                // Highlight the Verify button
-                $verifyButton.addClass("btn-danger");
+                    $verifyButton.addClass("btn-danger");
 
-                // Stop validating this row until verified
-                return;
-            }
+                    return;
+                }
+
+                    $holderColumn.find(".holder-name-error").remove();
+                $verifyButton.removeClass("btn-danger");
 
             // Holder name exists: remove Verify button highlight
             $verifyButton.removeClass("btn-danger");
@@ -6740,7 +6824,7 @@ $(document).ready(function () {
                 // Show error inside certificate holder column
                 $holderColumn.append(
                     '<span class="holder-name-error text-danger d-block mt-1">' +
-                    'Certificate holder name is missing. Please verify first.' +
+                    'Certificate holder name is missing. Please verify first22.' +
                     '</span>'
                 );
 
@@ -8434,30 +8518,53 @@ $(document).ready(function () {
         // }
     });
 
+    // flatpickr(
+    //     // 'input[name="previous_validity_first_issue"],' +
+    //     // 'input[name="previous_validity_from"],' +
+    //     // 'input[name="previous_validity_to"],' +
+    //     'input[name="staff_cc_first_issue[]"],' +
+    //     'input[name="staff_cc_validity_from[]"],' +
+    //     'input[name="staff_cc_validity_to[]"],' +
+    //     'input[name="cc_validity[]"],' +
+
+    //     'input[name="cc_firstissue[]"],' +
+    //     'input[name="cc_validity_from[]"],' +
+    //     'input[name="cc_validity_to[]"]',
+
+    //     'input[name="cc_number[]"]',
+    //     'input[name="cc_firstissue[]"]',
+
+    //     {
+    //         dateFormat: "d-m-Y",
+    //         allowInput: true
+    //     }
+    // );
+
+
     flatpickr(
-        // 'input[name="previous_validity_first_issue"],' +
-        // 'input[name="previous_validity_from"],' +
-        // 'input[name="previous_validity_to"],' +
-        'input[name="staff_cc_first_issue[]"],' +
-        'input[name="staff_cc_validity_from[]"],' +
-        'input[name="staff_cc_validity_to[]"],' +
-        'input[name="cc_validity[]"],' +
-
-        'input[name="cc_firstissue[]"],' +
-        'input[name="cc_validity_from[]"],' +
-        'input[name="cc_validity_to[]"]',
-
-        'input[name="cc_number[]"]',
-        'input[name="cc_firstissue[]"]',
-
-        {
-            dateFormat: "d-m-Y",
-            allowInput: true
-        }
-    );
+    'input[name^="staff_cc_first_issue"],' +
+    'input[name^="staff_cc_validity_from"],' +
+    'input[name^="staff_cc_validity_to"],' +
+    'input[name^="cc_validity"],' +
+    'input[name^="cc_firstissue"],' +
+    'input[name^="cc_validity_from"],' +
+    
+    'input[name^="cc_validity_to"],' +
+    'input[name^="date_of_test"],' +
+    'input[name^="bank_validity"]',
+    
+    {
+        dateFormat: "d-m-Y",
+        allowInput: true
+    }
+);
 
 
     $('input[name="staff_cc_first_issue[]"], input[name="staff_cc_validity_from[]"], input[name="staff_cc_validity_to[]"]').each(function () {
+
+   $(this).attr('autocomplete', 'off');
+    $(this).prop('readonly', true);
+
         if (this._flatpickr) {
             this._flatpickr.set('allowInput', true);
             this._flatpickr.set('dateFormat', 'd-m-Y');
@@ -9349,9 +9456,12 @@ $(document).ready(function () {
         updateQCStaffTotalFee();
 
     }
-    $(document).on("click", "#cancel_qc", function () {
-        $("#staffqc_datasection").stop(true, true).slideUp();
-    });
+    // $(document).on("click", "#cancel_qc", function () {
+    //     $("#staffqc_datasection").stop(true, true).slideUp();
+    // });
+
+
+
     // ============================================================
     // CALCULATE TOTAL QC/QSC FEE
     // ============================================================
@@ -9666,6 +9776,51 @@ $(document).ready(function () {
 
     });
 
+  $(document).on("click", "#cancel_qc", function () {
+
+    const $section = $('#staffqc_datasection');
+
+    // Clear all inputs
+    $section.find('input').each(function () {
+        const type = (this.type || '').toLowerCase();
+
+        if (type === 'file') {
+            this.value = '';
+        } else if (type === 'checkbox' || type === 'radio') {
+            this.checked = false;
+        } else {
+            $(this).val('');
+        }
+    });
+
+    // Restore default category
+    $section.find('input[name="staffqc_category[]"]').val('QC');
+
+    // Clear validation messages
+    $section.find(
+        '.staff-cc-error, .staff-first-issue-error, ' +
+        '.staff-validity-from-error, .staff-validity-to-error, ' +
+        '.staff-verify-error, .qc-staff-errors, ' +
+        '.app_doc_upload_error, .cons_doc_upload_error, .upload-error'
+    ).text('');
+
+    // Clear certificate holder and previews
+    $('#certificate-holder-name').text('');
+    $section.find('.file-link').empty();
+
+    // Reset buttons
+    $('#save_qc').prop('disabled', true);
+
+    $section.find('.upload-btn')
+        .prop('disabled', false)
+        .html('<i class="fa fa-upload"></i> Upload');
+
+    // Smoothly close upload section, then close the entire form
+    $('#qc_upload_section').stop(true, true).slideUp(200, function () {
+        $section.stop(true, true).slideUp(350);
+    });
+});
+
 
     function calculateQCStaffFee() {
 
@@ -9697,6 +9852,16 @@ $(document).ready(function () {
 
         let $button = $(this);
         let $row = $button.closest('tr.staff-fields');
+
+        let $ccColumn = $row.find('.cc_number').closest('.cc-column');
+
+        $ccColumn.find('.error').empty();
+        $ccColumn.find('.competency_verify_result')
+            .removeClass('text-danger text-success')
+            .text('');
+
+        // Remove dynamically generated duplicate errors
+        $ccColumn.find('.staff-validation-error').remove();
 
 
         let $holderColumn = $row.find(".certificate-holder-column");
@@ -9834,11 +9999,16 @@ $(document).ready(function () {
                     // UPDATE ONLY CURRENT ROW <p>
                     // ==================================================
 
-                    $holder
-                        .text(holderName)
-                        .removeClass('text-danger')
-                        .addClass('text-success');
+                  $holder
+                    .text(holderName)
+                    .removeClass('text-danger')
+                    .addClass('text-success');
 
+                // Hide the missing-holder-name error once the name is displayed
+                if (holderName !== '') {
+                    $holderColumn.find('.holder-name-error').remove();
+                    $row.find('.verify-otherstaff').removeClass('btn-danger');
+                }
 
                     // ==================================================
                     // UPDATE ONLY CURRENT ROW HIDDEN INPUT
@@ -9880,7 +10050,7 @@ $(document).ready(function () {
                     $result
                         .removeClass('text-success')
                         .addClass('text-danger')
-                        .text(response.message);
+                        .text(response.message || 'Staff Certificate details are not valid.');
                 }
             },
 
@@ -9917,5 +10087,17 @@ $(document).ready(function () {
         });
 
     });
+
+
+    function showStaffCertificateError($row, message) {
+    // Remove errors generated dynamically by JavaScript
+    $row.find('.staff-validation-error').remove();
+
+    // Use only the existing verification message element
+    $row.find('.competency_verify_result')
+        .removeClass('text-success')
+        .addClass('text-danger')
+        .text(message);
+}
 
 });
