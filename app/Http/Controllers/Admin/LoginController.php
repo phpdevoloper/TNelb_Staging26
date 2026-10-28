@@ -2366,6 +2366,13 @@ class LoginController extends Controller
             ->orderBy('id')
             ->get();
 
+        $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $applicant_id)
+                ->where('flag', 1)
+                ->orderBy('row_index', 'asc')
+                ->get();
+
         
 
 
@@ -2623,7 +2630,8 @@ class LoginController extends Controller
             'checkedList_1',
             'maxQcCertNo',
             'maxQcValidityDate',
-            'cl_digitization'
+            'cl_digitization',
+            'authoritysignatory'
 
         ));
     }

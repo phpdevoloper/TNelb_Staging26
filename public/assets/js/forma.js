@@ -4978,7 +4978,7 @@ $(document).ready(function () {
 
         // -----------------------------------------
 
-        let proprietor = [];
+       let proprietor = [];
 
         // ✅ Collect all rows data first
         $("#proprietor-section tbody tr").each(function () {
@@ -4986,13 +4986,8 @@ $(document).ready(function () {
             let $tds = $tr.find("td");
 
             let id = $tr.data("id") || null;
-            // alert(id);
-            // exit;
             let qualification_text = $tds.eq(4).data("qual_text") || "";
 
-            // alert($tds.eq(2).data("data-age"));
-            // alert(qualification_text);
-            //                 exit;
             proprietor.push({
                 id: id,
                 proprietor_name: $tds.eq(0).text().trim(),
@@ -5011,6 +5006,9 @@ $(document).ready(function () {
                 qualification_text: $tds.eq(4).attr("data-qual_text"),
                 // qualification: $tds.eq(4).attr("data-qualification"),
                 // qualification_text: $tds.eq(4).attr("data-qual_text") || "",
+
+                 age_proof: $tds.eq(2).attr("data-age_proof") || "",
+    qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
 
                 present_business: $tds.eq(5).text().trim(),
                 competency: $tds.eq(6).data("competency") || "",
@@ -5041,7 +5039,11 @@ $(document).ready(function () {
             formData.append(`dob[${index}]`, p.dob);
             formData.append(`proprietor_address[${index}]`, p.proprietor_address);
             formData.append(`qualification[${index}]`, p.qualification);
-            formData.append(`qual_text[${index}]`, p.qualification_text);
+            formData.append(`qual_proof[${index}]`, p.qual_proof);
+
+            formData.append(`age_proof[${index}]`, p.age_proof);
+
+            formData.append(`age_proof[${index}]`, p.qualification_text);
 
             formData.append(`present_business[${index}]`, p.present_business);
             formData.append(`competency[${index}]`, p.competency);
@@ -5052,9 +5054,6 @@ $(document).ready(function () {
 
 
             formData.append(`expverify[${index}]`, p.expverify);
-            // console.log(p.ccverify, p.expverify);
-
-            // formData.append(`exp_validity[${index}]`, p.exp_validity);
         });
         // ---------------------------------------------------
 
@@ -5087,6 +5086,9 @@ $(document).ready(function () {
                 proprietor_address:
                     $tds.eq(3).text().trim(),
 
+                        age_proof: $tds.eq(2).attr("data-age_proof") || "",
+    qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
+
                 qualification:
                     $tds.eq(4).attr("data-qualification") || "",
 
@@ -5117,7 +5119,10 @@ $(document).ready(function () {
                 ownership_type:
                     $tds.eq(7).find("input[name='ownership_type[]']").val() ||
                     $tds.eq(7).attr("data-ownership") ||
-                    ""
+                    "",
+                    row_index: $tr.find("input[name='row_index[]']").val()
+                    || $tr.attr("data-row-index")
+                    || "",
 
             });
         });
@@ -5211,6 +5216,18 @@ $(document).ready(function () {
                 p.ccverify
             );
 
+            formData.append(
+                `partner_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `partner_qual_proof[${index}]`,
+                p.qual_proof
+            );
+
+            formData.append(`partner_row_index[${index}]`, p.row_index);
+
         });
         // ------------director push--------------
 
@@ -5248,6 +5265,9 @@ $(document).ready(function () {
 
                 qualification:
                     $tds.eq(4).attr("data-qualification") || "",
+
+                     age_proof: $tds.eq(2).attr("data-age_proof") || "",
+    qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
 
                 qualification_text:
                     $tds.eq(4).attr("data-qual_text") || "",
@@ -5369,6 +5389,16 @@ $(document).ready(function () {
             formData.append(
                 `director_ccvalidityto[${index}]`,
                 p.ccvalidityto
+            );
+
+               formData.append(
+                `director_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `director_qual_proof[${index}]`,
+                p.qual_proof
             );
 
             formData.append(
@@ -8523,23 +8553,23 @@ $(document).ready(function () {
     // );
 
 
-    flatpickr(
-    'input[name^="staff_cc_first_issue"],' +
-    'input[name^="staff_cc_validity_from"],' +
-    'input[name^="staff_cc_validity_to"],' +
-    'input[name^="cc_validity"],' +
-    'input[name^="cc_firstissue"],' +
-    'input[name^="cc_validity_from"],' +
+//     flatpickr(
+//     'input[name^="staff_cc_first_issue"],' +
+//     'input[name^="staff_cc_validity_from"],' +
+//     'input[name^="staff_cc_validity_to"],' +
+//     'input[name^="cc_validity"],' +
+//     'input[name^="cc_firstissue"],' +
+//     'input[name^="cc_validity_from"],' +
     
-    'input[name^="cc_validity_to"],' +
-    'input[name^="date_of_test"],' +
-    'input[name^="bank_validity"]',
+//     'input[name^="cc_validity_to"],' +
+//     'input[name^="date_of_test"],' +
+//     'input[name^="bank_validity"]',
     
-    {
-        dateFormat: "d-m-Y",
-        allowInput: true
-    }
-);
+//     {
+//         dateFormat: "d-m-Y",
+//         allowInput: true
+//     }
+// );
 
 
     $('input[name="staff_cc_first_issue[]"], input[name="staff_cc_validity_from[]"], input[name="staff_cc_validity_to[]"]').each(function () {
@@ -8556,17 +8586,17 @@ $(document).ready(function () {
     });
 
 
-    flatpickr('input[name="competency_certificate_first_issue[]"]', {
-        dateFormat: "d-m-Y"
-    });
+    // flatpickr('input[name="competency_certificate_first_issue[]"]', {
+    //     dateFormat: "d-m-Y"
+    // });
 
-    flatpickr('input[name="competency_certificate_validity_from[]"]', {
-        dateFormat: "d-m-Y"
-    });
+    // flatpickr('input[name="competency_certificate_validity_from[]"]', {
+    //     dateFormat: "d-m-Y"
+    // });
 
-    flatpickr('input[name="dob[]"]', {
-        dateFormat: "d-m-Y"
-    });
+    // flatpickr('input[name="dob[]"]', {
+    //     dateFormat: "d-m-Y"
+    // });
 
     flatpickr('input[name="competency_certificate_validity_to[]"]', {
         dateFormat: "d-m-Y",

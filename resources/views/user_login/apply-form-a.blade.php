@@ -2599,8 +2599,8 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_first_issue[]" 
-                                                class="form-control" placeholder="CC First Issue"  autocomplete="off">
+                                            <input type="text" name="staff_cc_first_issue[]"
+                                                class="form-control" placeholder="CC First Issue">
                                             <span class="text-danger small staff-first-issue-error"></span>
                                         </div>
 
@@ -2773,15 +2773,8 @@ exit; -->
 
 
 
-                                <p class="text-red note_txt">Note : Maximum 5 QC Staffs are allowed and Mandatory 1 QC, 
-                                    Compulsory verify staff details
+                                <p class="text-red note_txt">Note : Maximum 5 QC Staffs are allowed and Mandatory 1 QC
                                 </p>
-
-                                 {{-- <ul>
-                                <li class="text-red">Note</li>
-                                <li class="text-red">Maximum 5 QC Staff are allowed, and at least 1 QC staff member is mandatory.</li>
-                                <li class="text-red">Compulsory verification of staff details.</li>
-                            </ul> --}}
 
                             </div>
 
@@ -2812,12 +2805,12 @@ exit; -->
                                             <th width="10%">Category <span class="text-red">*</span></th>
 
 
-                                            <th>Competency Certificate Number<span class="text-red">*</span></th>
+                                            <th>Competency Certificate Number <span class="text-red">*</span></th>
 
                                             <!-- <th>Qualification <span class="text-red">*</span> </th> -->
-                                            <th>Certificate First Issue<span class="text-red">*</span></th>
-                                            <th>Certificate Validity From<span class="text-red">*</span></th>
-                                            <th>Certificate Validity To<span class="text-red">*</span></th>
+                                            <th>Certificate First Issue <span class="text-red">*</span></th>
+                                            <th>Certificate Validity From <span class="text-red">*</span></th>
+                                            <th>Certificate Validity To <span class="text-red">*</span></th>
 
                                             <th>Action </th>
 
@@ -2883,7 +2876,6 @@ exit; -->
 
                                                         <input type="date" class="form-control cc_firstissue"
                                                             name="cc_firstissue[{{ $i }}]"
-                                                             placeholder="DD-MM-YYYY"
                                                             value="{{ old('cc_firstissue.' . $i) }}">
 
                                                         <span class="error text-danger">
@@ -2898,7 +2890,6 @@ exit; -->
 
                                                         <input type="date" class="form-control cc_validity_from"
                                                             name="cc_validity_from[{{ $i }}]"
-                                                             placeholder="DD-MM-YYYY"
                                                             value="{{ old('cc_validity_from.' . $i) }}">
 
                                                         <span class="error text-danger">
@@ -2913,7 +2904,6 @@ exit; -->
 
                                                         <input type="date" class="form-control cc_validity_to"
                                                             name="cc_validity_to[{{ $i }}]"
-                                                             placeholder="DD-MM-YYYY"
                                                             value="{{ old('cc_validity_to.' . $i) }}">
 
                                                         <span class="error text-danger">
@@ -3064,7 +3054,7 @@ exit; -->
                                                             value="{{ old('cc_number.' . $i, $staff->staff_cc_no ?? '') }}"
                                                             oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase()">
 
-                                                        {{-- <span class="error text-danger"></span> --}}
+                                                        <span class="error text-danger"></span>
 
                                                         <div class="competency_verify_result text-danger small mt-1">
                                                         </div>
@@ -3076,47 +3066,35 @@ exit; -->
                                                     <td class="validity-column"
                                                         style="{{ $isOthers ? 'display:none;' : '' }}">
 
-                                                       <input type="text"
-                                                        class="form-control cc_firstissue"
-                                                        name="cc_firstissue[{{ $i }}]"
-                                                        placeholder="DD-MM-YYYY"
-                                                        value="{{ old(
-                                                            'cc_firstissue.' . $i,
-                                                            isset($staff->staff_cc_first_issue)
-                                                                ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
-                                                                : ''
-                                                        ) }}">
+                                                        <input type="date" class="form-control cc_firstissue"
+                                                            name="cc_firstissue[{{ $i }}]"
+                                                            value="{{ old(
+                                                                'cc_firstissue.' . $i,
+                                                                isset($staff->staff_cc_first_issue) ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('Y-m-d') : '',
+                                                            ) }}">
 
                                                     </td>
 
                                                     <td class="validity-column"
                                                         style="{{ $isOthers ? 'display:none;' : '' }}">
 
-                                                         <input type="text"
-                                                        class="form-control cc_validity_from"
-                                                        name="cc_validity_from[{{ $i }}]"
-                                                        placeholder="DD-MM-YYYY"
-                                                        value="{{ old(
-                                                            'cc_validity_from.' . $i,
-                                                            isset($staff->staff_cc_validity_from)
-                                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
-                                                                : ''
-                                                        ) }}">
+                                                        <input type="date" class="form-control cc_validity_from"
+                                                            name="cc_validity_from[{{ $i }}]"
+                                                            value="{{ old(
+                                                                'cc_validity_from.' . $i,
+                                                                isset($staff->staff_cc_validity_from) ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('Y-m-d') : '',
+                                                            ) }}">
 
                                                     </td>
 
                                                     <td class="validity-column"
                                                         style="{{ $isOthers ? 'display:none;' : '' }}">
 
-                                                         <input type="text"
-                                                            class="form-control cc_validity_to"
+                                                        <input type="date" class="form-control cc_validity_to"
                                                             name="cc_validity_to[{{ $i }}]"
-                                                            placeholder="DD-MM-YYYY"
                                                             value="{{ old(
                                                                 'cc_validity_to.' . $i,
-                                                                isset($staff->staff_cc_validity_to)
-                                                                    ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
-                                                                    : ''
+                                                                isset($staff->staff_cc_validity_to) ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('Y-m-d') : '',
                                                             ) }}">
 
                                                     </td>
@@ -3137,8 +3115,8 @@ exit; -->
                                                     <td class="action-column">
 
 
-                                                        <button type="button" 
-                                                            class="btn btn-primary verify-otherstaff"     style="{{ $isOthers ? 'display:none;' : '' }}">
+                                                        <button type="button"
+                                                            class="btn btn-primary verify-otherstaff">
                                                             Verify
                                                         </button>
 
@@ -3187,7 +3165,7 @@ exit; -->
 
 
                                 </table>
-                                <p class="text-red note_txt">Note : Minimum 20 Staffs are allowed and Mandatory ( 2 B), Compulsory verify staff details
+                                <p class="text-red note_txt">Note : Minimum 20 Staffs are allowed and Mandatory ( 2 B)
                                 </p>
                                 <!-- <div class="row">
                                     <div class="col-12 col-md-12">
@@ -3246,7 +3224,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-12">
-                                            <input type="text" class="form-control" name="bank_validity"
+                                            <input type="date" class="form-control" name="bank_validity"
                                                 placeholder="Validity"
                                                 value="{{ isset($banksolvency) && $banksolvency->bank_validity ? \Carbon\Carbon::parse($banksolvency->bank_validity)->format('Y-m-d') : '' }}">
 
@@ -3269,17 +3247,11 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-12">
-                                            <input type="number"
-                                            class="form-control"
-                                            id="bank_amount"
-                                            name="bank_amount"
-                                            min="0"
-                                            max="1000000"
-                                            step="1"
-                                            oninput="if(this.value > 1000000) { this.setCustomValidity('Amount must be less than or equal to 1000000'); } else { this.setCustomValidity(''); }"
-                                            oninvalid="this.setCustomValidity('Enter an amount between 0 and 1000000')"
-                                            value="{{ $banksolvency->bank_amount ?? '' }}"
-                                            placeholder="Amount Rs">
+                                            <input type="number" class="form-control" id="bank_amount"
+                                                max="99999"
+                                                oninput="if(this.value.length > 5) this.value = this.value.slice(0, 5);"
+                                                name="bank_amount" value="{{ $banksolvency->bank_amount ?? '' }}"
+                                                placeholder="Amount Rs">
                                             <span class="error text-danger" id="bank_amount_error"></span>
                                         </div>
                                     </div>
@@ -3466,28 +3438,105 @@ exit; -->
                                                     <th>Qualification of Signatory</th>
                                                     <th>Designation</th>
                                                     <th>Specimen Signature</th>
-                                                    <th width="10%"> 
-                                                       <button type="button"
+                                                    <th width="10%">Action</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                {{-- ============================================= --}}
+                                                {{-- NEW APPLICATION --}}
+                                                {{-- ============================================= --}}
+                                                @if (!$application)
+
+                                                    <tr data-row-index="1" data-existing="0">
+
+                                                        <td>
+                                                            <input type="hidden"
+                                                                name="authority_row_index[]"
+                                                                value="1">
+
+                                                            <input type="text"
+                                                                class="form-control"
+                                                                name="name_of_authorised_to_sign[]"
+                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                                        </td>
+
+                                                        <td>
+                                                            <input type="number"
+                                                                min="15"
+                                                                max="70"
+                                                                class="form-control"
+                                                                name="age_of_authorised_to_sign[]">
+                                                        </td>
+
+                                                        <td>
+                                                            <input type="text"
+                                                                class="form-control"
+                                                                name="qualification_of_authorised_to_sign[]"
+                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                                        </td>
+
+                                                        <td>
+                                                            <input type="text"
+                                                                class="form-control"
+                                                                name="designation_of_authorised_to_sign[]"
+                                                                oninput="this.value = this.value.replace(/[^a-zA-Z\s]/g, '')">
+                                                        </td>
+
+                                                        <td>
+                                                            <div class="row">
+                                                                <div class="col-12 col-md-7">
+                                                                    <input type="file"
+                                                                        class="form-control"
+                                                                        name="specimen_sign[]"
+                                                                        accept="application/pdf">
+
+                                                                    <span class="file-limit">
+                                                                        PDF only (Max 250 KB)
+                                                                    </span>
+
+                                                                    <br>
+
+                                                                    <span class="text-danger Doc_upload_error"></span>
+                                                                </div>
+
+                                                                <div class="col-12 col-md-5 specimen-sign-section">
+                                                                    <button type="button"
+                                                                        class="btn btn-info upload-btn"
+                                                                        data-login_id="{{ Auth::user()->login_id }}"
+                                                                        data-module="SPECIMEN SIGN"
+                                                                        data-document_category="specimen_sign"
+                                                                        data-document_sub_category="SS"
+                                                                        data-ownership_type=""
+                                                                        data-form_code="{{ $form_code->id }}"
+                                                                        data-row-index="1">
+
+                                                                        <i class="fa fa-upload"></i>
+                                                                        Upload
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>
+                                                            <button type="button"
                                                                 class="btn btn-primary"
                                                                 id="add-more-authority-name">
 
                                                                 <i class="fa fa-plus"></i>
                                                                 Add More
                                                             </button>
-                                                    </th>
-                                                </tr>
-                                            </thead>
+                                                        </td>
 
-                                            <tbody id="authority-names-tbody">
-
-                                                {{-- NEW APPLICATION: Rows will be added by clicking Add --}}
-                                                @if (!$application)
-
-                                                    {{-- Keep empty initially --}}
+                                                    </tr>
 
                                                 @else
 
+                                                    {{-- ============================================= --}}
                                                     {{-- EXISTING / DRAFT APPLICATION --}}
+                                                    {{-- ============================================= --}}
+
                                                     @if ($authoritysignatory->count() > 0)
 
                                                         @foreach ($authoritysignatory as $index => $authority)
@@ -3534,6 +3583,7 @@ exit; -->
 
                                                                 <td>
                                                                     <div class="row">
+
                                                                         <div class="col-12 col-md-7">
 
                                                                             <input type="file"
@@ -3552,6 +3602,7 @@ exit; -->
                                                                                     <a href="{{ asset($authority->specimen_sign) }}"
                                                                                         target="_blank"
                                                                                         class="text-primary fw-bold">
+
                                                                                         <i class="fa fa-file-pdf-o"
                                                                                             style="color:red;"></i>
                                                                                         View Document
@@ -3560,9 +3611,11 @@ exit; -->
                                                                             @endif
 
                                                                             <span class="text-danger Doc_upload_error"></span>
+
                                                                         </div>
 
                                                                         <div class="col-12 col-md-5 specimen-sign-section">
+
                                                                             <button type="button"
                                                                                 class="btn btn-info upload-btn"
                                                                                 data-login_id="{{ Auth::user()->login_id }}"
@@ -3576,16 +3629,33 @@ exit; -->
                                                                                 <i class="fa fa-upload"></i>
                                                                                 Upload
                                                                             </button>
+
                                                                         </div>
+
                                                                     </div>
                                                                 </td>
 
                                                                 <td>
-                                                                    <button type="button"
-                                                                        class="btn btn-danger remove-authority-name">
-                                                                        <i class="fa fa-minus"></i>
-                                                                        Remove
-                                                                    </button>
+                                                                    @if ($index == 0)
+
+                                                                        <button type="button"
+                                                                            class="btn btn-primary"
+                                                                            id="add-more-authority-name">
+
+                                                                            <i class="fa fa-plus"></i>
+                                                                            Add More
+                                                                        </button>
+
+                                                                    @else
+
+                                                                        <button type="button"
+                                                                            class="btn btn-danger remove-authority-name">
+
+                                                                            <i class="fa fa-minus"></i>
+                                                                            Remove
+                                                                        </button>
+
+                                                                    @endif
                                                                 </td>
 
                                                             </tr>
@@ -3594,7 +3664,10 @@ exit; -->
 
                                                     @else
 
-                                                        {{-- No existing authority data --}}
+                                                        {{-- ========================================= --}}
+                                                        {{-- NO EXISTING AUTHORITY DATA --}}
+                                                        {{-- ========================================= --}}
+
                                                         <tr data-row-index="1" data-existing="0">
 
                                                             <td>
@@ -3636,7 +3709,9 @@ exit; -->
 
                                                             <td>
                                                                 <div class="row">
+
                                                                     <div class="col-12 col-md-7">
+
                                                                         <input type="file"
                                                                             class="form-control"
                                                                             name="specimen_sign[]"
@@ -3649,9 +3724,11 @@ exit; -->
                                                                         <br>
 
                                                                         <span class="text-danger Doc_upload_error"></span>
+
                                                                     </div>
 
                                                                     <div class="col-12 col-md-5 specimen-sign-section">
+
                                                                         <button type="button"
                                                                             class="btn btn-info upload-btn"
                                                                             data-login_id="{{ Auth::user()->login_id }}"
@@ -3665,21 +3742,26 @@ exit; -->
                                                                             <i class="fa fa-upload"></i>
                                                                             Upload
                                                                         </button>
+
                                                                     </div>
+
                                                                 </div>
                                                             </td>
 
                                                             <td>
                                                                 <button type="button"
-                                                                    class="btn btn-danger remove-authority-name">
-                                                                    <i class="fa fa-minus"></i>
-                                                                    Remove
+                                                                    class="btn btn-primary"
+                                                                    id="add-more-authority-name">
+
+                                                                    <i class="fa fa-plus"></i>
+                                                                    Add More
                                                                 </button>
                                                             </td>
 
                                                         </tr>
 
                                                     @endif
+
                                                 @endif
 
                                             </tbody>
@@ -3785,7 +3867,7 @@ exit; -->
                                         <div class="col-12 col-md-7">
 
                                             <input type="text" class="form-control text-box"
-                                                name="addressproofno" maxlength="200" id="addressproofno"
+                                                name="addressproofno" maxlength="15" id="addressproofno"
                                                 value="{{ $Address_proof->addressproofno ?? '' }}">
                                             <span class="error text-danger" id="addressproofno_error"></span>
                                         </div>
@@ -4071,11 +4153,10 @@ exit; -->
                                                     </div>
                                                 </td>
 
-                                                <td width="10%">
+                                                <td>
 
-                                                    <input class="form-control" type="text"
+                                                    <input class="form-control" type="date"
                                                         name="date_of_test[]"
-                                                        placeholder = 'Date of Test'
                                                         value="{{ $existing->dateoftest ?? '' }}">
 
                                                     <span class="error text-danger date_error"></span>
@@ -4758,272 +4839,231 @@ function toggleCompetencyFields(type, show) {
         //         }
         //     });
         // });
-    let isNewAuthorityApplication = @json(!$application);
 
-$(document).on("click", "#add-more-authority-name", function () {
 
-   
+// ==========================================================
+// ADD MORE AUTHORITY / SIGNATORY ROW
+// ==========================================================
 
+            $(document).on("click", "#add-more-authority-name", function () {
 
-    let $tbody = $("#authority-names-tbody");
-    let $rows = $tbody.find("tr");
-    let isValid = true;
+                let lastRow = $("#authority-names-table tbody tr").last();
+                let isValid = true;
 
-    // Validate every existing row before adding another
-    $rows.each(function () {
+                // ------------------------------------------
+                // VALIDATE REQUIRED TEXT FIELDS
+                // ------------------------------------------
 
-        let $row = $(this);
+                let requiredFields = [
+                    'name_of_authorised_to_sign[]',
+                    'age_of_authorised_to_sign[]',
+                    'qualification_of_authorised_to_sign[]',
+                    'designation_of_authorised_to_sign[]'
+                ];
 
-        // Clear previous validation errors
-        $row.find(".authority-validation-error").remove();
-        $row.find(".is-invalid").removeClass("is-invalid");
+                requiredFields.forEach(function (fieldName) {
 
-        // Clear previous document error messages
-        $row.find(".Doc_upload_error").text("").hide();
+                    let input = lastRow.find(
+                        'input[name="' + fieldName + '"]'
+                    );
 
-        // -----------------------------------------
-        // 1. Validate required fields
-        // -----------------------------------------
-        let fields = [
-            {
-                selector: 'input[name="name_of_authorised_to_sign[]"]',
-                message: "Enter the authority name."
-            },
-            {
-                selector: 'input[name="age_of_authorised_to_sign[]"]',
-                message: "Enter the authority age."
-            },
-            {
-                selector: 'input[name="qualification_of_authorised_to_sign[]"]',
-                message: "Enter the qualification."
-            },
-            {
-                selector: 'input[name="designation_of_authorised_to_sign[]"]',
-                message: "Enter the designation."
-            }
-        ];
+                    let value = (input.val() || "").trim();
 
-        fields.forEach(function (field) {
+                    if (value === "") {
+                        isValid = false;
+                        input.addClass("is-invalid");
+                    } else {
+                        input.removeClass("is-invalid");
+                    }
+                });
 
-            let $input = $row.find(field.selector);
-            let value = $.trim($input.val() || "");
+                // ------------------------------------------
+                // VALIDATE SPECIMEN SIGNATURE
+                // ------------------------------------------
 
-            if (value === "") {
+                let specimenFile = lastRow.find(
+                    'input[name="specimen_sign[]"]'
+                )[0];
 
-                isValid = false;
-                $input.addClass("is-invalid");
+                let existingSpecimen =
+                    lastRow.find(".file-link").length > 0;
 
-                $('<span class="text-danger authority-validation-error"></span>')
-                    .text(field.message)
-                    .insertAfter($input);
-            }
-        });
+                let specimenUploaded =
+                    specimenFile &&
+                    specimenFile.files &&
+                    specimenFile.files.length > 0;
 
-        // -----------------------------------------
-        // 2. Validate age: 15 to 70
-        // -----------------------------------------
-        let $age = $row.find(
-            'input[name="age_of_authorised_to_sign[]"]'
-        );
+                if (!specimenUploaded && !existingSpecimen) {
 
-        let ageValue = $.trim($age.val() || "");
+                    isValid = false;
 
-        if (ageValue !== "") {
+                    lastRow.find('input[name="specimen_sign[]"]')
+                        .addClass("is-invalid");
 
-            let age = Number(ageValue);
+                    lastRow.find(".Doc_upload_error")
+                        .text("Please upload specimen signature.");
 
-            if (!Number.isInteger(age) || age < 15 || age > 70) {
+                } else {
 
-                isValid = false;
-                $age.addClass("is-invalid");
+                    lastRow.find('input[name="specimen_sign[]"]')
+                        .removeClass("is-invalid");
 
-                $('<span class="text-danger authority-validation-error"></span>')
-                    .text("Age must be between 15 and 70.")
-                    .insertAfter($age);
-            }
-        }
+                    lastRow.find(".Doc_upload_error").text("");
+                }
 
-        // -----------------------------------------
-        // 3. Validate the View Document link
-        // -----------------------------------------
-        let $documentLink = $row.find(".file-link a[href]").filter(function () {
+                // ------------------------------------------
+                // STOP IF INVALID
+                // ------------------------------------------
 
-            let href = $.trim($(this).attr("href") || "");
+                if (!isValid) {
 
-            return href !== "" && href !== "#";
+                    if (typeof Swal !== "undefined") {
 
-        }).first();
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Incomplete Details",
+                            text: "Please fill all details and upload the specimen signature before adding another row.",
+                            confirmButtonText: "OK",
+                            width: 450
+                        });
 
-        let $fileInput = $row.find(
-            'input[name="specimen_sign[]"]'
-        );
+                    } else {
 
-        let $uploadError = $row.find(".Doc_upload_error");
-
-        // A valid document link is mandatory before adding another row
-        if ($documentLink.length === 0) {
-
-            isValid = false;
-
-            $fileInput.addClass("is-invalid");
-
-            $uploadError
-                .text("Upload the specimen signature ")
-                .show();
-        }
-    });
-
-    // -----------------------------------------
-    // 4. Stop if any existing row is invalid
-    // -----------------------------------------
-    if (!isValid) {
-
-        let $firstError = $tbody.find(".is-invalid").first();
-
-        if ($firstError.length) {
+                        alert(
+                            "Please fill all details and upload the specimen signature before adding another row."
+                        );
+                    }
 
-            $("html, body").animate({
-                scrollTop: $firstError.offset().top - 120
-            }, 300);
+                    return false;
+                }
 
-            $firstError.trigger("focus");
-        }
+                // ------------------------------------------
+                // FIND MAXIMUM CURRENT ROW INDEX
+                // ------------------------------------------
+
+                let maxRowIndex = 0;
+
+                $("#authority-names-table tbody tr").each(function () {
+
+                    let currentRowIndex = parseInt(
+                        $(this).attr("data-row-index"),
+                        10
+                    );
+
+                    if (
+                        !isNaN(currentRowIndex) &&
+                        currentRowIndex > maxRowIndex
+                    ) {
+                        maxRowIndex = currentRowIndex;
+                    }
+                });
+
+                // ------------------------------------------
+                // GENERATE NEXT INDEX
+                // ------------------------------------------
+
+                let rowIndex = maxRowIndex + 1;
 
-        return;
-    }
+                console.log("Maximum row index:", maxRowIndex);
+                console.log("New row index:", rowIndex);
 
-    // -----------------------------------------
-    // 5. Maximum 5 rows
-    // -----------------------------------------
-    if ($rows.length >= 5) {
-
-        alert("Maximum 5 authority signatories are allowed.");
-        return;
-    }
+                // ------------------------------------------
+                // BUILD NEW ROW
+                // ------------------------------------------
 
-    // -----------------------------------------
-    // 6. Find an available row index from 1 to 5
-    // -----------------------------------------
-    let usedIndexes = $rows.map(function () {
+                let newRow = `
+                    <tr data-row-index="${rowIndex}" data-existing="0">
 
-        return parseInt($(this).attr("data-row-index"), 10);
+                        <td>
+                            <input type="hidden"
+                                name="authority_row_index[]"
+                                value="${rowIndex}">
 
-    }).get();
+                            <input type="text"
+                                class="form-control"
+                                name="name_of_authorised_to_sign[]"
+                                oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
+                        </td>
 
-    let rowIndex = 1;
+                        <td>
+                            <input type="number"
+                                min="15"
+                                max="70"
+                                class="form-control"
+                                name="age_of_authorised_to_sign[]">
+                        </td>
 
-    while (usedIndexes.includes(rowIndex) && rowIndex <= 5) {
-        rowIndex++;
-    }
+                        <td>
+                            <input type="text"
+                                class="form-control"
+                                name="qualification_of_authorised_to_sign[]"
+                                oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
+                        </td>
 
-    if (rowIndex > 5) {
+                        <td>
+                            <input type="text"
+                                class="form-control"
+                                name="designation_of_authorised_to_sign[]"
+                                oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
+                        </td>
 
-        alert("Maximum 5 authority signatories are allowed.");
-        return;
-    }
+                        <td>
+                            <div class="row">
 
-    // -----------------------------------------
-    // 7. Add the new row
-    // -----------------------------------------
-    let row = `
-        <tr data-row-index="${rowIndex}" data-existing="0">
+                                <div class="col-12 col-md-7">
 
-            <td>
-                <input type="hidden"
-                    name="authority_row_index[]"
-                    value="${rowIndex}">
+                                    <input type="file"
+                                        class="form-control"
+                                        name="specimen_sign[]"
+                                        accept="application/pdf">
 
-                <input type="text"
-                    class="form-control"
-                    name="name_of_authorised_to_sign[]"
-                    placeholder="Name of Authority"
-                    oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
-            </td>
+                                    <span class="file-limit">
+                                        PDF only (Max 250 KB)
+                                    </span>
 
-            <td>
-                <input type="number"
-                    min="15"
-                    max="70"
-                    class="form-control"
-                    name="age_of_authorised_to_sign[]"
-                    placeholder="Age of Authority">
-            </td>
+                                    <br>
 
-            <td>
-                <input type="text"
-                    class="form-control"
-                    name="qualification_of_authorised_to_sign[]"
-                    placeholder="Qualification of Authority"
-                    oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
-            </td>
+                                    <span class="text-danger Doc_upload_error"></span>
 
-            <td>
-                <input type="text"
-                    class="form-control"
-                    name="designation_of_authorised_to_sign[]"
-                    placeholder="Designation"
-                    oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
-            </td>
+                                </div>
 
-            <td>
-                <div class="row">
+                                <div class="col-12 col-md-5 specimen-sign-section">
 
-                    <div class="col-12 col-md-7">
+                                    <button type="button"
+                                        class="btn btn-info upload-btn"
+                                        data-login_id="{{ Auth::user()->login_id }}"
+                                        data-module="SPECIMEN SIGN"
+                                        data-document_category="specimen_sign"
+                                        data-document_sub_category="SS"
+                                        data-ownership_type=""
+                                        data-form_code="{{ $form_code->id }}"
+                                        data-row-index="${rowIndex}">
 
-                        <input type="file"
-                            class="form-control"
-                            name="specimen_sign[]"
-                            accept="application/pdf">
+                                        <i class="fa fa-upload"></i>
+                                        Upload
+                                    </button>
 
-                        <span class="file-limit">
-                            PDF only (Max 250 KB)
-                        </span>
+                                </div>
 
-                        <br>
+                            </div>
+                        </td>
 
-                        <span class="text-danger Doc_upload_error"></span>
+                        <td>
+                            <button type="button"
+                                class="btn btn-danger remove-authority-name">
 
-                    </div>
+                                <i class="fa fa-minus"></i>
+                                Remove
+                            </button>
+                        </td>
 
-                    <div class="col-12 col-md-5 specimen-sign-section">
+                    </tr>
+                `;
 
-                        <button type="button"
-                            class="btn btn-info upload-btn"
-                            data-login_id="{{ Auth::user()->login_id }}"
-                            data-module="SPECIMEN SIGN"
-                            data-document_category="specimen_sign"
-                            data-document_sub_category="SS"
-                            data-ownership_type=""
-                            data-form_code="{{ $form_code->id }}"
-                            data-row-index="${rowIndex}">
+                $("#authority-names-table tbody").append(newRow);
+            });
 
-                            <i class="fa fa-upload"></i>
-                            Upload
 
-                        </button>
-
-                    </div>
-
-                    <div class="col-md-12 mt-1 col-12 file-link"></div>
-
-                </div>
-            </td>
-
-            <td>
-                <button type="button"
-                    class="btn btn-danger remove-authority-name">
-
-                    <i class="fa fa-minus"></i>
-                    Remove
-
-                </button>
-            </td>
-
-        </tr>
-    `;
-
-    $tbody.append(row);
-});
 
             $(document).on(
                 "click",
@@ -5442,42 +5482,45 @@ $(document).on("click", "#add-more-authority-name", function () {
         // -----------------add staff row---------------------
 
         // ================= ADD STAFF ROW =================
-        $(document).on('change', '.staff_category', function () {
+        $(document).on('change', '.staff_category', function() {
 
-    let row = $(this).closest('tr');
-    let category = $(this).val();
+            let row = $(this).closest('tr');
+            let category = $(this).val();
 
-    if (category === 'OTHERS') {
+            if (category === 'OTHERS') {
 
-        // Hide certificate fields
-        row.find('.cc-column').hide();
-        row.find('.validity-column').hide();
+                // Hide certificate fields
+                row.find('.cc-column').hide();
+                row.find('.validity-column').hide();
 
-        // Hide Verify button
-        row.find('.verify-otherstaff').hide();
+                // Hide verify
+                row.find('.verifyBtn').hide();
 
-        // Show designation
-        row.find('.designation-column').show();
+                // Show designation
+                row.find('.designation-column').show();
 
-        // Clear certificate values
-        row.find('.cc_number, .cc_firstissue, .cc_validity_from, .cc_validity_to').val('');
+                // Clear certificate values
+                row.find('.cc_number').val('');
+                row.find('.cc_firstissue').val('');
+                row.find('.cc_validity_from').val('');
+                row.find('.cc_validity_to').val('');
 
-    } else {
+            } else {
 
-        // Show certificate fields
-        row.find('.cc-column').show();
-        row.find('.validity-column').show();
+                // Show certificate fields
+                row.find('.cc-column').show();
+                row.find('.validity-column').show();
 
-        // Show Verify button
-        row.find('.verify-otherstaff').show();
+                // Show verify
+                row.find('.verifyBtn').show();
 
-        // Hide designation
-        row.find('.designation-column').hide();
+                // Hide designation
+                row.find('.designation-column').hide();
 
-        // Clear designation
-        row.find('.designation').val('');
-    }
-});
+                // Clear designation
+                row.find('.designation').val('');
+            }
+        });
         // -----------------add staff row---------------------
 
         function addStaffRows() {
@@ -5714,7 +5757,7 @@ $(document).on("click", "#add-more-authority-name", function () {
     <td class="action-column">
 
         <button type="button"
-                class="btn btn-primary verify-otherstaff" style="display:none;">
+                class="btn btn-primary verify-otherstaff">
             Verify
         </button>
 

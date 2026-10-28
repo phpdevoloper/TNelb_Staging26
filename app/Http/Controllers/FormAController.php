@@ -476,7 +476,7 @@ class FormAController extends BaseController
 
                 'certificates'
             )
-            ->orderByDesc('application_id')
+            ->orderByDesc('cc_id')
             ->first();
 
         // dd($certificate);exit;
@@ -2305,7 +2305,6 @@ class FormAController extends BaseController
                 ->where('login_id', $request->login_id_store)
                 ->where('form_name', $request->form_name)
                 ->where('license_name', $request->license_name)
-                ->where('application_id', $sessionId)
                 ->where('document_category', 'educ_qual_proof')
                 ->where('ownership_type', 'pt')
                 ->where(
@@ -3935,8 +3934,6 @@ class FormAController extends BaseController
 
             ];
         }
-
-        // dd($request->application_ownershiptype); exit;
         $validatedData = $request->validate($rules);
 
 
@@ -3973,13 +3970,12 @@ class FormAController extends BaseController
         $dataToSave['application_id'] = $applicationId;
         $dataToSave['login_id'] = $request->login_id_store;
 
-        // $dataToSave['application_ownershiptype'] =
-        //     $request->input('application_ownershiptype');
-
-        // dd($dataToSave['application_ownershiptype']); exit;
-
+// dd($request->application_ownershiptype);exit;
         $dataToSave['previous_application_number'] =
             $request->input('previous_application_number');
+
+        $dataToSave['application_ownershiptype'] =
+            $request->input('application_ownershiptype');
 
         $dataToSave['previous_validity_first_issue'] =
             $request->input('previous_validity_first_issue');
@@ -4310,6 +4306,19 @@ class FormAController extends BaseController
             }
 
 
+            // ==========================================================
+            // 6. DO NOT DEACTIVATE ROWS OMITTED FROM THE FORM
+            // ==========================================================
+            // Intentionally do not use whereNotIn(row_index, ...).
+            // A document upload may have created a row that was not included
+            // in the current form submission.
+            //
+            // Only the explicit removed_staffqc_ids list above deactivates
+            // staff records.
+
+            // ==========================================================
+            // 7. FIND TEMPORARY APPOINTMENT / CONSENT DOCUMENTS
+            // ==========================================================
 
             $tempDocs = DB::table('tnelb_temp_uploaded_documents')
                 ->where(
@@ -4828,6 +4837,16 @@ class FormAController extends BaseController
                         data_get($request->qual_text, $index, '')
                     ),
 
+                      'educational_proof' => data_get(
+                        $request->qual_proof,
+                        $index
+                    ),
+
+                    'age_proof' => data_get(
+                        $request->age_proof,
+                        $index
+                    ),
+
                     'fathers_name' => strtoupper(
                         data_get($request->fathers_name, $index, '')
                     ),
@@ -5083,6 +5102,8 @@ class FormAController extends BaseController
         $newPartnerIds = [];
 
         if ($request->exists('partners')) {
+
+            // dd($request->all()); exit;
 
             $count = 1;
             $newPartnerIds = [];
@@ -5607,12 +5628,12 @@ class FormAController extends BaseController
                     ),
 
                              'educational_proof' => data_get(
-                        $request->partner_qual_proof,
+                        $request->director_qual_proof,
                         $index
                     ),
 
                     'age_proof' => data_get(
-                        $request->partner_age_proof,
+                        $request->director_age_proof,
                         $index
                     ),
 
@@ -5943,6 +5964,7 @@ class FormAController extends BaseController
         }
 
 
+
         // ==========================================================
         // 8. SIGNATORY / AUTHORITY
         // ==========================================================
@@ -5998,7 +6020,6 @@ class FormAController extends BaseController
                 'form_name',
                 $request->input('form_name')
             )
-            ->where('application_id', $sessionId)
             ->where(
                 'license_name',
                 $request->input('license_name')
@@ -7200,7 +7221,7 @@ class FormAController extends BaseController
             ];
         }
         // dd($request->all());
-        // dd($request->application_ownershiptype);
+        // dd($request->appl_type);
         // exit;
         $validatedData = $request->validate($rules);
 

@@ -1254,23 +1254,34 @@
                                                 <div class="col-lg-12">
                                                     <div class="row mt-2">
                                                         <div class="col-lg-8">
-                                                            <p class=" text-info"><strong>5. Whether any application for Contractor/s licence was made previously? If so, details thereof:</strong></p>
+                                                            <p class=" text-info"><strong>4. Whether any application for Contractor/s licence was made previously? If so, details thereof:</strong></p>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
                                                                  - {{$applicant->previous_application_number}},
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }}
+                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }} ,
+                                                                     {{ \Carbon\Carbon::parse($applicant->previous_validity_first_issue)->format('d-m-Y') }},
 
-                                                                                     <div class="row">
+                                                                     {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }},
+
+                                                                      {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }},
 
 
 
-                                                           <div class="col-lg-12 col-12 d-flex align-items-center">
+                                                        <div class="row">
+
+
+
+                                                        <div class="col-lg-12 col-12 d-flex align-items-center">
                                                             <div class="verify-result_EA "></div>  <!-- Result on left -->
                                                             <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                 data-license="{{ $applicant->previous_application_number }}"
-                                                                data-date="{{ $applicant->previous_application_validity }}">
+                                                                data-firstissue="{{ $applicant->previous_validity_first_issue }}"
+                                                                data-validity_from="{{ $applicant->previous_validity_from }}"
+                                                                data-validity_to="{{ $applicant->previous_validity_to }}"
+                                                                
+                                                                >
                                                                 Verify
                                                             </button>
                                                         </div>
@@ -1423,7 +1434,7 @@
                                         </div>
                                     </div>
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
-                                        <p class="mt-4 mb-2 fw-bold text-info">6A . QC Staff Details</p>
+                                        <p class="mt-4 mb-2 fw-bold text-info">5A . QC Staff Details</p>
                                         <div class="table-responsive">
                                             <table class="table table-bordered">
                                                 <thead>
@@ -1517,7 +1528,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <p class="mt-4 mb-2 fw-bold text-info">6B. Other Staff Details</p>
+                                        <p class="mt-4 mb-2 fw-bold text-info">5B. Other Staff Details</p>
                                         <div class="table-responsive">
                                             <table class="table table-bordered">
                                                 <thead>
@@ -1694,7 +1705,7 @@
 
                                             <div class="row ">
                                                 <div class="col-lg-12">
-                                                    <p class="text-info"><strong>7. Bank Solvency Certificate Details</strong></p>
+                                                    <p class="text-info"><strong>6. Bank Solvency Certificate Details</strong></p>
                                                 </div>
                                             </div>
 
@@ -1748,7 +1759,7 @@
 
 
                                         <div class="col-lg-8">
-                                            <p><strong>8. Has the applicant or any of his/her staff referred to under item 6, been
+                                            <p><strong>7. Has the applicant or any of his/her staff referred to under item 6, been
                                                     at any time convicted in any court of law or punished by any other
                                                     authority for criminal offences</strong></p>
                                         </div>
@@ -1769,21 +1780,109 @@
                                                 @endif
 
 
+                                    </div>
+
+                                    <div class="row mt-3">
 
 
+                                        <div class="col-lg-8">
+                                            <p><strong>8.The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern</strong></p>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Name of Signatory</th>
+                                                        <th>Age of Signatory</th>
+                                                        <th>Qualification of Signatory</th>
+                                                        <th>Designation</th>
+                                                        <th>Specimen Signature</th>
+                                                    </tr>
+                                                </thead>
 
+                                                <tbody>
+                                                    @php
+                                                        $hasAuthorizedPersons = false;
+                                                    @endphp
 
+                                                    @forelse($authoritysignatory as $signatory)
+                                                        @php
+                                                            $authorizedPersons = json_decode(
+                                                                $signatory->name_of_authorised_to_sign ?? '[]', true
+                                                            ) ?? [];
 
+                                                            $authorizedage = json_decode(
+                                                                $signatory->age_of_authorised_to_sign ?? '[]', true
+                                                            ) ?? [];
+
+                                                            $authorizedqualify = json_decode(
+                                                                $signatory->qualification_of_authorised_to_sign ?? '[]', true
+                                                            ) ?? [];
+
+                                                            $designations = json_decode(
+                                                                $signatory->designation ?? '[]', true
+                                                            ) ?? [];
+
+                                                            $signatures = json_decode(
+                                                                $signatory->specimen_signature ?? '[]', true
+                                                            ) ?? [];
+                                                        @endphp
+
+                                                        @foreach($authorizedPersons as $index => $person)
+                                                            @php
+                                                                $hasAuthorizedPersons = true;
+                                                            @endphp
+
+                                                            <tr>
+                                                                <td>{{ strtoupper($person ?? '') }}</td>
+
+                                                                <td>{{ $authorizedage[$index] ?? '' }}</td>
+
+                                                                <td>{{ strtoupper($authorizedqualify[$index] ?? '') }}</td>
+
+                                                                <td>
+                                                                    {{ is_array($designations)
+                                                                        ? ($designations[$index] ?? '')
+                                                                        : ($signatory->designation ?? '') }}
+                                                                </td>
+
+                                                                <td>
+                                                                    @if(isset($signatures[$index]) && $signatures[$index])
+                                                                        <a href="{{ asset($signatures[$index]) }}"
+                                                                        target="_blank">View Signature</a>
+                                                                    @elseif(!empty($signatory->specimen_signature))
+                                                                        <a href="{{ asset($signatory->specimen_signature) }}"
+                                                                        target="_blank">View Signature</a>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="5" class="text-center">No authorized persons</td>
+                                                        </tr>
+                                                    @endforelse
+
+                                                    @if($authoritysignatory->isNotEmpty() && !$hasAuthorizedPersons)
+                                                        <tr>
+                                                            <td colspan="5" class="text-center">No authorized persons</td>
+                                                        </tr>
+                                                    @endif
+                                                </tbody>
+                                            </table>
+                                        </div>
 
 
 
                                     </div>
 
+                                    
+
                                     <div class="row mt-3">
 
                                             <div class="row ">
                                                 <div class="col-lg-12">
-                                                    <p class="text-info"><strong>12. Address Proof  </strong></p>
+                                                    <p class="text-info"><strong>8. Address Proof  </strong></p>
                                                 </div>
                                             </div>
 
@@ -4056,37 +4155,56 @@ $("#process_return").on("click", function () {
     });
 });
 
+$(document).on('click', '.verify-btn_EA', function (e) {
+    e.preventDefault();
 
-$(document).on('click', '.verify-btn_EA', function () {
     let btn = $(this);
+
     let license = btn.data('license');
-    let date = btn.data('date');
+    let firstIssue = btn.data('firstissue');
+    let validityFrom = btn.data('validity_from');
+    let validityTo = btn.data('validity_to');
+
     let resultDiv = btn.siblings('.verify-result_EA');
 
-    resultDiv.html('<p class="text-info">Checking...</p>');
+    resultDiv.html('<span class="text-info">Checking...</span>');
 
     $.ajax({
-    url: "{{ route('admin.verifylicenseformAea_admin') }}",
+        url: "{{ route('admin.verifylicenseformAea_admin') }}",
         method: "POST",
         data: {
             _token: "{{ csrf_token() }}",
             license_number: license,
-            date: date
+            first_issue: firstIssue,
+            validity_from: validityFrom,
+            validity_to: validityTo
         },
         success: function (response) {
             if (response.exists) {
-                resultDiv.html('<p class="text-success">Valid License</p>');
+                resultDiv.html(
+                    '<span class="text-success">Valid License</span>'
+                );
             } else {
-                resultDiv.html('<p class="text-danger">Invalid License</p>');
+                resultDiv.html(
+                    '<span class="text-danger">Invalid License</span>'
+                );
             }
         },
-        error: function () {
-            resultDiv.html('<p class="text-danger">Error checking license</p>');
+        error: function (xhr) {
+            let message = 'Error checking license';
+
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                message = Object.values(xhr.responseJSON.errors)
+                    .flat()
+                    .join('<br>');
+            }
+
+            resultDiv.html(
+                '<span class="text-danger">' + message + '</span>'
+            );
         }
     });
 });
-
-
 
 $(document).on('click', '.verify-btn_staff', function () {
     let btn = $(this);
