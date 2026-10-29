@@ -1254,26 +1254,30 @@
                                                 <div class="col-lg-12">
                                                     <div class="row mt-2">
                                                         <div class="col-lg-8">
-                                                            <p class=" text-info"><strong>5. Whether any application for Contractor/s licence was made previously? If so, details thereof:</strong></p>
+                                                            <p class=" text-info"><strong>4. Whether any application for Contractor/s licence was made previously? If so, details thereof:</strong></p>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
                                                                  - {{$applicant->previous_application_number}},
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }}
+                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }},
+                                                                {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }} , 
+                                                                 {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }}
+
+
 
                                                                                      <div class="row">
 
 
 
-                                                           <div class="col-lg-12 col-12 d-flex align-items-center">
+                                                           {{-- <div class="col-lg-12 col-12 d-flex align-items-center">
                                                             <div class="verify-result_EA "></div>  <!-- Result on left -->
                                                             <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                 data-license="{{ $applicant->previous_application_number }}"
                                                                 data-date="{{ $applicant->previous_application_validity }}">
                                                                 Verify
                                                             </button>
-                                                        </div>
+                                                        </div> --}}
 
 
 
@@ -1423,7 +1427,7 @@
                                         </div>
                                     </div>
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
-                                        <p class="mt-4 mb-2 fw-bold text-info">6A . QC Staff Details</p>
+                                        <p class="mt-4 mb-2 fw-bold text-info">5A . QC Staff Details</p>
                                         <div class="table-responsive">
                                             <table class="table table-bordered">
                                                 <thead>
@@ -1536,7 +1540,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <p class="mt-4 mb-2 fw-bold text-info">6B. Other Staff Details</p>
+                                        <p class="mt-4 mb-2 fw-bold text-info">5B. Other Staff Details</p>
                                         <div class="table-responsive">
                                             <table class="table table-bordered">
                                                 <thead>
@@ -1716,7 +1720,7 @@
 
                                             <div class="row ">
                                                 <div class="col-lg-12">
-                                                    <p class="text-info"><strong>7. Bank Solvency Certificate Details</strong></p>
+                                                    <p class="text-info"><strong>6. Bank Solvency Certificate Details</strong></p>
                                                 </div>
                                             </div>
 
@@ -1770,7 +1774,7 @@
 
 
                                         <div class="col-lg-8">
-                                            <p><strong>8. Has the applicant or any of his/her staff referred to under item 6, been
+                                            <p><strong>7. Has the applicant or any of his/her staff referred to under item 6, been
                                                     at any time convicted in any court of law or punished by any other
                                                     authority for criminal offences</strong></p>
                                         </div>
@@ -1791,12 +1795,78 @@
                                                 @endif
 
 
+                                    </div>
+
+                                    <div class="row mt-3">
+
+
+                                        <div class="col-lg-8">
+                                            <p><strong>8. The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern</strong></p>
+                                        </div>
+                                        <div class="col-lg-12">
+                                           <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Name of Signatory</th>
+                                                    <th>Age of Signatory</th>
+                                                    <th>Qualification of Signatory</th>
+                                                    <th>Designation</th>
+                                                    <th>Specimen Signature</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                            @if ($authoritysignatory->count() > 0)
+
+                                                @foreach ($authoritysignatory as $index => $authority)
+                                                    <tr>
+                                                        <td>
+                                                            {{ $authority->name_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ $authority->age_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ $authority->qualification_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ $authority->designation_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            @if (!empty($authority->specimen_sign))
+                                                            <a href="{{ asset($authority->specimen_sign) }}"
+                                                                target="_blank"                                                                                                                             class="file_view fw-bold">
+                                                                                                                                <i class="fa fa-file-pdf-o"
+                                                                                                                                    style="color:red;"></i>
+                                                                                                                                View Document
+                                                                                                                            </a>
+                                                            @else
+                                                                <span class="text-muted">No document uploaded</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+
+                                            @else
+                                                <tr>
+                                                    <td colspan="5" class="text-center">
+                                                        No signatory records found.
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
+                                        </table>
+                                        </div>
+                                        </div>
 
 
 
-
-
-
+                                               
 
 
                                     </div>
@@ -1967,7 +2037,7 @@
                                                     </div>
 
 
-                                                     <div class="col-lg-6">
+                                                    <div class="col-lg-6">
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
@@ -1976,6 +2046,15 @@
                                                         @else
                                                             <p>{{ $applicant->amount }}.00</p>
                                                         @endif
+                                                    </div>
+
+                                                     <div class="col-lg-6">
+                                                        <p><strong>Total Amount</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        
+                                                            <p>{{ $applicant->amount }}.00</p>
+                                                        
                                                     </div>
 
                                                     @if ($applicant->late_fee > 0)
