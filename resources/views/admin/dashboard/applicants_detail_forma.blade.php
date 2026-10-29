@@ -1435,12 +1435,9 @@
                                                         <th>Staff Name</th>
                                                         <th>Competency Certificate Number <br> Certificate First Issue , <br>Validity From<br> Validity To</th>
                                                         <th>Certificate First Issue , <br>Validity From<br> Validity To</th>
-                                                        <th>Attachments
-                                                        </th>
-                                                        <th>History of Staff
-                                                        </th>
+                                                        <th>Attachments</th>
+                                                        <th>History of Staff</th>
                                                         <th>Verify</th>
-
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -1454,20 +1451,15 @@
 
                                                     <td>
                                                         <div class="file-link">
-                                                        <a href="#" target="_blank">Appointment Letter</a>
+                                                        <a href="{{ asset($staff->app_doc) }}" target="_blank">Appointment Letter</a>
                                                         <br>
-                                                        <a href="#" target="_blank">Consent Letter</a>
+                                                        <a href="{{ asset($staff->cons_doc) }}" target="_blank">Consent Letter</a>
                                                         </div>
                                                     </td>
                                                    <td>
                                                     @if(!empty($staff->staff_cc_no))
-
-
-
                                                         <button type="button"
                                                             class="btn btn-primary verify-staff"
-
-
 
                                                             data-license="{{ $staff->staff_cc_no }}"
 
@@ -1488,12 +1480,8 @@
 
                                                             View History
                                                         </button>
-
                                                     @endif
-
-
                                                 </td>
-
                                             <td class="text-center">
 
                                                 @if($staff->staff_category != 'OTHERS')
@@ -1521,16 +1509,9 @@
                                                                 data-cc-no="{{ $staff->staff_cc_no }}"
                                                                 {{ $verifyFlag == 1 ? 'checked' : '' }}>
                                                         </div>
-
                                                     </div>
-
                                                 @endif
-
                                             </td>
-
-
-
-
                                                     </tr>
                                                     @empty
                                                     <tr>
@@ -1556,9 +1537,6 @@
                                                 </thead>
                                                 <tbody>
                                                     @forelse ($otherstaffdetails as $index => $staff)
-                                                    @php
-                                                        // dd($staff);exit;
-                                                    @endphp
                                                     <tr>
 
 
@@ -2002,20 +1980,6 @@
                                             </div>
 
                                         </div>
-
-
-
-
-
-
-
-
-
-                                        <!-- --------------18--------------------------- -->
-
-
-
-
                                     </div>
                                 </div>
                                 <!-- -------------------------------- -->
@@ -2032,7 +1996,6 @@
                                                         <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        
                                                         <p><strong>{{ $applicant->appl_type ?? 'NA' }}</strong></p>
                                                     </div>
 
@@ -2041,11 +2004,7 @@
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        @if($applicant->application_fee > 0)
-                                                        <p>{{ $applicant->application_fee }}.00</p>
-                                                        @else
-                                                            <p>{{ $applicant->amount }}.00</p>
-                                                        @endif
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
 
                                                      <div class="col-lg-6">
@@ -2063,7 +2022,7 @@
                                                         <p><strong>Late fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->late_fee }}.00</p>
+                                                        <p>{{ $applicant->late_fee }}</p>
                                                     </div>
                                                     @endif
 
@@ -2099,14 +2058,13 @@
                                                         <p><strong>Amount</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Payment mode:</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>UPI</p>
-                                                        {{-- <P>{{ $applicant->payment_mode }}</P> --}}
+                                                        <P>{{ $applicant->payment_mode }}</P>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong> Payment Time</strong></p>
@@ -4400,10 +4358,6 @@ $(document).on("click", ".verify-cert_ownership", function () {
         let certificate = response.certificate;
         let records = Array.isArray(response.data) ? response.data : [];
 
-        console.log("Certificate:", certificate);
-        console.log("Experience Records:", records);
-        console.log("Experience Count:", records.length);
-
         let result = `
             <div class="competency-result-box">
 
@@ -4998,14 +4952,14 @@ $(document).on("click", ".verify-staff", function () {
                               </td>
                             <td>
                                 ${data.relieve_document
-                                    ? `<a href="${encodeURI('/competency/' + data.relieve_document.replace(/^\/+|^competency\//, ''))}"
+                                    ? `<a href="${data.relieve_document}"
                                         target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
                                     : '-'}
                             </td>
 
                             <td>
                                 ${data.support_document
-                                    ? `<a href="${encodeURI('/competency/' + data.support_document.replace(/^\/+|^competency\//, ''))}"
+                                    ? `<a href="${data.support_document}"
                                         target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
                                     : '-'}
                             </td>
@@ -5502,15 +5456,13 @@ $(document).on("click", ".verify-otherstaff", function () {
                               </td>
                             <td>
                                 ${data.relieve_document
-                                    ? `<a href="${encodeURI('/competency/' + data.relieve_document.replace(/^\/+|^competency\//, ''))}"
-                                        target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
+                                    ? `<a href=" ${data.relieve_document}" target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
                                     : '-'}
                             </td>
 
                             <td>
                                 ${data.support_document
-                                    ? `<a href="${encodeURI('/competency/' + data.support_document.replace(/^\/+|^competency\//, ''))}"
-                                        target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
+                                    ? `<a href="${data.support_document}" target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
                                     : '-'}
                             </td>
 

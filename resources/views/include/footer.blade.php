@@ -1248,54 +1248,36 @@ $(document).ready(function() {
     });
 
 
-const IS_DRAFT = {{ isset($application) ? 'true' : 'false' }};
-const SAVED_OWNERSHIP = "{{ $application->application_ownershiptype ?? '' }}";
+    const IS_DRAFT = {{isset($application) ? 'true' : 'false'}};
+    const SAVED_OWNERSHIP = "{{ $application->application_ownershiptype ?? '' }}";
+    $(document).ready(function() {
 
-
-
-$(document).ready(function () {
-
-    // Draft load behavior
+    // 🔹 Draft load behavior
     if (IS_DRAFT) {
-
-        // Hide both sections initially
         $("#partnershipdeed, #directormom").hide();
-        $("#partner-section, #director-section").hide();
 
         if (SAVED_OWNERSHIP === 'pt') {
-
             $("#partnershipdeed").show();
-            $("#partner-section").show();
-
-        } else if (
-            SAVED_OWNERSHIP === 'pvt' ||
-            SAVED_OWNERSHIP === 'public' ||
-            SAVED_OWNERSHIP === 'ltd'
-        ) {
-
-            // alert(SAVED_OWNERSHIP);
-
+        } else if (SAVED_OWNERSHIP === 'pvt' || SAVED_OWNERSHIP === 'public' || SAVED_OWNERSHIP === 'ltd') {
             $("#directormom").show();
-            $("#director-section").show();
-
         }
     }
-});
+    });
 /* 🔁 Ownership change */
-// $(document).ready(function () {
+$(document).ready(function () {
 
-//     let draftCount = {{ $draftCount ?? 0 }};
-//     let draftOwnershipType = "{{ $ownershipType ?? '' }}";
+    let draftCount = {{ $draftCount ?? 0 }};
+    let draftOwnershipType = "{{ $ownershipType ?? '' }}";
 
-//     if (draftCount > 0 && draftOwnershipType !== "") {
+    if (draftCount > 0 && draftOwnershipType !== "") {
 
-//         $("#ownership_type_select").val(draftOwnershipType);
+        $("#ownership_type_select").val(draftOwnershipType);
 
-//         // Tell change handler this is from draft
-//         $("#ownership_type_select").trigger("change", [true]);
-//     }
+        // Tell change handler this is from draft
+        $("#ownership_type_select").trigger("change", [true]);
+    }
 
-// });
+});
 
 $(document).on("change", "#ownership_type_select", function (e, fromDraft = false) {
 
@@ -1306,32 +1288,27 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
         $(".ownershipdoc_upload_error").text("");
     }
 
-    $(
-        "#partnershipdeed, #directormom, #proprietor-sectionfresh, " +
-        "#directorfill-section, #partnersfill-section, #proprietor-section, " +
-        "#partner-section, #director-section"
-    ).hide();
-
-    function setInitialRowIndex(selector) {
-            let $section = $(selector);
-
-            $section.attr("data-row-index", 1);
-
-            $section.find(".upload-btn").each(function () {
-                $(this)
-                    .attr("data-row-index", 1)
-                    .data("rowIndex", 1);
-            });
-        }
+    $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
 
     if (type === "pt") {
 
-        $("#partnershipdeed, #partner-section").slideDown();
+        // alert(formDraft);
 
-        if (!fromDraft) {
-            $("#partnersfill-section").slideDown();
-            setInitialRowIndex("#partnersfill-section");
-        }
+         if (fromDraft) {
+             $("#partnershipdeed").slideDown();
+             $("#partner-section").slideDown();
+
+
+            }else{
+
+             $("#partner-section").slideDown();
+             $("#partnershipdeed").slideDown();
+             $("#partnersfill-section").slideDown();
+         }
+
+
+
+
 
     } else if (
         type === "dr" ||
@@ -1340,24 +1317,36 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
         type === "ltd"
     ) {
 
-        $("#directormom, #director-section").slideDown();
+         if (fromDraft) {
 
-        if (!fromDraft) {
-            $("#directorfill-section").slideDown();
-            setInitialRowIndex("#directorfill-section");
+           $("#director-section").slideDown();
+           $("#directormom").slideDown();
+
+        } else {
+
+            $("#directormom").slideDown();
+            $("#director-section").slideDown();
+        $("#directorfill-section").slideDown();
+
         }
+
+
+
 
     } else if (type === "pr") {
 
-        $("#proprietor-section").slideDown();
+        if (fromDraft) {
 
-        if (!fromDraft) {
+            $("#proprietor-section").slideDown();
+
+        } else {
+
             $("#proprietor-sectionfresh").slideDown();
-            setInitialRowIndex("#proprietor-sectionfresh");
+            $("#proprietor-section").slideDown();
+
         }
     }
 });
-
 
 
     // ------------------------------------------------------------forma 8_11 Attachments open----------------------

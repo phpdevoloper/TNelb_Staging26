@@ -10205,6 +10205,26 @@ partners.forEach((p, index) => {
         $holderInput.val('');
 
 
+        let holderName = (
+            $row.find(".certificate_holder_name_others").val() || ""
+        ).trim();
+
+        if (holderName !== "") {
+
+            $holderColumn.find(".holder-name-error").remove();
+
+            $(this).removeClass("btn-danger");
+
+        } else {
+
+            $holderColumn.find(".holder-name-error").remove();
+
+            $holderColumn.append(
+                '<span class="holder-name-error text-danger d-block mt-1">' +
+                'Certificate holder name is missing. Please verify first.' +
+                '</span>'
+            );
+        }
 
 
         // ==================================================
