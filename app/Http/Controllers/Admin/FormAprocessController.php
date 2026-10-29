@@ -12,9 +12,9 @@ class FormAprocessController extends Controller
     {
         $request->validate([
             'certificate_no' => 'required',
-            'dateof_issue'   => 'required|date',
-            'valid_from'     => 'required|date',
-            'valid_to'       => 'required|date',
+            'dateof_issue' => 'required|date',
+            'valid_from' => 'required|date',
+            'valid_to' => 'required|date',
         ]);
 
         // Find certificate
@@ -29,7 +29,7 @@ class FormAprocessController extends Controller
         // Certificate not found
         if (!$certificate) {
             return response()->json([
-                'status'  => false,
+                'status' => false,
                 'message' => 'Certificate details not found - Enter valid details.'
             ]);
         }
@@ -40,26 +40,50 @@ class FormAprocessController extends Controller
         // Get all experience records
         $cc_exp = DB::table('cc_exp')
             ->where('application_id', $application_id)
-            ->orderBy('exp_id', 'DESC')
+            ->orderByDesc('exp_id')
             ->get()
             ->map(function ($item) {
-                foreach (
-                    [
-                        'from_date',
-                        'to_date',
-                        'date_from',
-                        'date_to',
-                        'start_date',
-                        'end_date',
-                    ] as $field
-                ) {
-                    if (isset($item->$field) && !empty($item->$field)) {
-                        $item->$field = \Carbon\Carbon::parse($item->$field)->format('d-m-Y');
+
+                // Format only date fields that exist in the result.
+                foreach ([
+                    'from_date',
+                    'to_date',
+                    'date_from',
+                    'date_to',
+                    'start_date',
+                    'end_date',
+                ] as $field) {
+                    if (
+                        property_exists($item, $field) &&
+                        !empty($item->$field)
+                    ) {
+                        $item->$field = \Carbon\Carbon::parse($item->$field)
+                            ->format('d-m-Y');
                     }
+                }
+
+                // Resolve document URLs in the same pass.
+                $documentId = (int) ($item->id ?? $item->exp_id ?? 0);
+
+                foreach ([
+                    'support_document',
+                    'relieve_document',
+                ] as $field) {
+                    $document = $item->$field ?? null;
+
+                    $item->$field = !empty($document)
+                        ? competency_document_url(
+                            $document,
+                            'experience',
+                            $documentId,
+                            'experience_doc'
+                        )
+                        : null;
                 }
 
                 return $item;
             });
+
 
         // Get applicant details
         $applicant_details = DB::table('cc_form_s_meta')
@@ -69,28 +93,28 @@ class FormAprocessController extends Controller
         // Applicant details response
         $applicantData = $applicant_details ? [
             'applicant_name' => $applicant_details->applicant_name ?? '-',
-            'fathers_name'   => $applicant_details->fathers_name ?? '-',
-            'dob'            => !empty($applicant_details->d_o_b)
+            'fathers_name' => $applicant_details->fathers_name ?? '-',
+            'dob' => !empty($applicant_details->d_o_b)
                 ? \Carbon\Carbon::parse($applicant_details->d_o_b)->format('d-m-Y')
                 : '-',
-            'age'            => $applicant_details->age ?? '-',
+            'age' => $applicant_details->age ?? '-',
         ] : [
             'applicant_name' => '-',
-            'fathers_name'   => '-',
-            'dob'            => '-',
-            'age'            => '-',
+            'fathers_name' => '-',
+            'dob' => '-',
+            'age' => '-',
         ];
 
         // Certificate details: dates in dd-mm-yyyy
         $certificateData = [
             'certificate_no' => $certificate->certificate_no,
-            'dateof_issue'   => !empty($certificate->dateof_issue)
+            'dateof_issue' => !empty($certificate->dateof_issue)
                 ? \Carbon\Carbon::parse($certificate->dateof_issue)->format('d-m-Y')
                 : '-',
-            'valid_from'     => !empty($certificate->valid_from)
+            'valid_from' => !empty($certificate->valid_from)
                 ? \Carbon\Carbon::parse($certificate->valid_from)->format('d-m-Y')
                 : '-',
-            'valid_to'       => !empty($certificate->valid_to)
+            'valid_to' => !empty($certificate->valid_to)
                 ? \Carbon\Carbon::parse($certificate->valid_to)->format('d-m-Y')
                 : '-',
         ];
@@ -98,23 +122,23 @@ class FormAprocessController extends Controller
         // Certificate found but no experience
         if ($cc_exp->isEmpty()) {
             return response()->json([
-                'status'            => true,
-                'message'           => 'Certificate found, but no experience data found.',
-                'application_id'    => $application_id,
-                'certificate'       => $certificateData,
+                'status' => true,
+                'message' => 'Certificate found, but no experience data found.',
+                'application_id' => $application_id,
+                'certificate' => $certificateData,
                 'applicant_details' => $applicantData,
-                'data'              => [],
+                'data' => [],
             ]);
         }
 
         // Certificate and experience found
         return response()->json([
-            'status'            => true,
-            'message'           => 'Certificate and experience data found.',
-            'application_id'    => $application_id,
-            'certificate'       => $certificateData,
+            'status' => true,
+            'message' => 'Certificate and experience data found.',
+            'application_id' => $application_id,
+            'certificate' => $certificateData,
             'applicant_details' => $applicantData,
-            'data'              => $cc_exp,
+            'data' => $cc_exp,
         ]);
     }
 
@@ -126,9 +150,9 @@ class FormAprocessController extends Controller
     {
         $request->validate([
             'certificate_no' => 'required',
-            'dateof_issue'   => 'required|date',
-            'valid_from'     => 'required|date',
-            'valid_to'       => 'required|date',
+            'dateof_issue' => 'required|date',
+            'valid_from' => 'required|date',
+            'valid_to' => 'required|date',
         ]);
 
         // -------------------------------------------------
@@ -194,13 +218,37 @@ class FormAprocessController extends Controller
                         'end_date',
                     ] as $field
                 ) {
-                    if (isset($item->$field) && !empty($item->$field)) {
-                        $item->$field = \Carbon\Carbon::parse($item->$field)->format('d-m-Y');
+                    if (
+                        property_exists($item, $field) &&
+                        !empty($item->$field)
+                    ) {
+                        $item->$field = \Carbon\Carbon::parse($item->$field)
+                            ->format('d-m-Y');
                     }
+                }
+
+                // Resolve document URLs in the same pass.
+                $documentId = (int) ($item->id ?? $item->exp_id ?? 0);
+
+                foreach ([
+                    'support_document',
+                    'relieve_document',
+                ] as $field) {
+                    $document = $item->$field ?? null;
+
+                    $item->$field = !empty($document)
+                        ? competency_document_url(
+                            $document,
+                            'experience',
+                            $documentId,
+                            'experience_doc'
+                        )
+                        : null;
                 }
 
                 return $item;
             });
+
 
         // Get applicant details
         $applicant_details = DB::table('cc_form_s_meta')
@@ -217,28 +265,28 @@ class FormAprocessController extends Controller
         // Applicant details response
         $applicantData = $applicant_details ? [
             'applicant_name' => $applicant_details->applicant_name ?? '-',
-            'fathers_name'   => $applicant_details->fathers_name ?? '-',
-            'dob'            => !empty($applicant_details->d_o_b)
+            'fathers_name' => $applicant_details->fathers_name ?? '-',
+            'dob' => !empty($applicant_details->d_o_b)
                 ? \Carbon\Carbon::parse($applicant_details->d_o_b)->format('d-m-Y')
                 : '-',
-            'age'            => $applicant_details->age ?? '-',
+            'age' => $applicant_details->age ?? '-',
         ] : [
             'applicant_name' => '-',
-            'fathers_name'   => '-',
-            'dob'            => '-',
-            'age'            => '-',
+            'fathers_name' => '-',
+            'dob' => '-',
+            'age' => '-',
         ];
 
         // Certificate details: dates in dd-mm-yyyy
         $certificateData = [
             'certificate_no' => $certificate->certificate_no,
-            'dateof_issue'   => !empty($certificate->dateof_issue)
+            'dateof_issue' => !empty($certificate->dateof_issue)
                 ? \Carbon\Carbon::parse($certificate->dateof_issue)->format('d-m-Y')
                 : '-',
-            'valid_from'     => !empty($certificate->valid_from)
+            'valid_from' => !empty($certificate->valid_from)
                 ? \Carbon\Carbon::parse($certificate->valid_from)->format('d-m-Y')
                 : '-',
-            'valid_to'       => !empty($certificate->valid_to)
+            'valid_to' => !empty($certificate->valid_to)
                 ? \Carbon\Carbon::parse($certificate->valid_to)->format('d-m-Y')
                 : '-',
         ];
@@ -246,23 +294,23 @@ class FormAprocessController extends Controller
         // Certificate found but no experience
         if ($cc_exp->isEmpty()) {
             return response()->json([
-                'status'            => true,
-                'message'           => 'Certificate found, but no experience data found.',
-                'application_id'    => $application_id,
-                'certificate'       => $certificateData,
+                'status' => true,
+                'message' => 'Certificate found, but no experience data found.',
+                'application_id' => $application_id,
+                'certificate' => $certificateData,
                 'applicant_details' => $applicantData,
-                'data'              => [],
+                'data' => [],
             ]);
         }
 
         // Certificate and experience found
         return response()->json([
-            'status'            => true,
-            'message'           => 'Certificate and experience data found.',
-            'application_id'    => $application_id,
-            'certificate'       => $certificateData,
+            'status' => true,
+            'message' => 'Certificate and experience data found.',
+            'application_id' => $application_id,
+            'certificate' => $certificateData,
             'applicant_details' => $applicantData,
-            'data'              => $cc_exp,
+            'data' => $cc_exp,
         ]);
     }
 }
