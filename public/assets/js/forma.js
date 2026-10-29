@@ -879,91 +879,21 @@ $(document).ready(function () {
 
         let proprietor = [];
 
-        // ✅ Collect all rows data first
+        // Collect all proprietor rows
         $("#proprietor-section tbody tr").each(function () {
+
             let $tr = $(this);
             let $tds = $tr.find("td");
 
             let id = $tr.data("id") || null;
-            let qualification_text = $tds.eq(4).data("qual_text") || "";
 
             proprietor.push({
-                id: id,
-                proprietor_name: $tds.eq(0).text().trim(),
-                fathers_name: $tds.eq(1).text().trim(),
-                // age: $tds.eq(2).text().trim(),
-                // age: $tds.eq(2).data("age"),
-                // dob: $tds.eq(2).data("dob"),
-
-                dob: $tds.eq(2).attr("data-dob"),
-                age: $tds.eq(2).attr("data-age"),
-
-                proprietor_address: $tds.eq(3).text().trim(),
-                // qualification: $tds.eq(4).text().trim(),
-
-                qualification: $tds.eq(4).attr("data-qualification"),
-                qualification_text: $tds.eq(4).attr("data-qual_text"),
-                // qualification: $tds.eq(4).attr("data-qualification"),
-                // qualification_text: $tds.eq(4).attr("data-qual_text") || "",
-
-                present_business: $tds.eq(5).text().trim(),
-                competency: $tds.eq(6).data("competency") || "",
-                competency_certno: $tds.eq(6).data("certno") || "",
-                ccfirstissue: $tds.eq(6).data("ccfirstissue") || "",
-                ccvalidityfrom: $tds.eq(6).data("ccvalidityfrom") || "",
-                ccvalidityto: $tds.eq(6).data("ccvalidityto") || "",
-
-                ownership_type:
-                    $tds.eq(9).find("input[name='ownership_type[]']").val() ||
-                    $tds.eq(9).data("ownership") ||
-                    "",
-            });
-        });
-
-        // ✅ Append partners JSON to FormData
-        formData.append("proprietor", JSON.stringify(proprietor));
-
-        // ✅ (Optional) Also append individually indexed data if needed
-        proprietor.forEach((p, index) => {
-            formData.append(`proprietor_id[${index}]`, p.id ?? "");
-
-            // formData.append(`proprietor_name[${index}]`, p.proprietor_name);
-            formData.append(`proprietor_name[${index}]`, p.proprietor_name);
-            formData.append(`fathers_name[${index}]`, p.fathers_name);
-            formData.append(`ownership_type[${index}]`, p.ownership_type);
-            formData.append(`age[${index}]`, p.age);
-            formData.append(`dob[${index}]`, p.dob);
-            formData.append(`proprietor_address[${index}]`, p.proprietor_address);
-            formData.append(`qualification[${index}]`, p.qualification);
-            formData.append(`qual_text[${index}]`, p.qualification_text);
-
-            formData.append(`present_business[${index}]`, p.present_business);
-            formData.append(`competency[${index}]`, p.competency);
-            formData.append(`competency_certno[${index}]`, p.competency_certno);
-            formData.append(`ccfirstissue[${index}]`, p.ccfirstissue);
-            formData.append(`ccvalidityfrom[${index}]`, p.ccvalidityfrom);
-            formData.append(`ccvalidityto[${index}]`, p.ccvalidityto);
-
-
-            formData.append(`expverify[${index}]`, p.expverify);
-        });
-        // ---------------------------------------------------
-
-        let partners = [];
-
-        // Collect all partner rows
-        $("#partner-section table tbody tr").each(function () {
-
-            let $tr = $(this);
-            let $tds = $tr.find("td");
-
-            let id = $tr.data("id") || null;
-
-            partners.push({
 
                 id: id,
 
                 proprietor_name:
+                    $tds.eq(0).attr("data-name") ||
+                    $tds.eq(0).find("input").val() ||
                     $tds.eq(0).text().trim(),
 
                 fathers_name:
@@ -978,14 +908,17 @@ $(document).ready(function () {
                 proprietor_address:
                     $tds.eq(3).text().trim(),
 
-                        age_proof: $tds.eq(2).attr("data-age_proof") || "",
-    qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
+                age_proof:
+                    $tds.eq(2).attr("data-age_proof") || "",
 
                 qualification:
                     $tds.eq(4).attr("data-qualification") || "",
 
                 qualification_text:
                     $tds.eq(4).attr("data-qual_text") || "",
+
+                qual_proof:
+                    $tds.eq(4).attr("data-qual_proof") || "",
 
                 present_business:
                     $tds.eq(5).text().trim(),
@@ -1005,122 +938,250 @@ $(document).ready(function () {
                 ccvalidityto:
                     $tds.eq(6).attr("data-ccvalidityto") || "",
 
-                ccverify:
-                    $tds.eq(6).attr("data-ccverify") ?? "",
+                expverify:
+                    $tds.eq(6).attr("data-expverify") || "",
 
                 ownership_type:
-                    $tds.eq(7).find("input[name='ownership_type[]']").val() ||
-                    $tds.eq(7).attr("data-ownership") ||
+                    $tds.eq(9).find("input[name='ownership_type[]']").val() ||
+                    $tds.eq(9).attr("data-ownership") ||
                     "",
-                    row_index: $tr.find("input[name='row_index[]']").val()
-                    || $tr.attr("data-row-index")
-                    || "",
+
+                row_index:
+                    $tr.find("input[name='row_index[]']").val() ||
+                    $tr.attr("data-row-index") ||
+                    ""
 
             });
+
         });
 
-        // Append partners JSON
+        // Append proprietor JSON
         formData.append(
-            "partners",
-            JSON.stringify(partners)
+            "proprietor",
+            JSON.stringify(proprietor)
         );
 
-        // Append individually indexed partner data
-        partners.forEach((p, index) => {
+        // Append individually indexed proprietor data
+        proprietor.forEach((p, index) => {
+
+            formData.append(`proprietor_id[${index}]`, p.id ?? "");
+
+            formData.append(`proprietor_name[${index}]`, p.proprietor_name);
+            formData.append(`fathers_name[${index}]`, p.fathers_name);
+            formData.append(`ownership_type[${index}]`, p.ownership_type);
+
+            formData.append(`age[${index}]`, p.age);
+            formData.append(`dob[${index}]`, p.dob);
 
             formData.append(
-                `partner_id[${index}]`,
-                p.id ?? ""
-            );
-
-            formData.append(
-                `partner_name[${index}]`,
-                p.proprietor_name
-            );
-
-            formData.append(
-                `partner_fathers_name[${index}]`,
-                p.fathers_name
-            );
-
-            formData.append(
-                `partner_ownership_type[${index}]`,
-                p.ownership_type
-            );
-
-            formData.append(
-                `partner_age[${index}]`,
-                p.age
-            );
-
-            formData.append(
-                `partner_dob[${index}]`,
-                p.dob
-            );
-
-            formData.append(
-                `partner_proprietor_address[${index}]`,
+                `proprietor_address[${index}]`,
                 p.proprietor_address
             );
 
-            formData.append(
-                `partner_qualification[${index}]`,
-                p.qualification
-            );
+            formData.append(`qualification[${index}]`, p.qualification);
+            formData.append(`qual_text[${index}]`, p.qualification_text);
+
+            formData.append(`present_business[${index}]`, p.present_business);
+
+            formData.append(`competency[${index}]`, p.competency);
 
             formData.append(
-                `partner_qual_text[${index}]`,
-                p.qualification_text
-            );
-
-            formData.append(
-                `partner_present_business[${index}]`,
-                p.present_business
-            );
-
-            formData.append(
-                `partner_competency[${index}]`,
-                p.competency
-            );
-
-            formData.append(
-                `partner_competency_certno[${index}]`,
+                `competency_certno[${index}]`,
                 p.competency_certno
             );
 
-            formData.append(
-                `partner_ccfirstissue[${index}]`,
-                p.ccfirstissue
-            );
+            formData.append(`ccfirstissue[${index}]`, p.ccfirstissue);
 
             formData.append(
-                `partner_ccvalidityfrom[${index}]`,
+                `ccvalidityfrom[${index}]`,
                 p.ccvalidityfrom
             );
 
             formData.append(
-                `partner_ccvalidityto[${index}]`,
+                `ccvalidityto[${index}]`,
                 p.ccvalidityto
             );
 
-            formData.append(
-                `partner_ccverify[${index}]`,
-                p.ccverify
-            );
+            formData.append(`expverify[${index}]`, p.expverify);
 
-            formData.append(
-                `partner_age_proof[${index}]`,
-                p.age_proof
-            );
+            formData.append(`age_proof[${index}]`, p.age_proof);
+            formData.append(`qual_proof[${index}]`, p.qual_proof);
 
-            formData.append(
-                `partner_qual_proof[${index}]`,
-                p.qual_proof
-            );
-
-            formData.append(`partner_row_index[${index}]`, p.row_index);
+            formData.append(`row_index[${index}]`, p.row_index);
 
         });
+
+        // partner push-----------------
+        let partners = [];
+
+// Collect all partner rows
+$("#partner-section table tbody tr").each(function () {
+
+    let $tr = $(this);
+    let $tds = $tr.find("td");
+
+    let id = $tr.data("id") || null;
+
+    partners.push({
+
+        id: id,
+
+       proprietor_name:
+            $tds.eq(0).attr("data-name") ||
+            $tds.eq(0).find("input").val() ||
+            $tds.eq(0).text().trim(),
+
+        fathers_name:
+            $tds.eq(1).text().trim(),
+
+        dob:
+            $tds.eq(2).attr("data-dob") || "",
+
+        age:
+            $tds.eq(2).attr("data-age") || "",
+
+        age_proof:
+            $tds.eq(2).attr("data-age_proof") || "",
+
+        qual_proof:
+            $tds.eq(4).attr("data-qual_proof") || "",
+
+        proprietor_address:
+            $tds.eq(3).text().trim(),
+
+        qualification:
+            $tds.eq(4).attr("data-qualification") || "",
+
+        qualification_text:
+            $tds.eq(4).attr("data-qual_text") || "",
+
+        present_business:
+            $tds.eq(5).text().trim(),
+
+        competency:
+            $tds.eq(6).attr("data-competency") || "",
+
+        competency_certno:
+            $tds.eq(6).attr("data-certno") || "",
+
+        ccfirstissue:
+            $tds.eq(6).attr("data-ccfirstissue") || "",
+
+        ccvalidityfrom:
+            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+
+        ccvalidityto:
+            $tds.eq(6).attr("data-ccvalidityto") || "",
+
+        ccverify:
+            $tds.eq(6).attr("data-ccverify") ?? "",
+
+        ownership_type:
+            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+            $tds.eq(7).attr("data-ownership") ||
+            "pt",
+
+        row_index:
+            $tr.attr("data-row-index") || ""
+
+    });
+});
+
+// Append partners JSON
+formData.append(
+    "partners",
+    JSON.stringify(partners)
+);
+
+// Append individually indexed partner data
+partners.forEach((p, index) => {
+
+    formData.append(`partner_id[${index}]`, p.id ?? "");
+
+    formData.append(
+        `partner_name[${index}]`,
+        p.proprietor_name
+    );
+
+    formData.append(
+        `partner_fathers_name[${index}]`,
+        p.fathers_name
+    );
+
+    formData.append(
+        `partner_ownership_type[${index}]`,
+        p.ownership_type
+    );
+
+    formData.append(`partner_age[${index}]`, p.age);
+    formData.append(`partner_dob[${index}]`, p.dob);
+
+    formData.append(
+        `partner_proprietor_address[${index}]`,
+        p.proprietor_address
+    );
+
+    formData.append(
+        `partner_qualification[${index}]`,
+        p.qualification
+    );
+
+    formData.append(
+        `partner_qual_text[${index}]`,
+        p.qualification_text
+    );
+
+    formData.append(
+        `partner_present_business[${index}]`,
+        p.present_business
+    );
+
+    formData.append(
+        `partner_competency[${index}]`,
+        p.competency
+    );
+
+    formData.append(
+        `partner_competency_certno[${index}]`,
+        p.competency_certno
+    );
+
+    formData.append(
+        `partner_ccfirstissue[${index}]`,
+        p.ccfirstissue
+    );
+
+    formData.append(
+        `partner_ccvalidityfrom[${index}]`,
+        p.ccvalidityfrom
+    );
+
+    formData.append(
+        `partner_ccvalidityto[${index}]`,
+        p.ccvalidityto
+    );
+
+    formData.append(
+        `partner_ccverify[${index}]`,
+        p.ccverify
+    );
+
+    formData.append(
+        `partner_age_proof[${index}]`,
+        p.age_proof
+    );
+
+    formData.append(
+        `partner_qual_proof[${index}]`,
+        p.qual_proof
+    );
+
+    formData.append(
+        `partner_row_index[${index}]`,
+        p.row_index
+    );
+
+});
         // ------------director push--------------
 
         let directors = [];
@@ -1137,8 +1198,10 @@ $(document).ready(function () {
 
                 id: id,
 
-                proprietor_name:
-                    $tds.eq(0).attr("data-name") || "",
+               proprietor_name:
+                $tds.eq(0).attr("data-name") ||
+                $tds.eq(0).find("input").val() ||
+                $tds.eq(0).text().trim(),
 
                 managing_director:
                     $tds.eq(0).attr("data-managing_director") || "no",
@@ -1151,6 +1214,9 @@ $(document).ready(function () {
 
                 age:
                     $tds.eq(2).attr("data-age") || "",
+
+                age_proof: $tds.eq(2).attr("data-age_proof") || "",
+                qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
 
                 proprietor_address:
                     $tds.eq(3).text().trim(),
@@ -1284,6 +1350,18 @@ $(document).ready(function () {
                 `director_ccverify[${index}]`,
                 p.ccverify
             );
+
+                formData.append(
+                `director_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `director_qual_proof[${index}]`,
+                p.qual_proof
+            );
+
+            formData.append(`director_row_index[${index}]`, p.row_index);
 
         });
 
@@ -4924,14 +5002,13 @@ $(document).ready(function () {
         e.preventDefault();
 
 
-        let formData = new FormData(this);
+          let formData = new FormData(this);
         let submitter = e.originalEvent?.submitter;
         let actionType = "submit";
         if ($(submitter).hasClass("save-draft")) {
             actionType = "draft";
         }
-        // alert('111');
-        // exit;
+
         $(".error").text("");
         let isValid = true;
 
@@ -4996,101 +5073,24 @@ $(document).ready(function () {
 
         // -----------------------------------------
 
+       
         let proprietor = [];
 
-        // ✅ Collect all rows data first
+        // Collect all proprietor rows
         $("#proprietor-section tbody tr").each(function () {
+
             let $tr = $(this);
             let $tds = $tr.find("td");
 
             let id = $tr.data("id") || null;
-            // alert(id);
-            // exit;
-            let qualification_text = $tds.eq(4).data("qual_text") || "";
 
-            // alert($tds.eq(2).data("data-age"));
-            // alert(qualification_text);
-            //                 exit;
             proprietor.push({
-                id: id,
-                proprietor_name: $tds.eq(0).text().trim(),
-                fathers_name: $tds.eq(1).text().trim(),
-                // age: $tds.eq(2).text().trim(),
-                // age: $tds.eq(2).data("age"),
-                // dob: $tds.eq(2).data("dob"),
-
-                dob: $tds.eq(2).attr("data-dob"),
-                age: $tds.eq(2).attr("data-age"),
-
-                proprietor_address: $tds.eq(3).text().trim(),
-                // qualification: $tds.eq(4).text().trim(),
-
-                qualification: $tds.eq(4).attr("data-qualification"),
-                qualification_text: $tds.eq(4).attr("data-qual_text"),
-                // qualification: $tds.eq(4).attr("data-qualification"),
-                // qualification_text: $tds.eq(4).attr("data-qual_text") || "",
-
-                present_business: $tds.eq(5).text().trim(),
-                competency: $tds.eq(6).data("competency") || "",
-                competency_certno: $tds.eq(6).data("certno") || "",
-                ccfirstissue: $tds.eq(6).data("ccfirstissue") || "",
-                ccvalidityfrom: $tds.eq(6).data("ccvalidityfrom") || "",
-                ccvalidityto: $tds.eq(6).data("ccvalidityto") || "",
-
-                ownership_type:
-                    $tds.eq(9).find("input[name='ownership_type[]']").val() ||
-                    $tds.eq(9).data("ownership") ||
-                    "",
-            });
-        });
-
-        // ✅ Append partners JSON to FormData
-        formData.append("proprietor", JSON.stringify(proprietor));
-
-        // ✅ (Optional) Also append individually indexed data if needed
-        proprietor.forEach((p, index) => {
-            formData.append(`proprietor_id[${index}]`, p.id ?? "");
-
-            // formData.append(`proprietor_name[${index}]`, p.proprietor_name);
-            formData.append(`proprietor_name[${index}]`, p.proprietor_name);
-            formData.append(`fathers_name[${index}]`, p.fathers_name);
-            formData.append(`ownership_type[${index}]`, p.ownership_type);
-            formData.append(`age[${index}]`, p.age);
-            formData.append(`dob[${index}]`, p.dob);
-            formData.append(`proprietor_address[${index}]`, p.proprietor_address);
-            formData.append(`qualification[${index}]`, p.qualification);
-            formData.append(`qual_text[${index}]`, p.qualification_text);
-
-            formData.append(`present_business[${index}]`, p.present_business);
-            formData.append(`competency[${index}]`, p.competency);
-            formData.append(`competency_certno[${index}]`, p.competency_certno);
-            formData.append(`ccfirstissue[${index}]`, p.ccfirstissue);
-            formData.append(`ccvalidityfrom[${index}]`, p.ccvalidityfrom);
-            formData.append(`ccvalidityto[${index}]`, p.ccvalidityto);
-
-
-            formData.append(`expverify[${index}]`, p.expverify);
-            // console.log(p.ccverify, p.expverify);
-
-            // formData.append(`exp_validity[${index}]`, p.exp_validity);
-        });
-        // ---------------------------------------------------
-
-        let partners = [];
-
-        // Collect all partner rows
-        $("#partner-section table tbody tr").each(function () {
-
-            let $tr = $(this);
-            let $tds = $tr.find("td");
-
-            let id = $tr.data("id") || null;
-
-            partners.push({
 
                 id: id,
 
                 proprietor_name:
+                    $tds.eq(0).attr("data-name") ||
+                    $tds.eq(0).find("input").val() ||
                     $tds.eq(0).text().trim(),
 
                 fathers_name:
@@ -5105,11 +5105,17 @@ $(document).ready(function () {
                 proprietor_address:
                     $tds.eq(3).text().trim(),
 
+                age_proof:
+                    $tds.eq(2).attr("data-age_proof") || "",
+
                 qualification:
                     $tds.eq(4).attr("data-qualification") || "",
 
                 qualification_text:
                     $tds.eq(4).attr("data-qual_text") || "",
+
+                qual_proof:
+                    $tds.eq(4).attr("data-qual_proof") || "",
 
                 present_business:
                     $tds.eq(5).text().trim(),
@@ -5129,107 +5135,250 @@ $(document).ready(function () {
                 ccvalidityto:
                     $tds.eq(6).attr("data-ccvalidityto") || "",
 
-                ccverify:
-                    $tds.eq(6).attr("data-ccverify") ?? "",
+                expverify:
+                    $tds.eq(6).attr("data-expverify") || "",
 
                 ownership_type:
-                    $tds.eq(7).find("input[name='ownership_type[]']").val() ||
-                    $tds.eq(7).attr("data-ownership") ||
+                    $tds.eq(9).find("input[name='ownership_type[]']").val() ||
+                    $tds.eq(9).attr("data-ownership") ||
+                    "",
+
+                row_index:
+                    $tr.find("input[name='row_index[]']").val() ||
+                    $tr.attr("data-row-index") ||
                     ""
 
             });
+
         });
 
-        // Append partners JSON
+        // Append proprietor JSON
         formData.append(
-            "partners",
-            JSON.stringify(partners)
+            "proprietor",
+            JSON.stringify(proprietor)
         );
 
-        // Append individually indexed partner data
-        partners.forEach((p, index) => {
+        // Append individually indexed proprietor data
+        proprietor.forEach((p, index) => {
+
+            formData.append(`proprietor_id[${index}]`, p.id ?? "");
+
+            formData.append(`proprietor_name[${index}]`, p.proprietor_name);
+            formData.append(`fathers_name[${index}]`, p.fathers_name);
+            formData.append(`ownership_type[${index}]`, p.ownership_type);
+
+            formData.append(`age[${index}]`, p.age);
+            formData.append(`dob[${index}]`, p.dob);
 
             formData.append(
-                `partner_id[${index}]`,
-                p.id ?? ""
-            );
-
-            formData.append(
-                `partner_name[${index}]`,
-                p.proprietor_name
-            );
-
-            formData.append(
-                `partner_fathers_name[${index}]`,
-                p.fathers_name
-            );
-
-            formData.append(
-                `partner_ownership_type[${index}]`,
-                p.ownership_type
-            );
-
-            formData.append(
-                `partner_age[${index}]`,
-                p.age
-            );
-
-            formData.append(
-                `partner_dob[${index}]`,
-                p.dob
-            );
-
-            formData.append(
-                `partner_proprietor_address[${index}]`,
+                `proprietor_address[${index}]`,
                 p.proprietor_address
             );
 
-            formData.append(
-                `partner_qualification[${index}]`,
-                p.qualification
-            );
+            formData.append(`qualification[${index}]`, p.qualification);
+            formData.append(`qual_text[${index}]`, p.qualification_text);
+
+            formData.append(`present_business[${index}]`, p.present_business);
+
+            formData.append(`competency[${index}]`, p.competency);
 
             formData.append(
-                `partner_qual_text[${index}]`,
-                p.qualification_text
-            );
-
-            formData.append(
-                `partner_present_business[${index}]`,
-                p.present_business
-            );
-
-            formData.append(
-                `partner_competency[${index}]`,
-                p.competency
-            );
-
-            formData.append(
-                `partner_competency_certno[${index}]`,
+                `competency_certno[${index}]`,
                 p.competency_certno
             );
 
-            formData.append(
-                `partner_ccfirstissue[${index}]`,
-                p.ccfirstissue
-            );
+            formData.append(`ccfirstissue[${index}]`, p.ccfirstissue);
 
             formData.append(
-                `partner_ccvalidityfrom[${index}]`,
+                `ccvalidityfrom[${index}]`,
                 p.ccvalidityfrom
             );
 
             formData.append(
-                `partner_ccvalidityto[${index}]`,
+                `ccvalidityto[${index}]`,
                 p.ccvalidityto
             );
 
-            formData.append(
-                `partner_ccverify[${index}]`,
-                p.ccverify
-            );
+            formData.append(`expverify[${index}]`, p.expverify);
+
+            formData.append(`age_proof[${index}]`, p.age_proof);
+            formData.append(`qual_proof[${index}]`, p.qual_proof);
+
+            formData.append(`row_index[${index}]`, p.row_index);
 
         });
+
+        // partner push-----------------
+        let partners = [];
+
+// Collect all partner rows
+$("#partner-section table tbody tr").each(function () {
+
+    let $tr = $(this);
+    let $tds = $tr.find("td");
+
+    let id = $tr.data("id") || null;
+
+    partners.push({
+
+        id: id,
+
+       proprietor_name:
+            $tds.eq(0).attr("data-name") ||
+            $tds.eq(0).find("input").val() ||
+            $tds.eq(0).text().trim(),
+
+        fathers_name:
+            $tds.eq(1).text().trim(),
+
+        dob:
+            $tds.eq(2).attr("data-dob") || "",
+
+        age:
+            $tds.eq(2).attr("data-age") || "",
+
+        age_proof:
+            $tds.eq(2).attr("data-age_proof") || "",
+
+        qual_proof:
+            $tds.eq(4).attr("data-qual_proof") || "",
+
+        proprietor_address:
+            $tds.eq(3).text().trim(),
+
+        qualification:
+            $tds.eq(4).attr("data-qualification") || "",
+
+        qualification_text:
+            $tds.eq(4).attr("data-qual_text") || "",
+
+        present_business:
+            $tds.eq(5).text().trim(),
+
+        competency:
+            $tds.eq(6).attr("data-competency") || "",
+
+        competency_certno:
+            $tds.eq(6).attr("data-certno") || "",
+
+        ccfirstissue:
+            $tds.eq(6).attr("data-ccfirstissue") || "",
+
+        ccvalidityfrom:
+            $tds.eq(6).attr("data-ccvalidityfrom") || "",
+
+        ccvalidityto:
+            $tds.eq(6).attr("data-ccvalidityto") || "",
+
+        ccverify:
+            $tds.eq(6).attr("data-ccverify") ?? "",
+
+        ownership_type:
+            $tds.eq(7).find("input[name='ownership_type[]']").val() ||
+            $tds.eq(7).attr("data-ownership") ||
+            "pt",
+
+        row_index:
+            $tr.attr("data-row-index") || ""
+
+    });
+});
+
+// Append partners JSON
+formData.append(
+    "partners",
+    JSON.stringify(partners)
+);
+
+// Append individually indexed partner data
+partners.forEach((p, index) => {
+
+    formData.append(`partner_id[${index}]`, p.id ?? "");
+
+    formData.append(
+        `partner_name[${index}]`,
+        p.proprietor_name
+    );
+
+    formData.append(
+        `partner_fathers_name[${index}]`,
+        p.fathers_name
+    );
+
+    formData.append(
+        `partner_ownership_type[${index}]`,
+        p.ownership_type
+    );
+
+    formData.append(`partner_age[${index}]`, p.age);
+    formData.append(`partner_dob[${index}]`, p.dob);
+
+    formData.append(
+        `partner_proprietor_address[${index}]`,
+        p.proprietor_address
+    );
+
+    formData.append(
+        `partner_qualification[${index}]`,
+        p.qualification
+    );
+
+    formData.append(
+        `partner_qual_text[${index}]`,
+        p.qualification_text
+    );
+
+    formData.append(
+        `partner_present_business[${index}]`,
+        p.present_business
+    );
+
+    formData.append(
+        `partner_competency[${index}]`,
+        p.competency
+    );
+
+    formData.append(
+        `partner_competency_certno[${index}]`,
+        p.competency_certno
+    );
+
+    formData.append(
+        `partner_ccfirstissue[${index}]`,
+        p.ccfirstissue
+    );
+
+    formData.append(
+        `partner_ccvalidityfrom[${index}]`,
+        p.ccvalidityfrom
+    );
+
+    formData.append(
+        `partner_ccvalidityto[${index}]`,
+        p.ccvalidityto
+    );
+
+    formData.append(
+        `partner_ccverify[${index}]`,
+        p.ccverify
+    );
+
+    formData.append(
+        `partner_age_proof[${index}]`,
+        p.age_proof
+    );
+
+    formData.append(
+        `partner_qual_proof[${index}]`,
+        p.qual_proof
+    );
+
+    formData.append(
+        `partner_row_index[${index}]`,
+        p.row_index
+    );
+
+});
         // ------------director push--------------
 
         let directors = [];
@@ -5246,8 +5395,10 @@ $(document).ready(function () {
 
                 id: id,
 
-                proprietor_name:
-                    $tds.eq(0).attr("data-name") || "",
+               proprietor_name:
+                $tds.eq(0).attr("data-name") ||
+                $tds.eq(0).find("input").val() ||
+                $tds.eq(0).text().trim(),
 
                 managing_director:
                     $tds.eq(0).attr("data-managing_director") || "no",
@@ -5260,6 +5411,9 @@ $(document).ready(function () {
 
                 age:
                     $tds.eq(2).attr("data-age") || "",
+
+                age_proof: $tds.eq(2).attr("data-age_proof") || "",
+                qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
 
                 proprietor_address:
                     $tds.eq(3).text().trim(),
@@ -5394,37 +5548,19 @@ $(document).ready(function () {
                 p.ccverify
             );
 
+                formData.append(
+                `director_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `director_qual_proof[${index}]`,
+                p.qual_proof
+            );
+
+            formData.append(`director_row_index[${index}]`, p.row_index);
+
         });
-        // --------------------------------------
-
-        //     let proprietor_name = $("input[name='proprietor_name[]']").val();
-        // if (!proprietor_name || proprietor_name.trim() === "") {
-        //     $("#proprietor_name_error").text("Proprietor Name is required.");
-        //     isValid = false;
-        //     // return false;
-        // }
-        // $("#proprietor_name").on("keyup", function () {
-        //     if ($(this).val().trim() !== "") {
-        //         $("#proprietor_name_error").text("");
-        //     }
-        // });
-
-        // $("input[name='proprietor_name[]']").each(function () {
-        //     let value = $(this).val().trim();
-        //     let errorSpan = $(this).siblings(".proprietor_name_error");
-
-        //     if (value === "") {
-        //         errorSpan.text("Proprietor Name is required.");
-        //         isValid = false;
-
-        //         if (actionType === "draft") {
-        //             // 👇 stop draft immediately on first failure
-        //             return false;
-        //         }
-        //     } else {
-        //         errorSpan.text("");
-        //     }
-        // });
 
         // If draft and basic checks failed → stop right here
         if (actionType === "draft" && !isValid) {
@@ -5561,13 +5697,12 @@ $(document).ready(function () {
             $("#gst_doc_error").text("");
         });
 
-        if (isValiddraft) {
-            if (actionType === "draft") {
-                submitFormAFinal_return(formData, actionType);
-                return;
-            }
+       if (isValiddraft) {
+        if (actionType === "draft") {
+            submitFormAFinal_return(formData, actionType);
+            return;
         }
-        // alert(actionType);
+    }
         // -----------------------------------------
 
         let ownershipType = $("#ownership_type_select").val();
@@ -5852,6 +5987,13 @@ $(document).ready(function () {
 
             });
         }
+        // ======================================================
+        // 5A STAFF QC/QSC VALIDATION - FIRST PRIORITY
+        // ======================================================
+
+        // ======================================================
+        // QC / QSC STAFF VALIDATION
+        // ======================================================
 
         let qcStaffRecords = [];
 
@@ -5892,11 +6034,6 @@ $(document).ready(function () {
             category = String(category || "")
                 .trim()
                 .toUpperCase();
-
-
-            // ------------------------------------------------------
-            // DEBUG
-            // ------------------------------------------------------
 
 
             // ------------------------------------------------------
@@ -6045,8 +6182,6 @@ $(document).ready(function () {
             qcStaffRecords.push(record);
 
         });
-
-
 
         // ==========================================================
         // MINIMUM ONE QC / QSC
@@ -6418,10 +6553,6 @@ $(document).ready(function () {
 
 
         // ======================================================
-        // DEBUG GLOBAL CC NUMBERS
-        // ======================================================
-
-        // ======================================================
         // 3. CHECK DUPLICATE CERTIFICATE NUMBERS
         // ======================================================
 
@@ -6631,6 +6762,7 @@ $(document).ready(function () {
                 category = "B";
             }
 
+
             // ==================================================
             // OTHERS
             // No certificate validation required
@@ -6808,32 +6940,38 @@ $(document).ready(function () {
 
 
             let holderName = (
-                $row.find(".certificate_holder_name_others").val() || ""
-            ).trim();
+                    $row.find(".certificate_holder_name_others").val() || ""
+                ).trim();
 
-            let $holderColumn = $row.find(".certificate-holder-column");
-            let $verifyButton = $row.find(".verify-otherstaff");
+                let $holderColumn = $row.find(".certificate-holder-column");
+                let $verifyButton = $row.find(".verify-otherstaff");
 
-            // Remove previous holder-name errors
-            $holderColumn.find(".holder-name-error").remove();
+                // If the holder name is already displayed, remove the error
+                let displayedHolderName = (
+                    $row.find(".certificate-holder").text() || ""
+                ).trim();
 
-            if (holderName === "") {
+                if (holderName !== "" || displayedHolderName !== "") {
+                    $holderColumn.find(".holder-name-error").remove();
+                    $verifyButton.removeClass("btn-danger");
+                } else {
+                    $holderColumn.find(".holder-name-error").remove();
 
-                staffBasicValidationPassed = false;
+                    staffBasicValidationPassed = false;
 
-                // Show error inside certificate holder column
-                $holderColumn.append(
-                    '<span class="holder-name-error text-danger d-block mt-1">' +
-                    'Certificate holder name is missing. Please verify first22.' +
-                    '</span>'
-                );
+                    $holderColumn.append(
+                        '<span class="holder-name-error text-danger d-block mt-1">' +
+                        'Certificate holder name is missing. Please verify first.' +
+                        '</span>'
+                    );
 
-                // Highlight the Verify button
-                $verifyButton.addClass("btn-danger");
+                    $verifyButton.addClass("btn-danger");
 
-                // Stop validating this row until verified
-                return;
-            }
+                    return;
+                }
+
+                    $holderColumn.find(".holder-name-error").remove();
+                $verifyButton.removeClass("btn-danger");
 
             // Holder name exists: remove Verify button highlight
             $verifyButton.removeClass("btn-danger");
@@ -6855,11 +6993,7 @@ $(document).ready(function () {
 
                 validityTo
 
-            )
-
-
-                .then(function (response) {
-
+            ).then(function (response) {
 
                     // ==================================================
                     // CERTIFICATE VALIDATION FAILED
@@ -6908,18 +7042,11 @@ $(document).ready(function () {
                             .val(returnedHolderName);
 
                     }
-
-
                     return true;
-
-                })
-
-
-                .catch(function (xhr) {
+                }).catch(function (xhr) {
 
 
                     staffValidationPassed = false;
-
 
 
                     $row.find(".cc_number").after(
@@ -6939,7 +7066,6 @@ $(document).ready(function () {
             staffValidationRequests.push(request);
 
         });
-
 
         // ======================================================
         // BASIC VALIDATION FAILED
@@ -7089,7 +7215,6 @@ $(document).ready(function () {
             // VERY IMPORTANT
             return false;
         }
-
         // ======================================================
         // CLEAR STAFF ERRORS WHEN USER CHANGES/ENTERS DATA
         // ======================================================
@@ -7268,11 +7393,189 @@ $(document).ready(function () {
             }
         });
 
-        // -----------------Address proof------------------------------
+        // =====================================================
+        // 8. SIGNATORY
+        // =====================================================
+        // AUTHORITY / SIGNATORY VALIDATION
+        // =====================================================
 
-        // =======================================
-        // ADDRESS PROOF VALIDATION
-        // =======================================
+        $("#authority-names-table .authority-field-error").remove();
+
+        let authorityRows = $("#authority-names-table tbody tr");
+
+        authorityRows.each(function (index) {
+
+            let row = $(this);
+
+            let nameInput = row.find(
+                "input[name='name_of_authorised_to_sign[]']"
+            );
+
+            let ageInput = row.find(
+                "input[name='age_of_authorised_to_sign[]']"
+            );
+
+            let qualificationInput = row.find(
+                "input[name='qualification_of_authorised_to_sign[]']"
+            );
+
+            let designationInput = row.find(
+                "input[name='designation_of_authorised_to_sign[]']"
+            );
+
+            let specimenInput = row.find(
+                "input[name='specimen_sign[]'], input[name='specimen_sign']"
+            );
+
+            let name = nameInput.val()
+                ? nameInput.val().trim()
+                : "";
+
+            // =================================================
+            // Only validate the row if NAME is entered
+            // =================================================
+
+            if (name !== "") {
+
+                let age = ageInput.val()
+                    ? ageInput.val().trim()
+                    : "";
+
+                let qualification = qualificationInput.val()
+                    ? qualificationInput.val().trim()
+                    : "";
+
+                let designation = designationInput.val()
+                    ? designationInput.val().trim()
+                    : "";
+
+                // =================================================
+                // NAME
+                // =================================================
+
+                if (name === "") {
+
+                    nameInput.after(
+                        '<span class="text-danger authority-field-error">' +
+                        'Name of authorised signatory is required.' +
+                        '</span>'
+                    );
+
+                    isValid = false;
+                }
+
+                // =================================================
+                // AGE
+                // =================================================
+
+                if (age === "") {
+
+                    ageInput.after(
+                        '<span class="text-danger authority-field-error">' +
+                        'Age of authorised signatory is required.' +
+                        '</span>'
+                    );
+
+                    isValid = false;
+
+                } else if (parseInt(age) < 15 || parseInt(age) > 70) {
+
+                    ageInput.after(
+                        '<span class="text-danger authority-field-error">' +
+                        'Age must be between 15 and 70.' +
+                        '</span>'
+                    );
+
+                    isValid = false;
+                }
+
+                // =================================================
+                // QUALIFICATION
+                // =================================================
+
+                if (qualification === "") {
+
+                    qualificationInput.after(
+                        '<span class="text-danger authority-field-error">' +
+                        'Qualification is required.' +
+                        '</span>'
+                    );
+
+                    isValid = false;
+                }
+
+                // =================================================
+                // DESIGNATION
+                // =================================================
+
+                if (designation === "") {
+
+                    designationInput.after(
+                        '<span class="text-danger authority-field-error">' +
+                        'Designation is required.' +
+                        '</span>'
+                    );
+
+                    isValid = false;
+                }
+
+                // =================================================
+                // SPECIMEN SIGNATURE UPLOAD
+                // =================================================
+
+                let hasSpecimenFile = row.find(
+                    ".file-link a"
+                ).length > 0;
+
+                if (!hasSpecimenFile) {
+
+                    // Prevent duplicate error
+                    row.find(".specimen-sign-error").remove();
+
+                    specimenInput.after(
+                        '<span class="text-danger authority-field-error specimen-sign-error">' +
+                        'Specimen signature must be uploaded.' +
+                        '</span>'
+                    );
+
+                    isValid = false;
+                }
+            }
+        });
+
+
+        // =====================================================
+        // IF AUTHORITY / SIGNATORY VALIDATION FAILED
+        // =====================================================
+
+        if (!isValid) {
+
+            $(".nav-item").each(function () {
+
+                if ($(this).text().trim() === "Staff & Bank Details") {
+
+                    $(this).addClass("tab-error-bg");
+                    $(this).trigger("click");
+                }
+            });
+
+            const authorityError = document.querySelector(
+                "#authority-names-table .authority-field-error"
+            );
+
+            if (authorityError) {
+
+                authorityError.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            }
+
+            return;
+        }
+
+
+        // -----------------Address proof------------------------------
 
         let addressValid = true;
 
@@ -7339,9 +7642,6 @@ $(document).ready(function () {
             }
         });
 
-
-
-
         // Declaration Checkboxes
         const declaration1Checked = $("#declarationCheckbox").is(":checked");
         const declaration2Checked = $("#declarationCheckbox1").is(":checked");
@@ -7401,6 +7701,7 @@ $(document).ready(function () {
         }
 
 
+
         // --------------------equipment data--------------------
         let equipmentValid = true;
 
@@ -7427,13 +7728,6 @@ $(document).ready(function () {
                 row.find(".serial_error").text("");
             }
 
-            // MODEL
-            // if (model.val().trim() === "") {
-            //     row.find(".model_error").text("Model required");
-            //     equipmentValid = false;
-            // } else {
-            //     row.find(".model_error").text("");
-            // }
 
             // DATE
             if (date.val().trim() === "") {
@@ -7442,6 +7736,8 @@ $(document).ready(function () {
             } else {
                 row.find(".date_error").text("");
             }
+
+            // Check if link exists below input
             // TEST
             let testCell = row.find('input[name^="instrument_test_report"]').closest("td");
             let hasTestFile = testFile.files.length > 0 || testCell.find(".uploaded-file, .file-link").length > 0;
@@ -7473,12 +7769,6 @@ $(document).ready(function () {
                 $(this).closest("tr").find(".serial_error").text("");
             }
         });
-
-        // $(document).on("keyup change", 'input[name="model[]"]', function () {
-        //     if ($(this).val().trim() !== "") {
-        //         $(this).closest("tr").find(".model_error").text("");
-        //     }
-        // });
 
         $(document).on("change", 'input[name="date_of_test[]"]', function () {
             if ($(this).val().trim() !== "") {
@@ -7531,7 +7821,6 @@ $(document).ready(function () {
 
             return false;
         }
-
 
         // -------------------------------------
 
@@ -8507,16 +8796,16 @@ $(document).ready(function () {
 
     // ---------------exp retrival----------------
 
-    flatpickr('input[name="competency_certificate_validity_to[]"]', {
-        dateFormat: "d-m-Y",
+    // flatpickr('input[name="competency_certificate_validity_to[]"]', {
+    //     dateFormat: "d-m-Y",
 
-        // onChange: function (selectedDates, dateStr, instance) {
+    //     // onChange: function (selectedDates, dateStr, instance) {
 
-        //     console.log("Selected Date:", dateStr);
+    //     //     console.log("Selected Date:", dateStr);
 
-        //     checkCompetencyCertificate();
-        // }
-    });
+    //     //     checkCompetencyCertificate();
+    //     // }
+    // });
 
     // flatpickr(
     //     // 'input[name="previous_validity_first_issue"],' +
@@ -8541,72 +8830,72 @@ $(document).ready(function () {
     // );
 
 
-    flatpickr(
-    'input[name^="staff_cc_first_issue"],' +
-    'input[name^="staff_cc_validity_from"],' +
-    'input[name^="staff_cc_validity_to"],' +
-    'input[name^="cc_validity"],' +
-    'input[name^="cc_firstissue"],' +
-    'input[name^="cc_validity_from"],' +
+//     flatpickr(
+//     'input[name^="staff_cc_first_issue"],' +
+//     'input[name^="staff_cc_validity_from"],' +
+//     'input[name^="staff_cc_validity_to"],' +
+//     'input[name^="cc_validity"],' +
+//     'input[name^="cc_firstissue"],' +
+//     'input[name^="cc_validity_from"],' +
     
-    'input[name^="cc_validity_to"],' +
-    'input[name^="date_of_test"],' +
-    'input[name^="bank_validity"]',
+//     'input[name^="cc_validity_to"],' +
+//     'input[name^="date_of_test"],' +
+//     'input[name^="bank_validity"]',
     
-    {
-        dateFormat: "d-m-Y",
-        allowInput: true
-    }
-);
+//     {
+//         dateFormat: "d-m-Y",
+//         allowInput: true
+//     }
+// );
 
 
-    $('input[name="staff_cc_first_issue[]"], input[name="staff_cc_validity_from[]"], input[name="staff_cc_validity_to[]"]').each(function () {
+//     $('input[name="staff_cc_first_issue[]"], input[name="staff_cc_validity_from[]"], input[name="staff_cc_validity_to[]"]').each(function () {
 
-   $(this).attr('autocomplete', 'off');
-    $(this).prop('readonly', true);
+//    $(this).attr('autocomplete', 'off');
+//     $(this).prop('readonly', true);
 
-        if (this._flatpickr) {
-            this._flatpickr.set('allowInput', true);
-            this._flatpickr.set('dateFormat', 'd-m-Y');
-        }
+//         if (this._flatpickr) {
+//             this._flatpickr.set('allowInput', true);
+//             this._flatpickr.set('dateFormat', 'd-m-Y');
+//         }
 
-        $(this).prop('readonly', false);
-    });
+//         $(this).prop('readonly', false);
+//     });
 
 
-    flatpickr('input[name="competency_certificate_first_issue[]"]', {
-        dateFormat: "d-m-Y"
-    });
+    // flatpickr('input[name="competency_certificate_first_issue[]"]', {
+    //     dateFormat: "d-m-Y"
+    // });
 
-    flatpickr('input[name="competency_certificate_validity_from[]"]', {
-        dateFormat: "d-m-Y"
-    });
+    // flatpickr('input[name="competency_certificate_validity_from[]"]', {
+    //     dateFormat: "d-m-Y"
+    // });
 
-    flatpickr('input[name="dob[]"]', {
-        dateFormat: "d-m-Y"
-    });
+    // flatpickr('input[name="dob[]"]', {
+    //     dateFormat: "d-m-Y"
+    // });
 
-    flatpickr('input[name="competency_certificate_validity_to[]"]', {
-        dateFormat: "d-m-Y",
+    // flatpickr('input[name="competency_certificate_validity_to[]"]', {
+    //     dateFormat: "d-m-Y",
 
-        onChange: function (selectedDates, dateStr) {
+    //     onChange: function (selectedDates, dateStr) {
 
-            let certificateNo =
-                $('input[name="competency_certificate_number[]"]').first().val();
+    //         let certificateNo =
+    //             $('input[name="competency_certificate_number[]"]').first().val();
 
-            let firstIssue =
-                $('input[name="competency_certificate_first_issue[]"]').first().val();
+    //         let firstIssue =
+    //             $('input[name="competency_certificate_first_issue[]"]').first().val();
 
-            let validFrom =
-                $('input[name="competency_certificate_validity_from[]"]').first().val();
+    //         let validFrom =
+    //             $('input[name="competency_certificate_validity_from[]"]').first().val();
 
-            let validTo = dateStr;
+    //         let validTo = dateStr;
 
-            // if (certificateNo && firstIssue && validFrom && validTo) {
-            //     checkCompetencyCertificate();
-            // }
-        }
-    });
+    //         // if (certificateNo && firstIssue && validFrom && validTo) {
+    //         //     checkCompetencyCertificate();
+    //         // }
+    //     }
+    // });
     // qcstaff-----------
     // ============================================================
     // ADD QC / QSC STAFF BUTTON
@@ -8804,8 +9093,19 @@ $(document).ready(function () {
                     // CERTIFICATE VERIFIED
                     // ==========================================
 
+                    // $("#certificate-holder-name")
+                    //     .text(response.data.applicant_name);
+
                     $("#certificate-holder-name")
                         .text(response.data.applicant_name);
+
+                    // Enable Update only when the verified holder name is displayed
+                    if (
+                        $("#update_qc").is(":visible") &&
+                        $.trim($("#certificate-holder-name").text()) !== ""
+                    ) {
+                        $("#update_qc").prop("disabled", false);
+                    }
 
 
                     // ==========================================

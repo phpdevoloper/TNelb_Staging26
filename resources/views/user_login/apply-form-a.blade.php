@@ -1003,7 +1003,7 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-4 mt-1">
-                                                            <input type="text"
+                                                            <input type="date"
                                                                 class="form-control competency_validity_from"
                                                                 name="competency_certificate_validity_from[]"
                                                                 placeholder="Validity From">
@@ -1015,7 +1015,7 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-4 mt-1">
-                                                            <input type="text"
+                                                            <input type="date"
                                                                 class="form-control competency_validity_to"
                                                                 name="competency_certificate_validity_to[]"
                                                                 placeholder="Validity To">
@@ -1560,7 +1560,7 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_from"
                                                                     name="competency_certificate_validity_from[]"
                                                                     placeholder="Validity From">
@@ -1572,7 +1572,7 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_to"
                                                                     name="competency_certificate_validity_to[]"
                                                                     placeholder="Validity To">
@@ -2136,7 +2136,7 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_from"
                                                                     name="competency_certificate_validity_from[]"
                                                                     placeholder="Validity From">
@@ -2148,7 +2148,7 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_to"
                                                                     name="competency_certificate_validity_to[]"
                                                                     placeholder="Validity To">
@@ -2476,29 +2476,23 @@ exit; -->
 
 
                                                     {{-- FIRST ISSUE --}}
-                                                    <td>
-
+                                                  <td>
                                                         <input type="text" name="staff_cc_first_issue[]"
-                                                            value="{{ $staff->staff_cc_first_issue }}" readonly>
-
+                                                            value="{{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }}"
+                                                            readonly>
                                                     </td>
-
 
                                                     {{-- VALIDITY FROM --}}
                                                     <td>
-
                                                         <input type="text" name="staff_cc_validity_from[]"
-                                                            value="{{ $staff->staff_cc_validity_from }}" readonly>
-
+                                                            value="{{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') : '' }}"
+                                                            readonly>
                                                     </td>
-
 
                                                     {{-- VALIDITY TO --}}
                                                     <td>
-
                                                         <input type="text" name="staff_cc_validity_to[]"
-                                                            value="{{ $staff->staff_cc_validity_to }}">
-
+                                                            value="{{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') : '' }}" readonly>
                                                     </td>
 
 
@@ -2599,7 +2593,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_first_issue[]" 
+                                            <input type="date" name="staff_cc_first_issue[]" 
                                                 class="form-control" placeholder="CC First Issue"  autocomplete="off">
                                             <span class="text-danger small staff-first-issue-error"></span>
                                         </div>
@@ -2617,7 +2611,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_validity_from[]"
+                                            <input type="date" name="staff_cc_validity_from[]"
                                                 class="form-control" placeholder="CC Validity From">
                                             <span class="text-danger small staff-validity-from-error"></span>
                                         </div>
@@ -2627,7 +2621,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_validity_to[]"
+                                            <input type="date" name="staff_cc_validity_to[]"
                                                 class="form-control" placeholder="CC Validity To">
                                             <span class="text-danger small staff-validity-to-error"></span>
                                         </div>
@@ -3073,54 +3067,26 @@ exit; -->
 
 
 
-                                                    <td class="validity-column"
-                                                        style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                                                       <input type="text"
-                                                        class="form-control cc_firstissue"
-                                                        name="cc_firstissue[{{ $i }}]"
-                                                        placeholder="DD-MM-YYYY"
-                                                        value="{{ old(
-                                                            'cc_firstissue.' . $i,
-                                                            isset($staff->staff_cc_first_issue)
-                                                                ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
-                                                                : ''
-                                                        ) }}">
-
+                                                   <td class="validity-column" style="{{ $isOthers ? 'display:none;' : '' }}">
+                                                        <input type="date"
+                                                            class="form-control cc_firstissue"
+                                                            name="cc_firstissue[{{ $i }}]"
+                                                            value="{{ old('cc_firstissue.' . $i, !empty($staff->staff_cc_first_issue) ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('Y-m-d') : '') }}">
                                                     </td>
 
-                                                    <td class="validity-column"
-                                                        style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                                                         <input type="text"
-                                                        class="form-control cc_validity_from"
-                                                        name="cc_validity_from[{{ $i }}]"
-                                                        placeholder="DD-MM-YYYY"
-                                                        value="{{ old(
-                                                            'cc_validity_from.' . $i,
-                                                            isset($staff->staff_cc_validity_from)
-                                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
-                                                                : ''
-                                                        ) }}">
-
+                                                    <td class="validity-column" style="{{ $isOthers ? 'display:none;' : '' }}">
+                                                        <input type="date"
+                                                            class="form-control cc_validity_from"
+                                                            name="cc_validity_from[{{ $i }}]"
+                                                            value="{{ old('cc_validity_from.' . $i, !empty($staff->staff_cc_validity_from) ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('Y-m-d') : '') }}">
                                                     </td>
 
-                                                    <td class="validity-column"
-                                                        style="{{ $isOthers ? 'display:none;' : '' }}">
-
-                                                         <input type="text"
+                                                    <td class="validity-column" style="{{ $isOthers ? 'display:none;' : '' }}">
+                                                        <input type="date"
                                                             class="form-control cc_validity_to"
                                                             name="cc_validity_to[{{ $i }}]"
-                                                            placeholder="DD-MM-YYYY"
-                                                            value="{{ old(
-                                                                'cc_validity_to.' . $i,
-                                                                isset($staff->staff_cc_validity_to)
-                                                                    ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
-                                                                    : ''
-                                                            ) }}">
-
+                                                            value="{{ old('cc_validity_to.' . $i, !empty($staff->staff_cc_validity_to) ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('Y-m-d') : '') }}">
                                                     </td>
-
                                                     <td class="designation-column"
                                                         style="{{ $isOthers ? '' : 'display:none;' }}">
 
@@ -3246,7 +3212,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-12">
-                                            <input type="text" class="form-control" name="bank_validity"
+                                            <input type="date" class="form-control" name="bank_validity"
                                                 placeholder="Validity"
                                                 value="{{ isset($banksolvency) && $banksolvency->bank_validity ? \Carbon\Carbon::parse($banksolvency->bank_validity)->format('Y-m-d') : '' }}">
 
@@ -3269,17 +3235,21 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-12">
-                                            <input type="number"
-                                            class="form-control"
-                                            id="bank_amount"
-                                            name="bank_amount"
-                                            min="0"
-                                            max="1000000"
-                                            step="1"
-                                            oninput="if(this.value > 1000000) { this.setCustomValidity('Amount must be less than or equal to 1000000'); } else { this.setCustomValidity(''); }"
-                                            oninvalid="this.setCustomValidity('Enter an amount between 0 and 1000000')"
-                                            value="{{ $banksolvency->bank_amount ?? '' }}"
-                                            placeholder="Amount Rs">
+                                          <input type="number"
+                                                class="form-control"
+                                                id="bank_amount"
+                                                name="bank_amount"
+                                                min="0"
+                                                max="{{ config('tnelb.bank_amount_limit') }}"
+                                                step="1"
+                                                oninput="
+                                                    const maxAmount = Number(this.max);
+                                                    if (this.value !== '' && Number(this.value) > maxAmount) {
+                                                        this.value = maxAmount;
+                                                    }
+                                                "
+                                                value="{{ $banksolvency->bank_amount ?? '' }}"
+                                                placeholder="Amount Rs">
                                             <span class="error text-danger" id="bank_amount_error"></span>
                                         </div>
                                     </div>
@@ -3785,7 +3755,7 @@ exit; -->
                                         <div class="col-12 col-md-7">
 
                                             <input type="text" class="form-control text-box"
-                                                name="addressproofno" maxlength="200" id="addressproofno"
+                                                name="addressproofno" maxlength="250" id="addressproofno"
                                                 value="{{ $Address_proof->addressproofno ?? '' }}">
                                             <span class="error text-danger" id="addressproofno_error"></span>
                                         </div>
@@ -4071,16 +4041,13 @@ exit; -->
                                                     </div>
                                                 </td>
 
-                                                <td width="10%">
+                                           <td width="10%">
+                                                <input class="form-control" type="date"
+                                                    name="date_of_test[]"
+                                                    value="{{ !empty($existing->dateoftest) ? \Carbon\Carbon::parse($existing->dateoftest)->format('Y-m-d') : '' }}">
 
-                                                    <input class="form-control" type="text"
-                                                        name="date_of_test[]"
-                                                        placeholder = 'Date of Test'
-                                                        value="{{ $existing->dateoftest ?? '' }}">
-
-                                                    <span class="error text-danger date_error"></span>
-
-                                                </td>
+                                                <span class="error text-danger date_error"></span>
+                                            </td>
                                                 <!-- -------------------------------------------- -->
                                             </tr>
                                         @endforeach
@@ -4129,7 +4096,7 @@ exit; -->
 
 
 
-                    <div class="row enclosures">
+                    <div class="row enclosures" style="display: none;">
                         <div class="col-12 col-md-12 title_bar">
                             <label> Enclosures : </label>
 
@@ -5772,13 +5739,13 @@ $(document).on("click", "#add-more-authority-name", function () {
                 .find('.btn-success')
                 .remove();
 
-            flatpickr(
-                $('#staff-container tr:last input.cc_firstissue, ' +
-                    '#staff-container tr:last input.cc_validity_from, ' +
-                    '#staff-container tr:last input.cc_validity_to'), {
-                    dateFormat: "d-m-Y"
-                }
-            );
+            // flatpickr(
+            //     $('#staff-container tr:last input.cc_firstissue, ' +
+            //         '#staff-container tr:last input.cc_validity_from, ' +
+            //         '#staff-container tr:last input.cc_validity_to'), {
+            //         dateFormat: "d-m-Y"
+            //     }
+            // );
         }
 
 
@@ -8427,88 +8394,115 @@ if (qual_proof) {
 
             }
 
-              // ================= QUALIFICATION PROOF =================
+             // ================= QUALIFICATION PROOF =================
 
-            let existingFileUrl = $.trim(
-                $section.attr("data-existing-file") || ""
-            );
+            let isEditMode = $section.attr("data-edit-id") ? true : false;
 
-            let presentFile = $.trim(
-                $section.attr("data-present-file") || ""
-            );
+            let existingFileUrl =
+                $section.attr("data-existing-file") || "";
 
-            let fileInput = $section.find("input[name='qual_proof[]']")[0];
+            let presentFile =
+                $section.attr("data-present-file") || "";
 
-            let hasNewFile = !!(
+            let fileInput =
+                $section.find("input[name='qual_proof[]']")[0];
+
+            let hasNewFile =
                 fileInput &&
                 fileInput.files &&
-                fileInput.files.length > 0
-            );
+                fileInput.files.length > 0;
 
-            let finalFileUrl = "";
+            let hasExistingFile =
+                existingFileUrl !== "";
 
-            if (hasNewFile) {
-                finalFileUrl = $.trim(window.uploadedFilePath || "");
+            let hasPresentFile =
+                presentFile !== "";
 
-                if (!finalFileUrl) {
-                    setError(
-                        $section.find("input[name='qual_proof[]']"),
-                        "Please upload the selected Qualification proof"
-                    );
-                }
-            } else if (existingFileUrl) {
-                finalFileUrl = existingFileUrl;
-            } else if (presentFile) {
-                finalFileUrl = presentFile;
-            }
 
-            if (!finalFileUrl) {
+            if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
+
                 setError(
                     $section.find("input[name='qual_proof[]']"),
                     "Please upload Qualification proof"
                 );
+
+                isValid = false;
             }
 
-          // ================= AGE PROOF =================
 
-            let existingAgeFile = $.trim(
-                $section.attr("data-existing-age-file") || ""
-            );
+            let uploadedFilePath =
+                window.uploadedFilePath || "";
 
-            let presentAgeFile = $.trim(
-                $section.attr("data-present-age-file") || ""
-            );
+            let finalFileUrl = "";
 
-            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
+            if (hasNewFile && uploadedFilePath) {
 
-            let hasNewAgeFile = !!(
+                finalFileUrl = uploadedFilePath;
+
+            } else if (hasExistingFile) {
+
+                finalFileUrl = existingFileUrl;
+
+            } else if (hasPresentFile) {
+
+                finalFileUrl = presentFile;
+            }
+
+
+            // ================= AGE PROOF =================
+
+            let existingAgeFile =
+                $section.attr("data-existing-age-file") || "";
+
+            let presentAgeFile =
+                $section.attr("data-present-age-file") || "";
+
+            let ageFileInput =
+                $section.find("input[name='age_proof[]']")[0];
+
+            let hasNewAgeFile =
                 ageFileInput &&
                 ageFileInput.files &&
-                ageFileInput.files.length > 0
-            );
+                ageFileInput.files.length > 0;
 
-            let finalAgeFileUrl = "";
+            let hasExistingAgeFile =
+                existingAgeFile !== "";
 
-            if (hasNewAgeFile) {
-                finalAgeFileUrl = $.trim(window.uploadedAgeFilePath || "");
+            let hasPresentAgeFile =
+                presentAgeFile !== "";
 
-                if (!finalAgeFileUrl) {
-                    setError(
-                        $section.find("input[name='age_proof[]']"),
-                        "Please upload the selected Age proof"
-                    );
-                }
-            } else if (existingAgeFile) {
-                finalAgeFileUrl = existingAgeFile;
-            } else if (presentAgeFile) {
-                finalAgeFileUrl = presentAgeFile;
-            }
 
-            if (!finalAgeFileUrl) {
+            if (
+                !hasExistingAgeFile &&
+                !hasPresentAgeFile &&
+                !hasNewAgeFile
+            ) {
+
                 setError(
                     $section.find("input[name='age_proof[]']"),
                     "Please upload Age proof"
                 );
+
+                isValid = false;
+            }
+
+
+            let uploadedAgeFilePath =
+                window.uploadedAgeFilePath || "";
+
+            let finalAgeFileUrl = "";
+
+            if (hasNewAgeFile && uploadedAgeFilePath) {
+
+                finalAgeFileUrl = uploadedAgeFilePath;
+
+            } else if (hasExistingAgeFile) {
+
+                finalAgeFileUrl = existingAgeFile;
+
+            } else if (hasPresentAgeFile) {
+
+                finalAgeFileUrl = presentAgeFile;
             }
 
             // ===========================
