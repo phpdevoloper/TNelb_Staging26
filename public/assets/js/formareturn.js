@@ -3,14 +3,71 @@
    SEPARATE QC STAFF EDIT / UPDATE FUNCTIONS
    Existing Save and addQCStaffRecord() remain unchanged.
 ============================================================ */
-
 let editingQCRow = null;
 let editingQCData = null;
 
+// Check whether Update can be enabled
+function qcCheckUpdateButton() {
+    let $section = $("#staffqc_datasection");
 
-/* ============================================================
-   EDIT BUTTON
-============================================================ */
+    let holderName = $.trim(
+        $("#certificate-holder-name").text()
+    );
+
+    let ccNo = $.trim(
+        $section.find('input[name="staff_cc_no[]"]').val() || ""
+    );
+
+    let firstIssue = $.trim(
+        $section.find('input[name="staff_cc_first_issue[]"]').val() || ""
+    );
+
+    let validityFrom = $.trim(
+        $section.find('input[name="staff_cc_validity_from[]"]').val() || ""
+    );
+
+    let validityTo = $.trim(
+        $section.find('input[name="staff_cc_validity_to[]"]').val() || ""
+    );
+
+    let verified = $section.attr("data-qc-verified") === "1";
+
+    let allFieldsFilled =
+        ccNo !== "" &&
+        firstIssue !== "" &&
+        validityFrom !== "" &&
+        validityTo !== "";
+
+    $("#update_qc").prop(
+        "disabled",
+        !(verified && holderName !== "" && allFieldsFilled)
+    );
+}
+
+
+// When any certificate field changes, require verification again
+$(document).on(
+    "input change",
+    '#staffqc_datasection input[name="staff_cc_no[]"], ' +
+    '#staffqc_datasection input[name="staff_cc_first_issue[]"], ' +
+    '#staffqc_datasection input[name="staff_cc_validity_from[]"], ' +
+    '#staffqc_datasection input[name="staff_cc_validity_to[]"]',
+    function () {
+
+        let $section = $("#staffqc_datasection");
+
+        $section.attr("data-qc-verified", "0");
+
+        $("#update_qc").prop("disabled", true);
+
+        // Clear the previously verified name
+        $("#certificate-holder-name").text("");
+
+        // Clear previous verification errors
+        $section.find(".staff-verify-error").text("");
+    }
+);
+
 
 $(document).on("click", ".edit-qc-staff", function () {
 
@@ -33,16 +90,17 @@ $(document).on("click", ".edit-qc-staff", function () {
             rowIndex,
             $row[0]
         );
+
         $section.find(".staff-verify-error").text(
             "Staff row index is missing. Please select the staff row again."
         );
+
         return;
     }
 
-    // Store row_index for the upload handler
+    // Store row_index for upload handlers
     $section.attr("data-edit-row-index", rowIndex);
 
-    // Set row_index on both upload buttons
     $section.find(".upload-btn").attr("data-row-index", rowIndex);
 
     editingQCData = {
@@ -63,19 +121,19 @@ $(document).on("click", ".edit-qc-staff", function () {
             $row.children("td").eq(1).text()
         ),
 
-        firstIssue: $.trim(
+        firstIssue: formatQCDate(
             $row.find('input[name="staff_cc_first_issue[]"]').val() ||
             $row.children("td").eq(3).find("input").val() ||
             $row.children("td").eq(3).text()
         ),
 
-        validityFrom: $.trim(
+        validityFrom: formatQCDate(
             $row.find('input[name="staff_cc_validity_from[]"]').val() ||
             $row.children("td").eq(4).find("input").val() ||
             $row.children("td").eq(4).text()
         ),
 
-        validityTo: $.trim(
+        validityTo: formatQCDate(
             $row.find('input[name="staff_cc_validity_to[]"]').val() ||
             $row.children("td").eq(5).find("input").val() ||
             $row.children("td").eq(5).text()
@@ -90,7 +148,7 @@ $(document).on("click", ".edit-qc-staff", function () {
         isExisting: $row.attr("data-existing") === "1"
     };
 
-    // Populate certificate details
+    // Populate certificate fields
     $section.find('input[name="staff_cc_no[]"]')
         .val(editingQCData.ccNo);
 
@@ -103,8 +161,11 @@ $(document).on("click", ".edit-qc-staff", function () {
     $section.find('input[name="staff_cc_validity_to[]"]')
         .val(editingQCData.validityTo);
 
-    // Display certificate holder
-    $("#certificate-holder-name").text(editingQCData.holderName);
+    // Clear previously verified name
+    $("#certificate-holder-name").text("");
+
+    // Reset verification for this edit session
+    $section.attr("data-qc-verified", "0");
 
     // Display existing document links
     qcShowExistingDocument(
@@ -119,15 +180,18 @@ $(document).on("click", ".edit-qc-staff", function () {
         "Consent Letter"
     );
 
-    // Clear file selections from the previous editing session
+    // Clear previously selected files
     $section.find('input[type="file"]').val("");
 
-    // Clear errors
+    // Clear validation messages
     $section.find(".text-danger").text("");
 
-    // Toggle Save / Update buttons
+    // Show Update, but keep it disabled until verification
     $("#save_qc").hide();
-    $("#update_qc").show();
+
+    $("#update_qc")
+        .show()
+        .prop("disabled", true);
 
     // Open the form
     $section.stop(true, true).slideDown();
@@ -137,7 +201,28 @@ $(document).on("click", ".edit-qc-staff", function () {
         scrollTop: $section.offset().top - 100
     }, 300);
 });
+// Convert date to YYYY-MM-DD for input[type="date"]
+function formatQCDate(dateValue) {
+    if (!dateValue) {
+        return "";
+    }
 
+    dateValue = String(dateValue).trim();
+
+    // Already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        return dateValue;
+    }
+
+    // Convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+    let match = dateValue.match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
+
+    if (match) {
+        return `${match[3]}-${match[2]}-${match[1]}`;
+    }
+
+    return "";
+}
 /* ============================================================
    SHOW EXISTING DOCUMENT IN THE EDIT FORM
 ============================================================ */
@@ -169,8 +254,9 @@ function qcShowExistingDocument(inputSelector, url, label) {
 /* ============================================================
    UPDATE BUTTON
 ============================================================ */
-
 $(document).on("click", "#update_qc", function () {
+
+    
 
     if (!editingQCRow || !editingQCRow.length || !editingQCData) {
         return;
@@ -236,6 +322,19 @@ $(document).on("click", "#update_qc", function () {
         hasError = true;
     }
 
+    // Validate date sequence
+    if (firstIssue && validityFrom && firstIssue > validityFrom) {
+        $section.find(".staff-first-issue-error")
+            .text("First Issue Date cannot be after Validity From Date.");
+        hasError = true;
+    }
+
+    if (validityFrom && validityTo && validityFrom > validityTo) {
+        $section.find(".staff-validity-to-error")
+            .text("Validity To Date cannot be before Validity From Date.");
+        hasError = true;
+    }
+
     if (hasError) {
         return;
     }
@@ -243,27 +342,29 @@ $(document).on("click", "#update_qc", function () {
     // Duplicate check, excluding the row being edited
     let isDuplicate = false;
 
-    $("#staffqc-records tr.staffqc-record").not(editingQCRow).each(function () {
+    $("#staffqc-records tr.staffqc-record")
+        .not(editingQCRow)
+        .each(function () {
 
-        let $row = $(this);
+            let $row = $(this);
 
-        let existingCategory = $.trim(
-            $row.find('input[name="staffqc_category[]"]').val() || ""
-        ).toUpperCase();
+            let existingCategory = $.trim(
+                $row.find('input[name="staffqc_category[]"]').val() || ""
+            ).toUpperCase();
 
-        let existingCcNo = $.trim(
-            $row.find('input[name="staff_cc_no[]"]').val() ||
-            $row.children("td").eq(2).text()
-        ).toUpperCase();
+            let existingCcNo = $.trim(
+                $row.find('input[name="staff_cc_no[]"]').val() ||
+                $row.children("td").eq(2).text()
+            ).toUpperCase();
 
-        if (
-            existingCategory === category.toUpperCase() &&
-            existingCcNo === ccNo.toUpperCase()
-        ) {
-            isDuplicate = true;
-            return false;
-        }
-    });
+            if (
+                existingCategory === String(category).toUpperCase() &&
+                existingCcNo === ccNo.toUpperCase()
+            ) {
+                isDuplicate = true;
+                return false;
+            }
+        });
 
     if (isDuplicate) {
         $section.find(".staff-cc-error")
@@ -271,7 +372,7 @@ $(document).on("click", "#update_qc", function () {
         return;
     }
 
-    // Keep existing documents unless a newly uploaded document exists.
+    // Keep existing documents unless newly uploaded documents exist
     let appDocLink =
         qcGetUploadedDocument(".app-doc-file") ||
         editingQCData.appDoc;
@@ -296,7 +397,7 @@ $(document).on("click", "#update_qc", function () {
         return;
     }
 
-    // Replace the current row in place. Do not call addQCStaffRecord().
+    // Update the existing row in place
     qcReplaceStaffRow({
         row: editingQCRow,
         id: editingQCData.id,
@@ -314,25 +415,39 @@ $(document).on("click", "#update_qc", function () {
         isExisting: editingQCData.isExisting
     });
 
-    // Recalculate fees without adding another row.
-    updateQCStaffTotalFee();
+    // Recalculate fees if required
+    // updateQCStaffTotalFee();
 
     // Reset editing state
     editingQCRow = null;
     editingQCData = null;
 
+    // Toggle buttons
     $("#update_qc").hide();
     $("#save_qc").show();
 
-    resetQCStaffForm();
-
-    // Remove stale document links from the edit form
+    // Clear existing document links
     $section.find(".file-link").empty();
 
-    // Hide the form
-    $section.stop(true, true).slideUp();
-});
+    // Reset form fields and errors
+    // resetQCStaffForm();
 
+    // Clear file inputs
+    $section.find('input[type="file"]').val("");
+
+    // Clear certificate holder name
+    $("#certificate-holder-name").text("");
+
+    // Remove edit-specific row index
+    $section.removeAttr("data-edit-row-index");
+
+    // Remove row index from upload buttons
+    $section.find(".upload-btn").removeAttr("data-row-index");
+
+    // Close the form after updating
+    $section.stop(true, true).slideUp(300);
+
+});
 
 /* ============================================================
    GET DOCUMENT LINK FROM UPLOAD AREA
@@ -520,7 +635,3 @@ $('#cancel_qc').on('click', function () {
 /* ============================================================
    INITIAL BUTTON STATE
 ============================================================ */
-
-$(document).ready(function () {
-    $("#update_qc").hide();
-});

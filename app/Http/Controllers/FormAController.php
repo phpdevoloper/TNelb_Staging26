@@ -3858,7 +3858,7 @@ class FormAController extends BaseController
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
         $isDraft = $request->input('form_action') === 'draft';
-        $recordId = $request->input('record_id');
+        $recordId = trim((string) $request->input('record_id', ''));
 
         // Format date fields
         $this->formatDatesToDMY([], $request);
@@ -4091,223 +4091,265 @@ class FormAController extends BaseController
 
 
 
-        $processedStaffIdsQC = [];
+ $processedStaffIdsQC = [];
 
-        if ($request->has('staffqc_category')) {
+if ($request->has('staffqc_category')) {
 
-            $staffCategories = $request->input('staffqc_category', []);
+    // ==========================================================
+    // 1. GET ALL SUBMITTED ARRAYS
+    // ==========================================================
 
-            $staffName = $request->input('certificate_holder_name', []);
-            $staffNameQC = $request->input('certificate_holder_name_qc', []);
+    $staffCategories    = $request->input('staffqc_category', []);
+    $staffNames         = $request->input('certificate_holder_name', []);
+    $staffCcNos         = $request->input('staff_cc_no', []);
+    $staffFirstIssues   = $request->input('staff_cc_first_issue', []);
+    $staffValidityFroms = $request->input('staff_cc_validity_from', []);
+    $staffValidityTos   = $request->input('staff_cc_validity_to', []);
+    $staffQcIds         = $request->input('staffqc_id', []);
+    $rowIndexes         = $request->input('row_index', []);
+    $appDocs            = $request->input('app_doc', []);
+    $consDocs           = $request->input('cons_doc', []);
 
-            $staffCcNos = $request->input('staff_cc_no', []);
-            $staffFirstIssues = $request->input('staff_cc_first_issue', []);
-            $staffValidityFroms = $request->input('staff_cc_validity_from', []);
-            $staffValidityTos = $request->input('staff_cc_validity_to', []);
+    // Get document paths from JSON records
+$qcStaffRecords = json_decode(
+    $request->input('qc_staff_records_json', '[]'),
+    true
+);
 
-            $staffQcIds = $request->input('staffqc_id', []);
-            $rowIndexes = $request->input('row_index', []);
+$qcStaffRecords = is_array($qcStaffRecords)
+    ? $qcStaffRecords
+    : [];
 
-            $removedStaffIds = array_filter(
-                (array) $request->input('removed_staffqc_ids', []),
-                fn($id) => is_numeric($id)
-            );
+// Extract document paths using the same array index
+$jsonAppDocs = [];
+$jsonConsDocs = [];
 
-            $now = now();
+foreach ($qcStaffRecords as $jsonIndex => $record) {
 
-            // ==========================================================
-            // 1. DEACTIVATE EXPLICITLY REMOVED STAFF
-            // ==========================================================
+    if (!is_array($record)) {
+        continue;
+    }
 
-            if (!empty($removedStaffIds)) {
+    $jsonAppDocs[$jsonIndex] = $record['app_doc'] ?? '';
+    $jsonConsDocs[$jsonIndex] = $record['cons_doc'] ?? '';
+}
 
-                DB::table('cl_staff_tbl')
-                    ->where('application_id', $applicationId)
-                    ->whereIn('staff_category', ['QC', 'QSC'])
-                    ->whereIn('id', $removedStaffIds)
-                    ->update([
-                        'staff_flag' => '0',
-                        'updated_at' => $now,
-                    ]);
+    // Normalize submitted arrays.
+    $staffCategories    = is_array($staffCategories) ? $staffCategories : [];
+    $staffNames         = is_array($staffNames) ? $staffNames : [];
+    $staffCcNos         = is_array($staffCcNos) ? $staffCcNos : [];
+    $staffFirstIssues   = is_array($staffFirstIssues) ? $staffFirstIssues : [];
+    $staffValidityFroms = is_array($staffValidityFroms) ? $staffValidityFroms : [];
+    $staffValidityTos   = is_array($staffValidityTos) ? $staffValidityTos : [];
+    $staffQcIds         = is_array($staffQcIds) ? $staffQcIds : [];
+    $rowIndexes         = is_array($rowIndexes) ? $rowIndexes : [];
+    $appDocs            = is_array($appDocs) ? $appDocs : [];
+    $consDocs           = is_array($consDocs) ? $consDocs : [];
+
+    $now = now();
+
+    // ==========================================================
+    // 2. DEACTIVATE REMOVED RECORDS
+    // ==========================================================
+
+    $removedStaffIds = array_values(array_unique(array_filter(
+        (array) $request->input('removed_staffqc_ids', []),
+        fn ($id) => is_numeric($id) && (int) $id > 0
+    )));
+
+    if (!empty($removedStaffIds)) {
+        DB::table('cl_staff_tbl')
+            ->where('application_id', $applicationId)
+            ->whereIn('staff_category', ['QC', 'QSC'])
+            ->whereIn('id', $removedStaffIds)
+            ->update([
+                'staff_flag' => '0',
+                'updated_at' => $now,
+            ]);
+    }
+
+    // ==========================================================
+    // 3. FIND NEXT ROW INDEX FOR NEW RECORDS
+    // ==========================================================
+
+    $lastRowIndex = DB::table('cl_staff_tbl')
+        ->where('application_id', $applicationId)
+        ->max('row_index');
+
+    $nextRowIndex = ((int) $lastRowIndex) + 1;
+
+    // ==========================================================
+    // 4. DATE NORMALIZER
+    // Accept Y-m-d and d-m-Y.
+    // ==========================================================
+
+    $normalizeDate = function ($value) {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        foreach (['Y-m-d', 'd-m-Y', 'd/m/Y'] as $format) {
+            try {
+                $date = \Carbon\Carbon::createFromFormat(
+                    '!' . $format,
+                    $value
+                );
+
+                if ($date && $date->format($format) === $value) {
+                    return $date->format('Y-m-d');
+                }
+            } catch (\Throwable $e) {
+                // Try the next accepted format.
             }
+        }
 
-            // ==========================================================
-            // 2. GET CURRENT MAXIMUM ROW INDEX
-            // ==========================================================
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'staff_cc_first_issue' =>
+                "Invalid certificate date: {$value}.",
+        ]);
+    };
 
-            $lastRowIndex = DB::table('cl_staff_tbl')
+    // ==========================================================
+    // 5. PROCESS EVERY QC / QSC ROW
+    // ==========================================================
+
+    foreach ($staffCategories as $index => $categoryValue) {
+
+        $category = strtoupper(trim((string) $categoryValue));
+
+        if (!in_array($category, ['QC', 'QSC'], true)) {
+            continue;
+        }
+
+        $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
+
+        if ($ccNo === '') {
+            continue;
+        }
+
+        $ccName = trim((string) ($staffNames[$index] ?? ''));
+
+        $firstIssue = $normalizeDate(
+            $staffFirstIssues[$index] ?? ''
+        );
+
+        $validityFrom = $normalizeDate(
+            $staffValidityFroms[$index] ?? ''
+        );
+
+        $validityTo = $normalizeDate(
+            $staffValidityTos[$index] ?? ''
+        );
+
+
+$appDoc = trim((string) (
+    $appDocs[$index]
+    ?? $jsonAppDocs[$index]
+    ?? ''
+));
+
+$consDoc = trim((string) (
+    $consDocs[$index]
+    ?? $jsonConsDocs[$index]
+    ?? ''
+));
+
+        // Existing ID: only a positive numeric ID counts.
+        $staffId = $staffQcIds[$index] ?? null;
+
+        $staffId = (
+            $staffId !== null &&
+            $staffId !== '' &&
+            is_numeric($staffId) &&
+            (int) $staffId > 0
+        ) ? (int) $staffId : null;
+
+        // ======================================================
+        // 6. FIND EXISTING ROW BY DATABASE ID
+        // ======================================================
+
+        $existing = null;
+
+        if ($staffId !== null) {
+            $existing = DB::table('cl_staff_tbl')
+                ->where('id', $staffId)
                 ->where('application_id', $applicationId)
-                ->max('row_index');
+                ->where('staff_category', $category)
+                ->first();
+        }
 
-            $nextRowIndex = ((int) $lastRowIndex) + 1;
+        // ======================================================
+        // 7. UPDATE EXISTING RECORD OR INSERT A NEW RECORD
+        // ======================================================
 
+        if ($existing) {
 
-            $currentRowIndexes = $currentRowIndexes ?? [];
+            // Keep stored documents if empty values were submitted.
+            $staffData = [
+                'staff_name'           => $ccName,
+                'staff_cc_no'          => $ccNo,
+                'staff_cc_first_issue' => $firstIssue,
+                'staff_cc_validity_from' => $validityFrom,
+                'staff_cc_validity_to' => $validityTo,
+                'app_doc' => $appDoc !== ''
+                    ? $appDoc
+                    : $existing->app_doc,
+                'cons_doc' => $consDoc !== ''
+                    ? $consDoc
+                    : $existing->cons_doc,
+                'staff_flag' => '1',
+                'updated_at' => $now,
+            ];
 
-            foreach ($staffCategories as $index => $category) {
+            DB::table('cl_staff_tbl')
+                ->where('id', $existing->id)
+                ->where('application_id', $applicationId)
+                ->update($staffData);
 
-                $category = strtoupper(trim((string) $category));
+            $savedStaffId = $existing->id;
+            $savedRowIndex = (int) $existing->row_index;
 
-                if (!in_array($category, ['QC', 'QSC'], true)) {
-                    continue;
-                }
+        } else {
 
-                $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
+            dd($ccNo, $appDoc, $consDoc); exit;
 
-                if (
-                    $ccNo === '' ||
-                    in_array(strtolower($ccNo), ['undefined', 'null'], true)
-                ) {
-                    continue;
-                }
+            // A new row must get a fresh row_index.
+            $newRowIndex = $nextRowIndex++;
 
-                $ccName = $category === 'QC'
-                    ? ($staffNameQC[$index] ?? $staffName[$index] ?? '')
-                    : ($staffName[$index] ?? $staffNameQC[$index] ?? '');
+            $insertData = [
+                'login_id' => $request->input('login_id_store'),
+                'application_id' => $applicationId,
+                'staff_category' => $category,
+                'row_index' => $newRowIndex,
+                'staff_status' => 'N',
+                'staff_name' => $ccName,
+                'staff_cc_no' => $ccNo,
+                'staff_cc_first_issue' => $firstIssue,
+                'staff_cc_validity_from' => $validityFrom,
+                'staff_cc_validity_to' => $validityTo,
+                'app_doc' => $appDoc !== '' ? $appDoc : null,
+                'cons_doc' => $consDoc !== '' ? $consDoc : null,
+                'staff_flag' => '1',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
 
-                $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
-                $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
-                $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
+            $savedStaffId = DB::table('cl_staff_tbl')
+                ->insertGetId($insertData);
 
-                $staffId = $staffQcIds[$index] ?? null;
-                $submittedRowIndex = $rowIndexes[$index] ?? null;
+            $savedRowIndex = $newRowIndex;
+        }
 
-                // Normalize staff ID.
-                $staffId = is_numeric($staffId) ? (int) $staffId : null;
+        // ======================================================
+        // 8. TRACK PROCESSED RECORDS
+        // ======================================================
 
-                // Normalize submitted row index.
-                $submittedRowIndex = (
-                    $submittedRowIndex !== null &&
-                    $submittedRowIndex !== '' &&
-                    is_numeric($submittedRowIndex)
-                ) ? (int) $submittedRowIndex : null;
+        $processedStaffIdsQC[] = $savedStaffId;
 
-                // ------------------------------------------------------
-                // 1. FIND EXISTING ROW BY STAFF ID
-                // ------------------------------------------------------
-
-                $existing = null;
-
-                if ($staffId !== null && $staffId > 0) {
-                    $existing = DB::table('cl_staff_tbl')
-                        ->where('id', $staffId)
-                        ->where('application_id', $applicationId)
-                        ->where('staff_category', $category)
-                        ->first();
-                }
-
-                // ------------------------------------------------------
-                // 2. FIND EXISTING ROW BY EXACT ROW INDEX + CATEGORY
-                // ------------------------------------------------------
-
-                if (!$existing && $submittedRowIndex !== null) {
-                    $existing = DB::table('cl_staff_tbl')
-                        ->where('application_id', $applicationId)
-                        ->where('row_index', $submittedRowIndex)
-                        ->where('staff_category', $category)
-                        ->first();
-                }
-
-                // ------------------------------------------------------
-                // 3. UPDATE EXISTING ROW OR INSERT NEW ROW
-                // ------------------------------------------------------
-
-                $staffData = [
-                    'staff_cc_no' => $ccNo,
-                    'staff_flag' => '1',
-                    'updated_at' => now(),
-                ];
-
-                if (trim((string) $ccName) !== '') {
-                    $staffData['staff_name'] = trim((string) $ccName);
-                }
-
-                if ($firstIssue !== '') {
-                    $staffData['staff_cc_first_issue'] = $firstIssue;
-                }
-
-                if ($validityFrom !== '') {
-                    $staffData['staff_cc_validity_from'] = $validityFrom;
-                }
-
-                if ($validityTo !== '') {
-                    $staffData['staff_cc_validity_to'] = $validityTo;
-                }
-
-                if ($existing) {
-
-                    // Preserve row_index, app_doc and cons_doc.
-                    DB::table('cl_staff_tbl')
-                        ->where('id', $existing->id)
-                        ->update($staffData);
-
-                    $savedStaffId = $existing->id;
-                    $savedRowIndex = (int) $existing->row_index;
-                } else {
-
-                    // IMPORTANT:
-                    // Use the submitted row_index first.
-                    // Generate a new one only if the form supplied no row_index.
-
-                    if ($submittedRowIndex !== null) {
-
-                        $newRowIndex = $submittedRowIndex;
-                    } else {
-
-                        // Do not assume MAX(row_index) + 1 is the intended row.
-                        // A missing row index must be corrected in the form payload
-                        // when an existing document row is meant to be reused.
-
-                        throw new \RuntimeException(
-                            'Missing row_index for ' . $category .
-                                ' staff at form index ' . $index .
-                                '. Send the existing row_index from the frontend.'
-                        );
-                    }
-
-                    // Check whether another QC/QSC row already occupies this index.
-                    $rowAtIndex = DB::table('cl_staff_tbl')
-                        ->where('application_id', $applicationId)
-                        ->where('row_index', $newRowIndex)
-                        ->whereIn('staff_category', ['QC', 'QSC'])
-                        ->first();
-
-                    if ($rowAtIndex) {
-
-                        if ($rowAtIndex->staff_category !== $category) {
-                            throw new \RuntimeException(
-                                'Row index ' . $newRowIndex .
-                                    ' already belongs to ' . $rowAtIndex->staff_category .
-                                    '; cannot save it as ' . $category . '.'
-                            );
-                        }
-
-                        // Reuse the existing row instead of inserting a duplicate.
-                        DB::table('cl_staff_tbl')
-                            ->where('id', $rowAtIndex->id)
-                            ->update($staffData);
-
-                        $savedStaffId = $rowAtIndex->id;
-                        $savedRowIndex = (int) $rowAtIndex->row_index;
-                    } else {
-
-                        $savedStaffId = DB::table('cl_staff_tbl')
-                            ->insertGetId(array_merge([
-                                'login_id' => $request->input('login_id_store'),
-                                'application_id' => $applicationId,
-                                'staff_category' => $category,
-                                'row_index' => $newRowIndex,
-                                'staff_status' => 'N',
-                                'created_at' => now(),
-                            ], $staffData));
-
-                        $savedRowIndex = $newRowIndex;
-                    }
-                }
-
-                $processedStaffIdsQC[] = $savedStaffId;
-                $currentRowIndexes[] = $savedRowIndex;
-            }
+        $currentRowIndexes[] = $savedRowIndex;
+    }
 
 
 

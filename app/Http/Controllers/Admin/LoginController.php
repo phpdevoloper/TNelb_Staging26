@@ -2583,6 +2583,14 @@ class LoginController extends Controller
          $cl_digitization = DB::table('mapping_digi_cls')
             ->where('application_id', $applicant_id)
             ->first();
+
+             $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('application_id', $applicant_id)
+                ->where('flag', 1)
+                ->orderBy('row_index', 'asc')
+                ->get();
+
+                // dd($authoritysignatory); exit;
         
         $applicant->appl_type = match(trim($applicant->appl_type)) {
             'N' => 'New',
@@ -2623,7 +2631,7 @@ class LoginController extends Controller
             'checkedList_1',
             'maxQcCertNo',
             'maxQcValidityDate',
-            'cl_digitization'
+            'cl_digitization', 'authoritysignatory'
 
         ));
     }

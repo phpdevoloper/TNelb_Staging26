@@ -1091,10 +1091,8 @@
                                            <!-- Application Status -->
                                            
                                             <td>
-                                                @if (in_array($workflow->application_status, ['RET', 'RETD']))
-
-                                               @if (strtoupper(trim($workflow->appl_type)) === 'N')
-
+                                               @if ($workflow->payment_status == 'draft')
+                                                    @if (strtoupper(trim($workflow->appl_type)) === 'N')
                                                     @if($workflow->form_name == 'A')
                                                     <a href="{{ route('apply-form-a_draft', ['application_id' => $workflow->application_id]) }}">
                                                         <button class="btn btn-sm btn-info">
@@ -1119,7 +1117,6 @@
                                                             <i class="fa fa-pencil"></i> Draft
                                                         </button>
                                                     </a>
-
                                                     @endif
                                                 @elseif(strtoupper(trim($workflow->appl_type)) === 'D')
                                                      @if($workflow->form_name == 'A')
@@ -1146,7 +1143,6 @@
                                                             <i class="fa fa-pencil"></i> Draft
                                                         </button>
                                                     </a>
-
                                                     @endif
                                                @elseif(strtoupper(trim($workflow->appl_type)) === 'A')
                                                      @if($workflow->form_name == 'A')
@@ -1173,7 +1169,6 @@
                                                             <i class="fa fa-pencil"></i> Draft
                                                         </button>
                                                     </a>
-
                                                     @endif     
                                                @else
                                                @if($workflow->form_name == 'A')
@@ -1200,11 +1195,8 @@
                                                        <i class="fa fa-pencil"></i> Draft
                                                    </button>
                                                </a>
-
                                                @endif
-
                                                @endif
-
                                                @else
                                                @if ($workflow->appl_type == 'R')
                                                @if ($workflow->application_status == 'P')
@@ -1218,10 +1210,8 @@
                                                @else
                                                @if ($workflow->application_status == 'P')
                                                <span class="btn btn-sm btn-primary">Submitted</span>
-
                                                @elseif($workflow->application_status == 'F')
                                                <span class="btn btn-sm btn-warning">In Progress</span>
-
                                                @elseif($workflow->application_status == 'RET')
                                                    <span class="btn btn-sm btn-return">Returned</span>
                                                @else
@@ -1347,13 +1337,7 @@
                                                <strong>Renewal Application</strong><br>
                                                ID :
                                                <span class="text-success">{{ $workflow->renewal_application_id }}</span>
-<<<<<<< HEAD
-                                               {{-- @else
-                                               <p class="text-primary">NA</p> --}}
-                                               @endif
-=======
                                               
->>>>>>> 000cb0bd95af8df6b8c03b0ae81d2701e12369a3
 
                                                @elseif($workflow->application_status == 'RET')
                                                <a href="{{ route('apply-form-a_return', ['application_id' => $workflow->application_id]) }}">

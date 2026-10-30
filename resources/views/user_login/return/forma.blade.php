@@ -9476,6 +9476,58 @@ if (qual_proof) {
             }
         });
     </script>
+
+
+
+   <script>
+$(document).ready(function(){
+
+    let returnSections = @json($returnSections);
+
+    console.log(returnSections);
+
+   $(".form-section").each(function(){
+
+        let sectionId = $(this).attr("id");
+
+        if(!returnSections.includes(sectionId))
+        {
+            // readonly for normal inputs
+            $(this).find("input[type=text], input[type=number], textarea")
+            .prop("readonly", true);
+
+            // disable date & file inputs
+             $(this).find("select, input[type=radio], input[type=checkbox], input[type=file]")
+        .css("pointer-events","none");
+
+
+            // disable upload buttons
+            $(this).find(".upload-btn").prop("disabled", true);
+
+            $(this).find("#add-proprietor").prop("disabled", true);
+            $(this).find(".update-proprietor-row").prop("disabled", true);
+            $(this).find(".remove-proprietor-row").prop("disabled", true);
+
+
+             $(this).find(".add-partner").prop("disabled", true);
+            $(this).find(".update-partner-row").prop("disabled", true);
+            $(this).find(".remove-partner-row").prop("disabled", true);
+
+            $(this).find("#add-director").prop("disabled", true);
+            $(this).find(".update-director-row").prop("disabled", true);
+            $(this).find(".remove-director-row").prop("disabled", true);
+
+            // grey background
+            $(this).find("input, textarea, select").css({
+                "background":"#e9ecef",
+                "cursor":"not-allowed"
+            });
+        }
+
+    });
+
+});
+</script>
     <!--
     <script>
         document.addEventListener("DOMContentLoaded", function() {

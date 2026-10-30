@@ -606,7 +606,7 @@ exit; -->
                                                     <td>{{ $p->proprietor_address }}</td>
                                                     <td data-qualification="{{ $p->qualification }}"
                                                         data-qual_text="{{ $p->qualification_text }}"
-                                                        data-educational_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
+                                                        data-qual_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
                                                         {{ $p->qualification }}, {{ $p->qualification_text }}
                                                         @if (!empty($p->educational_proof))
                                                             <a href="{{ asset($p->educational_proof) }}"
@@ -1132,7 +1132,7 @@ exit; -->
                                                     <td>{{ $p->proprietor_address }}</td>
                                                     <td data-qualification="{{ $p->qualification }}"
                                                         data-qual_text="{{ $p->qualification_text }}"
-                                                        data-educational_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
+                                                        data-qual_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
                                                         {{ $p->qualification }}, {{ $p->qualification_text }}
                                                         @if (!empty($p->educational_proof))
                                                             <a href="{{ asset($p->educational_proof) }}"
@@ -1497,21 +1497,21 @@ exit; -->
                                                     <input class="form-check-input" type="radio"
                                                         id="competency_yes" name="competency_certificate_holding[]"
                                                         value="yes"
-                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('partner', true);">
                                                     <label class="form-check-label"
                                                         for="competency_yes_proprietor">Yes</label>
                                                 </div>
                                                 <div class="form-check form-check-inline">
                                                     <input class="form-check-input" type="radio" id="competency_no"
                                                         name="competency_certificate_holding[]" value="no"
-                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('partner', false);"
                                                         checked>
                                                     <label class="form-check-label"
                                                         for="competency_no_proprietor">No</label>
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                            <div class="col-12 col-md-12 mt-1 competency-fields-partner"
                                                 style="display: none;">
                                                 <div class="row">
                                                     <div class="col-12 col-md-3">
@@ -1678,6 +1678,7 @@ exit; -->
                                         </tr>
                                     </thead>
 
+
                                     <tbody>
 
                                         @foreach ($proprietors as $p)
@@ -1698,7 +1699,7 @@ exit; -->
                                                     <td>{{ $p->proprietor_address }}</td>
                                                     <td data-qualification="{{ $p->qualification }}"
                                                         data-qual_text="{{ $p->qualification_text }}"
-                                                        data-educational_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
+                                                        data-qual_proof="{{ !empty($p->educational_proof) ? asset($p->educational_proof) : '' }}">
                                                         {{ $p->qualification }}, {{ $p->qualification_text }}
                                                         @if (!empty($p->educational_proof))
                                                             <a href="{{ asset($p->educational_proof) }}"
@@ -2071,7 +2072,7 @@ exit; -->
                                                     <input class="form-check-input" type="radio"
                                                         id="competency_yes" name="competency_certificate_holding[]"
                                                         value="yes"
-                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('proprietor', true);">
+                                                        onclick="console.log('YES CLICKED'); toggleCompetencyFields('director', true);">
                                                     <label class="form-check-label"
                                                         for="competency_yes_proprietor">Yes</label>
                                                 </div>
@@ -2079,14 +2080,14 @@ exit; -->
                                                     <input class="form-check-input" type="radio"
                                                         id="competency_no" name="competency_certificate_holding[]"
                                                         value="no"
-                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('proprietor', false);"
+                                                        onclick="console.log('NO CLICKED'); toggleCompetencyFields('director', false);"
                                                         checked>
                                                     <label class="form-check-label"
                                                         for="competency_no_proprietor">No</label>
                                                 </div>
                                             </div>
 
-                                            <div class="col-12 col-md-12 mt-1 competency-fields-proprietor"
+                                            <div class="col-12 col-md-12 mt-1 competency-fields-director"
                                                 style="display: none;">
                                                 <div class="row">
                                                     <div class="col-12 col-md-3">
@@ -2535,14 +2536,15 @@ exit; -->
 
                                                     {{-- REMOVE --}}
                                                     <td>
-
-                                                        <button type="button"
-                                                            class="btn btn-danger remove-qc-staff">
-
+                                                        <button type="button" class="btn btn-danger remove-qc-staff">
                                                             &#128465; Remove
-
                                                         </button>
 
+                                                        <span class="badge bg-danger qc-removed-tag" style="display:none;">
+                                                            REMOVED
+                                                        </span>
+
+                                                        <input type="hidden" name="qc_removed[]" value="0">
                                                     </td>
 
                                                 </tr>
@@ -4411,10 +4413,13 @@ function toggleCompetencyFields(type, show) {
 
     let fieldsClass = '';
 
-                const numberInput = field.querySelector('.competency_number');
-                const validityInput = field.querySelector('.competency_validity');
-                const verifyInput = field.querySelector('.proprietor_cc_verify, .partner_cc_verify');
-                const resultDiv = field.querySelector('.competency_verify_result');
+    if (type === 'proprietor') {
+        fieldsClass = '.competency-fields-proprietor';
+    } else if (type === 'partner') {
+        fieldsClass = '.competency-fields-partner';
+    } else {
+        fieldsClass = '.competency-fields-director';
+    }
 
     const fields = document.querySelectorAll(fieldsClass);
 
@@ -4443,33 +4448,10 @@ function toggleCompetencyFields(type, show) {
             if (verifyInput) verifyInput.value = '';
             if (resultDiv) resultDiv.textContent = '';
         }
+    });
+}
 
 
-        function toggleEmploymentFields(type, show) {
-            let fieldsClass = '';
-
-            if (type === 'proprietor') {
-                fieldsClass = '.employment-fields-proprietor';
-            } else if (type === 'partner') {
-                fieldsClass = '.employment-fields-partner';
-            } else {
-                fieldsClass = '.employment-fields-director';
-            }
-
-            const fields = document.querySelectorAll(fieldsClass);
-            fields.forEach(field => {
-                field.style.display = show ? '' : 'none';
-
-                if (show) {
-                    const inputs = field.querySelectorAll('input, textarea, select');
-                    inputs.forEach(input => {
-                        input.value = '';
-                        input.readOnly = false;
-                        input.disabled = false;
-                    });
-                }
-            });
-        }
 
 
 
@@ -5254,6 +5236,53 @@ $(document).on("click", "#add-more-authority-name", function () {
     </script>
     <!-- ----------------------aadhaar documents-------------- -->
     <script>
+
+        
+function toggleCompetencyFields(type, show) {
+
+    // alert(show);
+
+    let fieldsClass = '';
+
+    if (type === 'proprietor') {
+        fieldsClass = '.competency-fields-proprietor';
+    } else if (type === 'partner') {
+        fieldsClass = '.competency-fields-partner';
+    } else {
+        fieldsClass = '.competency-fields-director';
+    }
+
+    const fields = document.querySelectorAll(fieldsClass);
+
+    fields.forEach(function (field) {
+        field.style.display = show ? '' : 'none';
+
+
+
+        // Do not clear saved values when opening fields for editing.
+        if (!show) {
+            const numberInput = field.querySelector('.competency_number');
+            const validityInput = field.querySelector('.competency_validity');
+            const firstIssueInput = field.querySelector('.competency_validity_first_issue');
+            const validityFromInput = field.querySelector('.competency_validity_from');
+            const validityToInput = field.querySelector('.competency_validity_to');
+            const verifyInput = field.querySelector(
+                '.proprietor_cc_verify, .partner_cc_verify'
+            );
+            const resultDiv = field.querySelector('.competency_verify_result');
+
+            if (numberInput) numberInput.value = '';
+            if (validityInput) validityInput.value = '';
+            if (firstIssueInput) firstIssueInput.value = '';
+            if (validityFromInput) validityFromInput.value = '';
+            if (validityToInput) validityToInput.value = '';
+            if (verifyInput) verifyInput.value = '';
+            if (resultDiv) resultDiv.textContent = '';
+        }
+    });
+}
+
+
         document.addEventListener('DOMContentLoaded', function() {
             const removeBtn = document.getElementById('remove-aadhaar-doc');
             if (removeBtn) {
@@ -6001,35 +6030,44 @@ $(document).on("click", "#add-more-authority-name", function () {
         let proprietoreditIndex = null;
 
         // Show form on Add Proprietor button click
-        $("#add-proprietor").on("click", function() {
+        $("#add-proprietor").on("click", function () {
 
-            let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
+                let rowCount = $("#proprietor-section .pr_table_count table tbody tr").length;
 
-            if (rowCount > 0) {
-                Swal.fire({
-                    title: "Proprietor Entry Exists!",
-                    width: 450,
-                    text: "Only one proprietor entry is allowed.",
-                    icon: "warning",
-                    confirmButtonText: "OK",
-                    confirmButtonColor: "#3085d6"
-                });
-                return;
-            }
+                if (rowCount > 0) {
+                    Swal.fire({
+                        title: "Proprietor Entry Exists!",
+                        width: 450,
+                        text: "Only one proprietor entry is allowed.",
+                        icon: "warning",
+                        confirmButtonText: "OK",
+                        confirmButtonColor: "#3085d6"
+                    });
+                    return;
+                }
 
-            // Reset form before showing
-            resetproprietor(false);
-            $("#proprietor-sectionfresh").slideDown();
-            $("#save_proprietor").text("Save");
-            let $section = $("#proprietor-section");
+                let nextRowIndex = lastRowIndex + 1;
 
-            $section.find(".upload-btn")
-            // .attr("data-row_index", rowCount)
-            // .data("row_index", rowCount);
+                resetproprietor(false);
+                resetproForm(false);
 
-            // .attr("data-row-index", rowCount)
-            // .data("rowIndex", rowCount);
-        });
+                let $section = $("#proprietor-sectionfresh");
+
+                $section.attr("data-row-index", nextRowIndex);
+
+                $section.find("input[name='row_index[]']")
+                    .val(nextRowIndex);
+
+                $section.find(".upload-btn")
+                    .attr("data-row-index", nextRowIndex)
+                    .data("rowIndex", nextRowIndex);
+
+                $section.find(".qualification").val("").trigger("change");
+                $section.find(".file-link, .age-file-link").html("");
+
+                $("#save_proprietor").text("Save");
+                $section.slideDown();
+            });
 
 
 
@@ -6038,6 +6076,15 @@ $(document).on("click", "#add-more-authority-name", function () {
 
 
             let $section = $("#proprietor-sectionfresh");
+
+             let rowIndex = parseInt(
+                $section.attr("data-row-index") || "1",
+                10
+            );
+
+            if (isNaN(rowIndex) || rowIndex < 1) {
+                rowIndex = 1;
+            }
 
             // alert($section.attr("id"));
             let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
@@ -6450,7 +6497,7 @@ $(document).on("click", "#add-more-authority-name", function () {
                 // alert('ccValidityFormatted: ' + ccValidityFormatted + ', ccValidityFromFormatted: ' + ccValidityFromFormatted + ', ccFirstIssueFormatted: ' + ccFirstIssueFormatted);
 
                 $("#proprietor-section table tbody").append(`
-                    <tr>
+                    <tr data-row-index="${rowIndex}">
 
                         <!-- Name -->
                         <td>${name}</td>
@@ -6588,21 +6635,29 @@ $(document).on("click", "#add-more-authority-name", function () {
         // Edit row
         $(document).on("click", ".update-proprietor-row", function() {
             // alert('111');
-            let $row = $(this).closest("tr");
+          let $row = $(this).closest("tr");
             let $tds = $row.find("td");
-            let id = $row.data("id");
+
+            let id = $row.attr("data-id") || $(this).attr("data-id");
             editIndex = $row.index();
-            // let ownershipValue = $row.find("td").eq(9).find("input[name='ownership_type[]']").val();
 
-            let ownershipValue = $row.find("td").eq(9).attr("data-ownership");
-            // console.log("Ownership Value:", ownershipValue);
-            // alert(ownershipValue);
-            // exit;
-            let row_indexValue = $row.find("td").eq(10).find("input[name='row_index[]']").val();
+            // Read row_index from the row's hidden input first
+            let rowIndexValue = $row.find("input[name='row_index[]']").val()
+                || $row.attr("data-row-index")
+                || "1";
 
+            rowIndexValue = parseInt(rowIndexValue, 10);
+
+            if (isNaN(rowIndexValue) || rowIndexValue < 1) {
+                rowIndexValue = 1;
+            }
+
+            let ownershipValue = $row.find("input[name='ownership_type[]']").val();
 
             let $section = $("#proprietor-sectionfresh");
 
+            // Store the index on the form section
+            $section.attr("data-row-index", rowIndexValue);
 
             // Pass it to the hidden input
             $section.find("input[name='row_index[]']")
@@ -6716,7 +6771,7 @@ $(document).on("click", "#add-more-authority-name", function () {
 
             let qualification = $qualTd.attr("data-qualification");
             let qual_text = $qualTd.attr("data-qual_text");
-            let qual_proof = $qualTd.attr("data-educational_proof");
+            let qual_proof = $qualTd.attr("data-qual_proof");
 
             // Set qualification
             $section.find(".qualification").val(qualification).trigger("change");
@@ -6737,9 +6792,9 @@ $(document).on("click", "#add-more-authority-name", function () {
             }
 
             // Get present file from TABLE (important)
-            // let presentFile = $qualTd.attr("data-educational_proof");
+            // let presentFile = $qualTd.attr("data-qual_proof");
 
-            let presentFile = $qualTd.attr("data-educational_proof");
+            let presentFile = $qualTd.attr("data-qual_proof");
 
             $section.attr("data-present-file", presentFile || "");
             // Show present file below input box (only for table edit)
@@ -6960,66 +7015,79 @@ $(document).on("click", "#add-more-authority-name", function () {
         let editIndex = null;
 
         // Show partner form
-        $("#add-partner").on("click", function() {
-            let rowCount = $("#partner-section table tbody tr").length;
+      $("#add-partner").on("click", function () {
+                let $tbody = $("#partner-section table.head_label_partner tbody");
+                let rowCount = $tbody.find("tr").length;
 
+                if (rowCount >= 5) {
+                    Swal.fire({
+                        title: "Partner Entry Exists!",
+                        width: 450,
+                        text: "You can only add a maximum of 5 partners",
+                        icon: "warning",
+                        confirmButtonText: "OK",
+                        confirmButtonColor: "#3085d6"
+                    });
+                    return;
+                }
 
-            if (rowCount >= 5) {
+                // Get the last saved partner row index
+                let lastRowIndex = 0;
 
-                Swal.fire({
-                    title: "Partner Entry Exists!",
-                    width: 450,
-                    text: "You can only add a maximum of 5 partners",
-                    icon: "warning",
-                    confirmButtonText: "OK",
-                    confirmButtonColor: "#3085d6"
-                });
+                if (rowCount > 0) {
+                    let value = $tbody
+                        .find("tr:last input[name='row_index[]']")
+                        .val();
 
-                // alert("You can only add a maximum of 6 partners.");
-                return;
-            }
+                    lastRowIndex = parseInt(value, 10);
 
-            resetPartnerForm();
-            let $section = $("#partnersfill-section");
+                    if (isNaN(lastRowIndex)) {
+                        lastRowIndex = rowCount;
+                    }
+                }
 
+                // Calculate next row index
+                let nextRowIndex = lastRowIndex + 1;
 
+                resetPartnerForm();
 
-            // $section.find("input, select").val("");
-            $section.find(".qualification").val("").trigger("change");
-            $section.find(".file-link").html("");
-            $("#partnersfill-section").slideDown();
-            // $("#partner-section table tbody").append(newRow);
-            $section.find(".upload-btn")
-                // .attr("data-row_index", rowCount)
-                // .data("row_index", rowCount);
+                let $section = $("#partnersfill-section");
 
-                .attr("data-row-index", rowCount)
-                .data("rowIndex", rowCount);
-            // updatePartnerRowIndex(rowCount);
-        });
+                $section.find(".qualification").val("").trigger("change");
+                $section.find(".file-link, .age-file-link").html("");
 
+                // Set row index in the partner form
+                $section.find("input[name='row_index[]']")
+                    .val(nextRowIndex);
 
+                // Set row index on both upload buttons
+                $section.find(".upload-btn")
+                    .attr("data-row-index", nextRowIndex)
+                    .data("rowIndex", nextRowIndex);
 
-        // $("#add-partner").on("click", function() {
-        //     resetPartnerForm();
+                $section.attr("data-row-index", nextRowIndex);
 
-        //     let rowCount = $("#partner-section table tbody tr").length;
-        //     if (rowCount >= 6) {
-        //         alert("You can only add a maximum of 6 partners.");
-        //         return; // stop here
-        //     }
-        //     $("#partnersfill-section").slideDown();
-        //     if ($("#cancel_update").length === 0) {
-        //         $("#save_partner").after(`
-    //     <button type="button" id="cancel_update" class="btn btn-danger ms-2">Cancel</button>
-    // `);
-        //     }
-        // });
+                // Show partner form
+                $section.slideDown();
+
+                console.log("Next partner row index:", nextRowIndex);
+            });
 
         // Save or Update Partner
         $("#save_partner").on("click", function() {
 
+            // alert('111');
+
             let $section = $("#partnersfill-section");
+
+            let rowIndex = parseInt(
+                $section.attr("data-row-index") || "1",
+                10
+            );
+
+            if (isNaN(rowIndex) || rowIndex < 1) {
+                rowIndex = 1;
+            }
 
             let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
 
@@ -7376,6 +7444,41 @@ $(document).on("click", "#add-more-authority-name", function () {
 
             if (editIndex !== null) {
 
+                const $section = $("#partnersfill-section");
+
+                let rowIndex;
+
+                if (editIndex !== null) {
+                    const $row = $("#partner-section table tbody tr").eq(editIndex);
+
+                    rowIndex = parseInt(
+                        $row.find("input[name='row_index[]']").val() ||
+                        $row.attr("data-row-index") ||
+                        0,
+                        10
+                    );
+                } else {
+                    let maxIndex = 0;
+
+                    $("#partner-section table tbody tr").each(function () {
+                        const currentIndex = parseInt(
+                            $(this).find("input[name='row_index[]']").val() ||
+                            $(this).attr("data-row-index") ||
+                            0,
+                            10
+                        );
+
+                        if (!isNaN(currentIndex) && currentIndex > maxIndex) {
+                            maxIndex = currentIndex;
+                        }
+                    });
+
+                    rowIndex = maxIndex + 1;
+                }
+
+                $section.attr("data-row-index", rowIndex);
+                $section.find("input[name='row_index[]']").val(rowIndex);
+
                 let $row =
                     $("#partner-section table tbody tr").eq(editIndex);
 
@@ -7621,6 +7724,8 @@ $(document).on("click", "#add-more-authority-name", function () {
         // Update partner row
         $(document).on("click", ".update-partner-row", function() {
 
+            // alert('update-partner');
+
             let $row = $(this).closest("tr");
             let $tds = $row.find("td");
 
@@ -7694,7 +7799,7 @@ $(document).on("click", "#add-more-authority-name", function () {
                 $qualTd.attr("data-qual_text") || "";
 
             let qual_proof =
-                $qualTd.attr("data-educational_proof") || "";
+                $qualTd.attr("data-qual_proof") || "";
 
             let $qualificationSelect =
                 $section.find("select[name='qualification[]']");
@@ -7740,22 +7845,41 @@ $(document).on("click", "#add-more-authority-name", function () {
 
                 // ================= QUALIFICATION PROOF =================
 
-            if (qual_proof) {
+qual_proof = $.trim(qual_proof);
 
-                $section.find(".file-link").html(`
-            <a href="${qual_proof}" target="_blank"
-                class="text-primary fw-bold">
-                <i class="fa fa-file-pdf-o" style="color:red;"></i>
-                View Uploaded File
-            </a>
-        `);
+let $fileLink = $section.find(".file-link");
 
-            } else {
+$section.attr("data-existing-file", qual_proof);
+$section.attr("data-present-file", qual_proof);
 
-                $section.find(".file-link").html("");
-            }
+$fileLink.empty();
 
+if (qual_proof) {
+    $("<a>", {
+        href: qual_proof,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        class: "text-primary fw-bold"
+    })
+    .append(
+        $("<i>", {
+            class: "fa fa-file-pdf-o me-1",
+            css: { color: "red" }
+        })
+    )
+    .append(document.createTextNode(" View Document"))
+    .appendTo($fileLink);
 
+    $fileLink.show();
+} else {
+    $fileLink.hide();
+
+    console.warn(
+        "Educational proof URL is missing for partner:",
+        id,
+        $qualTd[0]
+    );
+}
             // ================= EDIT ID =================
 
             $section.attr("data-edit-id", id || "");
@@ -7935,7 +8059,7 @@ $(document).on("click", "#add-more-authority-name", function () {
                 validityFromYMD &&
                 validityToYMD
             ) {
-                checkCompetencyCertificate();
+                // checkCompetencyCertificate();
             }
 
 
@@ -8048,47 +8172,27 @@ $(document).on("click", "#add-more-authority-name", function () {
 
             let directorSection = $("#directorfill-section");
 
-            let directorInput = directorSection.find("input[name='proprietor_name[]']");
+            let directorInput = directorSection.find(
+                "input[name='proprietor_name[]']"
+            );
 
-            if (rowCount == 0) {
-
+            // Preserve existing director name logic
+            if (rowCount === 0) {
                 let userName = @json(Auth::user()->first_name . ' ' . Auth::user()->last_name);
-
 
                 $("#proprietor_name")
                     .val(userName)
                     .prop("readonly", true);
-
             } else {
-
                 directorInput
                     .val("")
                     .prop("readonly", false);
             }
 
-            if (rowCount >= 10) {
-
-                Swal.fire({
-                    title: "Directors Entry Exists!",
-                    width: 450,
-                    text: "You can only add a maximum of 10 Directors..",
-                    icon: "warning",
-                    confirmButtonText: "OK",
-                    confirmButtonColor: "#3085d6"
-                });
-
-                // alert("You can only add a maximum of 6 partners.");
-                return;
-            }
-
-            /* ===========================
-               CHECK MANAGING DIRECTOR EXISTS
-               ============================ */
-
+            // Check whether a managing director already exists
             let mdExists = false;
 
-            $("#director-section table tbody tr").each(function() {
-
+            $tbody.find("tr").each(function () {
                 let md = $(this)
                     .find("td.md-column")
                     .attr("data-managing_director");
@@ -8098,37 +8202,45 @@ $(document).on("click", "#add-more-authority-name", function () {
                 }
             });
 
+            // Preserve managing director visibility logic
             if (mdExists) {
-
                 $(".managing-director-wrapper").hide();
 
                 $("#is_managing_director")
                     .prop("checked", false);
-
             } else {
-
                 $(".managing-director-wrapper").show();
             }
 
-
+            // Reset director form
             resetDirectorForm();
-            $("#directorfill-section").slideDown();
 
             let $section = $("#directorfill-section");
 
-            // $section.find("input, select").val("");
-            $section.find(".qualification").val("").trigger("change");
-            $section.find(".file-link").html("");
-            // $("#directorfill-section").slideDown();
-            // $("#partner-section table tbody").append(newRow);
+            $section.find(".qualification")
+                .val("")
+                .trigger("change");
+
+            $section.find(".file-link, .age-file-link").html("");
+
+            // Set row index in the director form
+            $section.find("input[name='row_index[]']")
+                .val(nextRowIndex);
+
+            // Set row index on both upload buttons
             $section.find(".upload-btn")
-                // .attr("data-row_index", rowCount)
-                // .data("row_index", rowCount);
+                .attr("data-row-index", nextRowIndex)
+                .data("rowIndex", nextRowIndex);
 
-                .attr("data-row-index", rowCount)
-                .data("rowIndex", rowCount);
+            // Set row index on director form section
+            $section.attr("data-row-index", nextRowIndex);
 
+            // Show director form
+            $section.slideDown();
+
+            console.log("Next director row index:", nextRowIndex);
         });
+
 
 
 
@@ -9020,7 +9132,10 @@ $(document).on("click", "#add-more-authority-name", function () {
                 $qualTd.attr("data-qual_text") || "";
 
             let qual_proof =
-                $qualTd.attr("data-educational_proof") || "";
+                $.trim($qualTd.attr("data-qual_proof") || "");
+
+                $section.attr("data-existing-file", qual_proof);
+                $section.attr("data-present-file", qual_proof);
 
             let $qualificationSelect =
                 $section.find("select[name='qualification[]']");
@@ -9031,62 +9146,74 @@ $(document).on("click", "#add-more-authority-name", function () {
             let $wrapper =
                 $section.find(".qualTextWrapper");
 
-            $qualificationSelect
-                .val(qualification)
-                .trigger("change");
+            // Set qualification dropdown
+            $qualificationSelect.val(qualification);
 
+            // Fallback for case differences
             if ($qualificationSelect.val() === null) {
-
-                $qualificationSelect.find("option").each(function() {
-
+                $qualificationSelect.find("option").each(function () {
                     if (
                         $.trim($(this).val()).toLowerCase() ===
                         $.trim(qualification).toLowerCase()
                     ) {
                         $(this).prop("selected", true);
                     }
-
                 });
             }
 
+            $qualificationSelect.trigger("change");
+
+            // Restore qualification text
             $qualTextInput.val(qual_text);
 
+            // Show/hide qualification text field
             if (
                 qualification &&
-                qualification !== "8TH PASS"
+                qualification.trim().toUpperCase() !== "8TH PASS"
             ) {
                 $wrapper.show();
             } else {
                 $wrapper.hide();
             }
 
-            // ================= QUALIFICATION PROOF =================
+            /* ================= QUALIFICATION PROOF ================= */
 
-            $section.attr(
-                "data-existing-file",
-                qual_proof
-            );
+            // Preserve the existing uploaded document URL
+            $section.attr("data-existing-file", qual_proof);
+            $section.attr("data-present-file", qual_proof);
 
-            $section.attr(
-                "data-present-file",
-                qual_proof
-            );
+            let $fileLink = $section.find(".file-link");
 
-            if (qual_proof) {
+            // Clear the previous director's document
+            $fileLink.empty().hide();
 
-                $section.find(".file-link").html(`
-            <a href="${qual_proof}"
-               target="_blank"
-               class="text-primary fw-bold">
-                <i class="fa fa-file-pdf-o"
-                   style="color:red;"></i>
-                View Uploaded File
-            </a>
-        `);
+            if (qual_proof !== "") {
+
+                let $link = $("<a>", {
+                    href: qual_proof,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    class: "text-primary fw-bold"
+                });
+
+                $link.append(
+                    $("<i>", {
+                        class: "fa fa-file-pdf-o",
+                        css: { color: "red" }
+                    })
+                );
+
+                $link.append(
+                    document.createTextNode(" View Document")
+                );
+
+                $fileLink.append($link).show();
 
             } else {
-
-                $section.find(".file-link").html("");
+                console.warn(
+                    "Qualification proof URL is missing for director:",
+                    id
+                );
             }
 
             // ================= EDIT ID =================
