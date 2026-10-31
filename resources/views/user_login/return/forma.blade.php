@@ -18,6 +18,29 @@ Swal.fire({
 
 
 <style>
+
+    /* Old inactive QC record */
+#staffqc-records tr.qc-staff-inactive > td {
+    background-color: #f8d7da !important;
+    color: #842029;
+}
+
+/* Newly inserted active QC record */
+#staffqc-records tr.qc-staff-new > td {
+    background-color: #e2e3e5 !important;
+    color: #383d41;
+}
+
+/* Inactive label */
+.qc-inactive-label {
+    display: inline-block;
+    margin: 3px;
+    padding: 3px 8px;
+    background-color: #dc3545;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 11px;
+}
     .tab-error-bg {
         border: 1px solid red !important;
         /* background-color: red !important;   */
@@ -2338,93 +2361,64 @@ exit; -->
 
                 <div class="table-responsive">
 
-                    
                     <table class="table table-bordered" id="qc-staff-table">
+                            <thead>
+                                <tr>
+                                    <th>S.NO</th>
+                                    <th>Certificate Holder Name <span class="text-red">*</span></th>
+                                    <th>Competency Certificate Number <span class="text-red">*</span></th>
+                                    <th>Certificate First Issue <span class="text-red">*</span></th>
+                                    <th>Certificate Validity From <span class="text-red">*</span></th>
+                                    <th>Certificate Validity To <span class="text-red">*</span></th>
+                                    <th>Attachments <span class="text-red">*</span></th>
+                                    <th colspan="2">Actions</th>
+                                </tr>
+                            </thead>
 
-                        <thead>
-                            <tr>
-                                <th>S.NO</th>
-                                <th>
-                                    Certificate Holder Name
-                                    <span class="text-red">*</span>
-                                </th>
-                                <th>
-                                    Competency Certificate Number
-                                    <span class="text-red">*</span>
-                                </th>
-                                <th>
-                                    Certificate First Issue
-                                    <span class="text-red">*</span>
-                                </th>
-                                <th>
-                                    Certificate Validity From
-                                    <span class="text-red">*</span>
-                                </th>
-                                <th>
-                                    Certificate Validity To
-                                    <span class="text-red">*</span>
-                                </th>
-                                <th width="15%">
-                                    Attachments <span class="text-red">*</span>
-                                </th>
-                            
-                            </tr>
-                        </thead>
-
-                        @if (!$application)
-
-                            <input type="hidden"
-                                id="appl_type"
-                                name="appl_type"
-                                value="N">
-
-                            <tbody id="staffqc-records">
-                                {{-- New QC/QSC rows will be added by JavaScript --}}
-                            </tbody>
-
-                        @else
-
-                            <input type="hidden"
-                                id="appl_type"
-                                name="appl_type"
-                                value="{{ $application->appl_type ?? 'N' }}">
+                             <input type="hidden"
+                                    id="qc_application_name" name ="qc_application_name" 
+                                    value="{{ $application->application_id ?? '' }}">
 
                             <tbody id="staffqc-records">
 
                                 @php
                                     $qcStaffs = collect($QCstaffs ?? [])->values();
-                                    $staff_count = $qcStaffs->count();
-                                    $editableStaffNumbers = $staff_store_tbl_0 ?? [];
                                 @endphp
 
-                                @for ($i = 0; $i < $staff_count; $i++)
+                                @foreach($qcStaffs as $i => $staff)
 
                                     @php
-                                        $staff = $qcStaffs[$i];
+                                        $editableStaffNumbers = array_map(
+                                            'strval',
+                                            $staff_store_tbl_0 ?? []
+                                        );
 
                                         $canEdit = in_array(
                                             (string) $staff->staff_cc_no,
-                                            array_map('strval', $editableStaffNumbers),
+                                            $editableStaffNumbers,
                                             true
                                         );
                                     @endphp
 
-                                    <tr class="staffqc-record"
-                                        data-id="{{ $staff->id }}"
-                                        data-row-index="{{ $staff->row_index }}">
+                                    {{-- @php
+                                        $canEdit = collect($staff_store_tbl_0 ?? [])->contains(function ($item) use ($staff) {
+                                            return (string) data_get($item, 'staff_cc_no') === (string) $staff->staff_cc_no
+                                                && (string) data_get($item, 'row_index') === (string) $staff->row_index;
+                                        });
+                                    @endphp --}}
 
-                                        {{-- S.NO --}}
-                                        <td>
-                                            {{ $i + 1 }}.
-                                        </td>
+                                   <tr class="staffqc-record
+                                    {{ isset($staff->staff_flag) && $staff->staff_flag == 0 ? 'qc-staff-inactive' : '' }}"
+                                    data-id="{{ $staff->id }}"
+                                    data-row-index="{{ $staff->row_index }}"
+                                    data-staff-flag="{{ $staff->staff_flag }}">
 
-                                        {{-- CERTIFICATE HOLDER NAME --}}
+                                        <td>{{ $i + 1 }}.</td>
+
                                         <td>
                                             <input type="hidden"
                                                 name="row_index[]"
                                                 value="{{ $staff->row_index }}">
-
-                                                <input type="hidden" id="edit_qc_row_index" value="">
 
                                             <input type="hidden"
                                                 name="staffqc_id[]"
@@ -2432,7 +2426,7 @@ exit; -->
 
                                             <input type="hidden"
                                                 name="staffqc_category[]"
-                                                value="{{ strtoupper(trim($staff->staff_category ?? '')) }}">
+                                                value="{{ $staff->staff_category }}">
 
                                             <input type="hidden"
                                                 name="staff_cc_no[]"
@@ -2440,61 +2434,50 @@ exit; -->
 
                                             <input type="hidden"
                                                 name="certificate_holder_name[]"
-                                                value="{{ $staff->staff_name ?? '' }}">
-                                             <input type="hidden"
-                                                name="staff_cc_first_issue[]"
-                                                value="{{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }}"
-                                                >
-                                             <input type="hidden"
-                                                name="staff_cc_validity_from[]"
-                                                value="{{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') : '' }}"
-                                                >
-                                             <input type="hidden"
-                                                name="staff_cc_validity_to[]"
-                                                value="{{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') : '' }}"
-                                                >
+                                                value="{{ $staff->staff_name }}">
 
-                                            {{ $staff->staff_name ?? '' }}
+                                            <input type="hidden"
+                                                class="qc-first-issue"
+                                                value="{{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('Y-m-d') : '' }}">
+
+                                            <input type="hidden"
+                                                class="qc-validity-from"
+                                                value="{{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('Y-m-d') : '' }}">
+
+                                            <input type="hidden"
+                                                class="qc-validity-to"
+                                                value="{{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('Y-m-d') : '' }}">
+
+                                            {{ $staff->staff_name }}
                                         </td>
 
-                                        {{-- CERTIFICATE NUMBER --}}
+                                        <td>{{ $staff->staff_cc_no }}</td>
+
                                         <td>
-                                            {{ $staff->staff_cc_no ?? '' }}
+                                            {{ $staff->staff_cc_first_issue
+                                                ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
+                                                : '' }}
                                         </td>
 
-                                        {{-- FIRST ISSUE --}}
                                         <td>
-                                            <input type="text"
-                                                name="staff_cc_first_issue[]"
-                                                value="{{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }}"
-                                                readonly>
+                                            {{ $staff->staff_cc_validity_from
+                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
+                                                : '' }}
                                         </td>
 
-                                        {{-- VALIDITY FROM --}}
                                         <td>
-                                            <input type="text"
-                                                name="staff_cc_validity_from[]"
-                                                value="{{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') : '' }}"
-                                                readonly>
+                                            {{ $staff->staff_cc_validity_to
+                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
+                                                : '' }}
                                         </td>
 
-                                        {{-- VALIDITY TO --}}
-                                        <td>
-                                            <input type="text"
-                                                name="staff_cc_validity_to[]"
-                                                value="{{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') : '' }}"
-                                                readonly>
-                                        </td>
-
-                                        {{-- ATTACHMENTS --}}
                                         <td>
                                             <div class="file-link">
 
                                                 <a href="{{ asset($staff->app_doc) }}"
                                                 target="_blank"
                                                 class="app-doc-link">
-                                                    <i class="fa fa-file-pdf-o"
-                                                    style="color:red;"></i>
+                                                    <i class="fa fa-file-pdf-o text-danger"></i>
                                                     Appointment Letter
                                                 </a>
 
@@ -2503,37 +2486,34 @@ exit; -->
                                                 <a href="{{ asset($staff->cons_doc) }}"
                                                 target="_blank"
                                                 class="cons-doc-link">
-                                                    <i class="fa fa-file-pdf-o"
-                                                    style="color:red;"></i>
+                                                    <i class="fa fa-file-pdf-o text-danger"></i>
                                                     Consent Letter
                                                 </a>
 
                                             </div>
                                         </td>
 
-                                        {{-- ACTIONS --}}
                                         <td>
-                                            @if ($canEdit)
-                                                <button type="button"
-                                                        class="btn btn-warning edit-qc-staff">
-                                                        <i class="fa fa-edit"></i>
-                                                    Edit
-                                                </button>
+                                          
+                                        
+                                        @if($staff->staff_flag == 1 && $canEdit)
 
-                                            @endif
+                                            <button type="button"
+                                                class="btn btn-warning edit-qc-staff">
+                                                <i class="fa fa-edit"></i> Edit
+                                            </button>
 
-                                            
-                                        </td>
+                                       
+
+                                        @endif
+                                    </td>
 
                                     </tr>
 
-                                @endfor
+                                @endforeach
 
                             </tbody>
-
-                        @endif
-
-                    </table>
+                        </table>
 
 
 
@@ -2550,8 +2530,14 @@ exit; -->
                             </div>
                         </div>
                         <div class="row mt-3">
+                             <input type="hidden"
+                                    id="qc_application_name" name ="qc_application_name" 
+                                    value="{{ $application->application_id ?? '' }}">
 
-
+                                <input type="hidden" id="edit_qc_id">
+                                <input type="hidden" id="edit_qc_row_index">
+                                <input type="hidden" id="edit_qc_old_cc_no">
+                                <input type="hidden" id="edit_qc_holder_name">
 
                             {{-- ------------------------- --}}
                             <div class="col-12 col-md-2">

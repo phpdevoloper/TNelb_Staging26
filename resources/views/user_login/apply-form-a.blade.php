@@ -2399,14 +2399,32 @@ exit; -->
                                             </th>
                                         </tr>
                                     </thead>
+                                                                     
+                                <input type="hidden"
+                                    id="qc_application_name" name ="qc_application_name" 
+                                    value="{{ $application->application_id ?? '' }}">
+
+                                     <input type="hidden" class="form-control text-box single-line" id="form_name" name="form_name"
+                                        value="A">
+
+
+                                    <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name"
+                                        value="EA">
+
+
+
+                                    <input type="hidden" class="form-control text-box single-line" id="appl_type" name="appl_type"
+                                        value="N">
+
+
 
                                     @if (!$application)
 
-                                        <!-- NEW APPLICATION -->
-
+       
                                         <input type="hidden" id="appl_type" name="appl_type" value="N">
 
                                         <tbody id="staffqc-records">
+      
 
                                             <!-- New QC/QSC rows will be added by JavaScript -->
 
@@ -2444,25 +2462,31 @@ exit; -->
 
                                                     {{-- CATEGORY --}}
                                                     <td>
+                                                    <input type="hidden"
+                                                        name="staffqc_id[]"
+                                                        value="{{ $staff->id }}">
 
-                                                        <input type="hidden" name="row_index[]"
-                                                            value="{{ $staff->row_index }}">
+                                                    <input type="hidden"
+                                                        name="row_index[]"
+                                                        value="{{ $staff->row_index }}">
 
-                                                        <input type="hidden" name="staffqc_id[]"
-                                                            value="{{ $staff->id }}">
+                                                    <input type="hidden"
+                                                        name="staffqc_category[]"
+                                                        value="QC">
 
+                                                    <input type="hidden"
+                                                        name="staff_cc_no[]"
+                                                        value="{{ $staff->staff_cc_no }}">
 
+                                                    <input type="hidden"
+                                                        name="app_doc[]"
+                                                        value="{{ $staff->row_index }}">
 
-                                                        <input type="hidden" name="staffqc_category[]"
-                                                            value="{{ strtoupper(trim($staff->staff_category ?? '')) }}">
+                                                    <input type="hidden"
+                                                        name="cons_doc[]"
+                                                        value="{{ $staff->row_index }}">
 
-                                                        <input type="hidden" name="staff_cc_no[]"
-                                                            value="{{ $staff->staff_cc_no }}">
-
-                                                        <input type="hidden" name="certificate_holder_name[]"
-                                                            value="{{ $staff->staff_name ?? '' }}">
-
-                                                        {{ $staff->staff_name ?? '' }}
+                                                         {{ $staff->staff_name ?? '' }}
 
                                                     </td>
 
@@ -2540,9 +2564,7 @@ exit; -->
                                                             &#128465; Remove
                                                         </button>
 
-                                                        <span class="badge bg-danger qc-removed-tag" style="display:none;">
-                                                            REMOVED
-                                                        </span>
+                                                       
 
                                                         <input type="hidden" name="qc_removed[]" value="0">
                                                     </td>
@@ -2557,6 +2579,17 @@ exit; -->
                 --}}
 
                                         </tbody>
+                                          {{-- <tfoot>
+        <tr>
+            <td colspan="2" class="text-end">
+                <strong>Total Fee</strong>
+            </td>
+
+            <td>
+                <strong id="qc-total-fee">0</strong>
+            </td>
+        </tr>
+    </tfoot> --}}
 
                                     @endif
 

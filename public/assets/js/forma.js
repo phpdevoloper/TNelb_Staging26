@@ -1500,372 +1500,12 @@ partners.forEach((p, index) => {
             $("#gst_doc_error").text("");
         });
 
-      
-
-
-      
-
-        //   let qcStaffRecords = [];
-
-
-        // ==========================================================
-        // GET ALL QC / QSC STAFF ROWS
-        // ==========================================================
-
-        // $("#staffqc-records tr.staffqc-record").each(function (index) {
-
-        //     let $tr = $(this);
-
-        //     // ------------------------------------------------------
-        //     // CATEGORY
-        //     // ------------------------------------------------------
-
-        //     let category = $tr
-        //         .find('input[name="staffqc_category[]"]')
-        //         .val();
-
-        //     // Fallback for dynamically created rows
-        //     if (!category) {
-        //         category = $tr
-        //             .find('input[name^="staffqc_category["]')
-        //             .val();
-        //     }
-
-        //     if (!category) {
-        //         category = $tr
-        //             .find(".staffqc_category")
-        //             .val();
-        //     }
-
-        //     if (!category) {
-        //         category = $tr.find("td:eq(1)").text().trim();
-        //     }
-
-        //     category = String(category || "")
-        //         .trim()
-        //         .toUpperCase();
-
-
-
-        //     // ------------------------------------------------------
-        //     // ONLY QC / QSC
-        //     // ------------------------------------------------------
-
-        //     if (category !== "QC" && category !== "QSC") {
-        //         return;
-        //     }
-
-        //     let appDoc = $tr.find('input[name="app_doc[]"]').val() || "";
-        //     let consDoc = $tr.find('input[name="cons_doc[]"]').val() || "";
-
-
-        //     // alert(appDoc);
-
-
-            
-
-
-        //     // ------------------------------------------------------
-        //     // CREATE RECORD
-        //     // ------------------------------------------------------
-
-        //     let record = {
-
-        //         id:
-        //             $tr.attr("data-id") ||
-        //             $tr.data("id") ||
-        //             null,
-
-        //         staffqc_category:
-        //             category,
-
-        //         // ------------------------------------------------------
-        //         // CERTIFICATE HOLDER NAME
-        //         // ------------------------------------------------------
-
-        //         certificate_holder_name:
-        //             $tr.find('input[name="certificate_holder_name[]"]').val()
-        //             ||
-        //             $tr.find('input[name^="certificate_holder_name["]').val()
-        //             ||
-        //             $tr.find(".certificate_holder_name").val()
-        //             ||
-        //             $tr.find(".certificate-holder-name").text().trim()
-        //             ||
-        //             $tr.find("td:eq(2)").text().trim()
-        //             ||
-        //             "",
-
-        //         // ------------------------------------------------------
-        //         // CERTIFICATE NUMBER
-        //         // ------------------------------------------------------
-
-        //         staff_cc_no:
-        //             $tr.find('input[name="staff_cc_no[]"]').val()
-        //             ||
-        //             $tr.find('input[name^="staff_cc_no["]').val()
-        //             ||
-        //             $tr.find(".staff_cc_no").val()
-        //             ||
-        //             $tr.find(".cc_number").val()
-        //             ||
-        //             $tr.find("td:eq(3)").text().trim()
-        //             ||
-        //             "",
-
-        //         // ------------------------------------------------------
-        //         // FIRST ISSUE
-        //         // ------------------------------------------------------
-
-        //         staff_cc_first_issue:
-        //             $tr.find('input[name="staff_cc_first_issue[]"]').val()
-        //             ||
-        //             $tr.find('input[name^="staff_cc_first_issue["]').val()
-        //             ||
-        //             $tr.find(".staff_cc_first_issue").val()
-        //             ||
-        //             $tr.find(".cc_firstissue").val()
-        //             ||
-        //             "",
-
-        //         // ------------------------------------------------------
-        //         // VALIDITY FROM
-        //         // ------------------------------------------------------
-
-        //         staff_cc_validity_from:
-        //             $tr.find('input[name="staff_cc_validity_from[]"]').val()
-        //             ||
-        //             $tr.find('input[name^="staff_cc_validity_from["]').val()
-        //             ||
-        //             $tr.find(".staff_cc_validity_from").val()
-        //             ||
-        //             $tr.find(".cc_validity_from").val()
-        //             ||
-        //             "",
-
-        //         // ------------------------------------------------------
-        //         // VALIDITY TO
-        //         // ------------------------------------------------------
-
-        //         staff_cc_validity_to:
-        //             $tr.find('input[name="staff_cc_validity_to[]"]').val()
-        //             ||
-        //             $tr.find('input[name^="staff_cc_validity_to["]').val()
-        //             ||
-        //             $tr.find(".staff_cc_validity_to").val()
-        //             ||
-        //             $tr.find(".cc_validity_to").val()
-        //             ||
-        //             "",
-
-        //         // ------------------------------------------------------
-        //         // APP DOCUMENT
-        //         // ------------------------------------------------------
-
-        //       app_doc: appDoc,
-        //         cons_doc: consDoc,
-
-        //         // ------------------------------------------------------
-        //         // ROW INDEX
-        //         // ------------------------------------------------------
-
-        //         row_index:
-        //             $tr.attr("data-row-index")
-        //             ||
-        //             $tr.data("row-index")
-        //             ||
-        //             $tr.find('input[name="row_index[]"]').val()
-        //             ||
-        //             ""
-        //     };
-
-
-        //     // ------------------------------------------------------
-        //     // ADD RECORD
-        //     // ------------------------------------------------------
-
-        //     qcStaffRecords.push(record);
-
-        // });
-
-                let qcStaffRecords = [];
-
-        // ==========================================================
-        // GET ALL QC / QSC STAFF ROWS
-        // ==========================================================
-
-        $("#staffqc-records tr.staffqc-record").each(function (index) {
-
-            let $tr = $(this);
-
-            // CATEGORY
-            let category = $tr
-                .find('input[name="staffqc_category[]"]')
-                .val() || "";
-
-            if (!category) {
-                category = $tr.find(".staffqc_category").val() || "";
-            }
-
-            category = String(category).trim().toUpperCase();
-
-            // ONLY QC / QSC
-            if (category !== "QC" && category !== "QSC") {
-                return;
-            }
-
-            // DOCUMENT PATHS
-            let appDoc = $tr.find('input[name="app_doc[]"]').val() || "";
-            let consDoc = $tr.find('input[name="cons_doc[]"]').val() || "";
-
-            // CREATE RECORD
-            let record = {
-
-                // DATABASE ID
-                id:
-                    $tr.find('input[name="staffqc_id[]"]').val() ||
-                    $tr.attr("data-id") ||
-                    null,
-
-                // CATEGORY
-                staffqc_category: category,
-
-                // CERTIFICATE HOLDER NAME
-                certificate_holder_name:
-                    $tr.find('input[name="certificate_holder_name[]"]').val() ||
-                    $tr.find(".certificate_holder_name").val() ||
-                    "",
-
-                // CERTIFICATE NUMBER
-                staff_cc_no:
-                    $tr.find('input[name="staff_cc_no[]"]').val() || "",
-
-                // FIRST ISSUE
-                staff_cc_first_issue:
-                    $tr.find('input[name="staff_cc_first_issue[]"]').val() || "",
-
-                // VALIDITY FROM
-                staff_cc_validity_from:
-                    $tr.find('input[name="staff_cc_validity_from[]"]').val() || "",
-
-                // VALIDITY TO
-                staff_cc_validity_to:
-                    $tr.find('input[name="staff_cc_validity_to[]"]').val() || "",
-
-                // DOCUMENTS
-                app_doc: appDoc,
-                cons_doc: consDoc,
-
-                // ROW INDEX
-                row_index:
-                    $tr.find('input[name="row_index[]"]').val() ||
-                    $tr.attr("data-row-index") ||
-                    ""
-            };
-
-            qcStaffRecords.push(record);
-
-        });
-
-        // ==========================================================
-        // PASS JSON TO FORMDATA
-        // ==========================================================
-
-        formData.set(
-            "qc_staff_records_json",
-            JSON.stringify(qcStaffRecords)
-        );
-
-        console.log("QC/QSC records:", qcStaffRecords);
-        console.log("QC/QSC JSON:", formData.get("qc_staff_records_json"));
-
-        $("#qc_staff_records_json").val(JSON.stringify(qcStaffRecords));
-
-         formData.set(
-            "qc_staff_records",
-            JSON.stringify(qcStaffRecords)
-        );
-
-          if (isValiddraft) {
+        if (isValiddraft) {
             if (actionType === "draft") {
                 submitFormAFinal(formData, actionType);
                 return;
             }
         }
-
-        // ==========================================================
-        // MINIMUM ONE QC / QSC
-        // ==========================================================
-
-        if (qcStaffRecords.length === 0) {
-
-            isValid = false;
-
-            $("#qc-staff-table").addClass("qc-table-error");
-
-
-            Swal.fire({
-                icon: "warning",
-                title: "Staff Details Required",
-                text: "Please enter minimum one QC/QSC staff.",
-                confirmButtonText: "OK",
-                width: 450
-            });
-
-
-            // Open Staff & Bank Details tab
-            $(".nav-item").each(function () {
-
-                if (
-                    $(this)
-                        .text()
-                        .trim()
-                        .includes("Staff & Bank Details")
-                ) {
-
-                    $(this).addClass("tab-error-bg");
-
-                    $(this).trigger("click");
-
-                    return false;
-                }
-
-            });
-
-
-            return;
-        }
-
-
-        // ==========================================================
-        // QC/QSC EXISTS
-        // ==========================================================
-
-        $("#qc-staff-table").removeClass("qc-table-error");
-
-
-        $(".nav-item").each(function () {
-
-            if (
-                $(this)
-                    .text()
-                    .trim()
-                    .includes("Staff & Bank Details")
-            ) {
-
-                $(this).removeClass("tab-error-bg");
-
-                return false;
-            }
-
-        });
-
-
-        // ==========================================================
-        // ADD QC RECORDS TO FORMDATA
-        // ==========================================================
-
-       
         // -----------------------------------------
 
         let ownershipType = $("#ownership_type_select").val();
@@ -2158,7 +1798,271 @@ partners.forEach((p, index) => {
         // QC / QSC STAFF VALIDATION
         // ======================================================
 
-        
+        let qcStaffRecords = [];
+
+
+        // ==========================================================
+        // GET ALL QC / QSC STAFF ROWS
+        // ==========================================================
+
+        $("#staffqc-records tr.staffqc-record").each(function (index) {
+
+            let $tr = $(this);
+
+            // ------------------------------------------------------
+            // CATEGORY
+            // ------------------------------------------------------
+
+            let category = $tr
+                .find('input[name="staffqc_category[]"]')
+                .val();
+
+            // Fallback for dynamically created rows
+            if (!category) {
+                category = $tr
+                    .find('input[name^="staffqc_category["]')
+                    .val();
+            }
+
+            if (!category) {
+                category = $tr
+                    .find(".staffqc_category")
+                    .val();
+            }
+
+            if (!category) {
+                category = $tr.find("td:eq(1)").text().trim();
+            }
+
+            category = String(category || "")
+                .trim()
+                .toUpperCase();
+
+
+            // ------------------------------------------------------
+            // ONLY QC / QSC
+            // ------------------------------------------------------
+
+            if (category !== "QC" && category !== "QSC") {
+                return;
+            }
+
+
+            // ------------------------------------------------------
+            // CREATE RECORD
+            // ------------------------------------------------------
+
+            let record = {
+
+                id:
+                    $tr.attr("data-id") ||
+                    $tr.data("id") ||
+                    null,
+
+                staffqc_category:
+                    category,
+
+                // ------------------------------------------------------
+                // CERTIFICATE HOLDER NAME
+                // ------------------------------------------------------
+
+                certificate_holder_name:
+                    $tr.find('input[name="certificate_holder_name[]"]').val()
+                    ||
+                    $tr.find('input[name^="certificate_holder_name["]').val()
+                    ||
+                    $tr.find(".certificate_holder_name").val()
+                    ||
+                    $tr.find(".certificate-holder-name").text().trim()
+                    ||
+                    $tr.find("td:eq(2)").text().trim()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // CERTIFICATE NUMBER
+                // ------------------------------------------------------
+
+                staff_cc_no:
+                    $tr.find('input[name="staff_cc_no[]"]').val()
+                    ||
+                    $tr.find('input[name^="staff_cc_no["]').val()
+                    ||
+                    $tr.find(".staff_cc_no").val()
+                    ||
+                    $tr.find(".cc_number").val()
+                    ||
+                    $tr.find("td:eq(3)").text().trim()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // FIRST ISSUE
+                // ------------------------------------------------------
+
+                staff_cc_first_issue:
+                    $tr.find('input[name="staff_cc_first_issue[]"]').val()
+                    ||
+                    $tr.find('input[name^="staff_cc_first_issue["]').val()
+                    ||
+                    $tr.find(".staff_cc_first_issue").val()
+                    ||
+                    $tr.find(".cc_firstissue").val()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // VALIDITY FROM
+                // ------------------------------------------------------
+
+                staff_cc_validity_from:
+                    $tr.find('input[name="staff_cc_validity_from[]"]').val()
+                    ||
+                    $tr.find('input[name^="staff_cc_validity_from["]').val()
+                    ||
+                    $tr.find(".staff_cc_validity_from").val()
+                    ||
+                    $tr.find(".cc_validity_from").val()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // VALIDITY TO
+                // ------------------------------------------------------
+
+                staff_cc_validity_to:
+                    $tr.find('input[name="staff_cc_validity_to[]"]').val()
+                    ||
+                    $tr.find('input[name^="staff_cc_validity_to["]').val()
+                    ||
+                    $tr.find(".staff_cc_validity_to").val()
+                    ||
+                    $tr.find(".cc_validity_to").val()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // APP DOCUMENT
+                // ------------------------------------------------------
+
+                app_doc:
+                    $tr.find('input[name="app_doc[]"]').val()
+                    ||
+                    $tr.find('input[name^="app_doc["]').val()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // CONSENT DOCUMENT
+                // ------------------------------------------------------
+
+                cons_doc:
+                    $tr.find('input[name="cons_doc[]"]').val()
+                    ||
+                    $tr.find('input[name^="cons_doc["]').val()
+                    ||
+                    "",
+
+                // ------------------------------------------------------
+                // ROW INDEX
+                // ------------------------------------------------------
+
+                row_index:
+                    $tr.attr("data-row-index")
+                    ||
+                    $tr.data("row-index")
+                    ||
+                    $tr.find('input[name="row_index[]"]').val()
+                    ||
+                    ""
+            };
+
+
+            // ------------------------------------------------------
+            // ADD RECORD
+            // ------------------------------------------------------
+
+            qcStaffRecords.push(record);
+
+        });
+
+        // ==========================================================
+        // MINIMUM ONE QC / QSC
+        // ==========================================================
+
+        if (qcStaffRecords.length === 0) {
+
+            isValid = false;
+
+            $("#qc-staff-table").addClass("qc-table-error");
+
+
+            Swal.fire({
+                icon: "warning",
+                title: "Staff Details Required",
+                text: "Please enter minimum one QC/QSC staff.",
+                confirmButtonText: "OK",
+                width: 450
+            });
+
+
+            // Open Staff & Bank Details tab
+            $(".nav-item").each(function () {
+
+                if (
+                    $(this)
+                        .text()
+                        .trim()
+                        .includes("Staff & Bank Details")
+                ) {
+
+                    $(this).addClass("tab-error-bg");
+
+                    $(this).trigger("click");
+
+                    return false;
+                }
+
+            });
+
+
+            return;
+        }
+
+
+        // ==========================================================
+        // QC/QSC EXISTS
+        // ==========================================================
+
+        $("#qc-staff-table").removeClass("qc-table-error");
+
+
+        $(".nav-item").each(function () {
+
+            if (
+                $(this)
+                    .text()
+                    .trim()
+                    .includes("Staff & Bank Details")
+            ) {
+
+                $(this).removeClass("tab-error-bg");
+
+                return false;
+            }
+
+        });
+
+
+        // ==========================================================
+        // ADD QC RECORDS TO FORMDATA
+        // ==========================================================
+
+        formData.set(
+            "qc_staff_records",
+            JSON.stringify(qcStaffRecords)
+        );
+
 
         // ======================================================
         // STAFF B VALIDATION - SECOND PRIORITY
@@ -3163,27 +3067,7 @@ partners.forEach((p, index) => {
         let bankAmount = $("#bank_amount").val().trim();
         let bankValidity = $("input[name='bank_validity']").val().trim();
 
-        // if (bankAddress === "") {
-        //     $("#bank_address_error").text("Bank name and address is required.");
-
-        //      $(".nav-item").each(function () {
-        //         if ($(this).text().trim() === "Staff & Bank Details") {
-        //             $(this).addClass("tab-error-bg");
-        //             $(this).trigger("click"); // switch to Basic Details tab
-        //         }
-        //     });
-
-        //     const ownershipNotice = document.querySelector('.text-red');
-        //     if (ownershipNotice) {
-        //         ownershipNotice.style.color = 'red';
-        //         ownershipNotice.style.fontWeight = 'bold';
-        //         ownershipNotice.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        //     }
-
-        //     return;
-
-        //     isValid = false;
-        // }
+      
         function checkBankValidity(bankValidityValue) {
             let isValid = true;
 
@@ -3208,7 +3092,13 @@ partners.forEach((p, index) => {
             return isValid;
         }
 
-        if ((bankValidity === "") | (bankAmount === "") | (bankAddress === "")) {
+
+        if (
+            bankValidity === "" ||
+            bankAmount === "" ||
+            Number(bankAmount) <= 10 ||
+            bankAddress === ""
+        ) {
 
             if (bankValidity === "") {
                 $("#bank_validity_error").text("Validity period is required.");
@@ -3216,6 +3106,8 @@ partners.forEach((p, index) => {
 
             if (bankAmount === "") {
                 $("#bank_amount_error").text("Amount is required.");
+            } else if (Number(bankAmount) <= 10) {
+                $("#bank_amount_error").text("Amount must be greater than 10.");
             }
 
             if (bankAddress === "") {
@@ -3225,11 +3117,12 @@ partners.forEach((p, index) => {
             $(".nav-item").each(function () {
                 if ($(this).text().trim() === "Staff & Bank Details") {
                     $(this).addClass("tab-error-bg");
-                    $(this).trigger("click"); // switch to Basic Details tab
+                    $(this).trigger("click");
                 }
             });
 
             const ownershipNotice = document.querySelector(".text-red");
+
             if (ownershipNotice) {
                 ownershipNotice.style.color = "red";
                 ownershipNotice.style.fontWeight = "bold";
@@ -3239,8 +3132,8 @@ partners.forEach((p, index) => {
                 });
             }
 
-            return;
             isValid = false;
+            return;
         }
 
         let hasUploadedFile = $("#bank_doc_section .file-link a").length > 0;
@@ -8996,62 +8889,44 @@ partners.forEach((p, index) => {
     // ============================================================
     // ADD QC / QSC STAFF BUTTON
     // ============================================================
+$(document).on("click", "#add_qc_staff", function () {
 
-    $(document).on("click", "#add_qc_staff", function () {
+    let $section = $("#staffqc_datasection");
 
-        let $section = $("#staffqc_datasection");
+    // Get the next index from the current table rows
+    let staffRowIndex = getNextQCStaffIndex();
 
-        // Next staff number
-        let staffRowIndex =
-            $("#staffqc-records tr.staffqc-record").length + 1;
+    // Store the current index in the form section
+    $section.attr("data-current-row-index", staffRowIndex);
 
-        // Set document number
-        $section.find(".app_doc").val(staffRowIndex);
-        $section.find(".cons_doc").val(staffRowIndex);
+    // Assign the index to the upload buttons
+    $section.find(".upload-btn")
+        .attr("data-row-index", staffRowIndex);
 
-        // Store row index in upload buttons
-        $section.find(".upload-btn").attr(
-            "data-row-index",
-            staffRowIndex
-        );
+    // Continue with your existing reset code
+    $section.find(".staffqc_category").val("");
 
+    $section.find(
+        'input[name="staff_cc_no[]"],' +
+        'input[name="staff_cc_first_issue[]"],' +
+        'input[name="staff_cc_validity_from[]"],' +
+        'input[name="staff_cc_validity_to[]"]'
+    ).val("");
 
-        // alert(staffRowIndex);
+    $section.find(".app-doc-file, .cons-doc-file").val("");
+    $section.find(".file-link").empty();
 
-        // Clear category
-        $section.find(".staffqc_category").val("");
+    $("#certificate-holder-name").text("");
+    $("#qc_upload_section").hide();
 
-        // Clear staff fields
-        $section.find(
-            'input[name="staff_cc_no[]"],' +
-            'input[name="staff_cc_first_issue[]"],' +
-            'input[name="staff_cc_validity_from[]"],' +
-            'input[name="staff_cc_validity_to[]"]'
-        ).val("");
+    $section.find(".text-danger").text("");
 
-        // Clear document inputs
-        $section.find(
-            ".app-doc-file, .cons-doc-file"
-        ).val("");
+    $section.slideDown();
 
-        // Clear file links
-        $section.find(".file-link").empty();
-        $("#certificate-holder-name").text("");
-
-        $("#qc_upload_section").hide();
-        // Clear errors
-        $section.find(".text-danger").text("");
-
-        // Show section
-        $section.slideDown();
-
-        // Scroll to section
-        $("html, body").animate({
-            scrollTop: $section.offset().top - 100
-        }, 500);
-
-    });
-
+    $("html, body").animate({
+        scrollTop: $section.offset().top - 100
+    }, 500);
+});
 
     // ============================================================
     // SAVE QC / QSC STAFF
@@ -9061,10 +8936,14 @@ partners.forEach((p, index) => {
 
         let $section = $("#staffqc_datasection");
 
-        let certificateNo = $section
-            .find('input[name="staff_cc_no[]"]')
-            .val()
-            .trim();
+        // let certificateNo = $section
+        //     .find('input[name="staff_cc_no[]"]')
+        //     .val()
+        //     .trim();
+
+        let certificateNo = $("#edit_qc_id").val()
+        ? $("#edit_qc_cc_no").val()
+        : $('input[name="staff_cc_no[]"]').last().val();
 
         let firstIssue = $section
             .find('input[name="staff_cc_first_issue[]"]')
@@ -9257,6 +9136,16 @@ partners.forEach((p, index) => {
                             "Certificate verification failed."
                         );
                 }
+
+                $("#staffqc_datasection").attr("data-qc-verified", "1");
+
+                    $("#certificate-holder-name").text(response.staff_name);
+
+                    $("#qc_upload_section").show();
+
+                    $("#update_qc").prop("disabled", false);
+
+                    $(".staff-verify-error").text("");
             },
 
 
@@ -9291,206 +9180,264 @@ partners.forEach((p, index) => {
 
     });
 
+$(document).on("click", "#save_qc", function (e) {
 
-   $(document).on("click", "#save_qc", function () {
+    e.preventDefault();
 
     let $section = $("#staffqc_datasection");
 
-    $section.find(".text-danger").text("");
+    // =========================================
+    // APPLICATION DETAILS
+    // =========================================
 
-    let hasError = false;
+    let applicationId = $("#qc_application_name").val();
 
-    // =====================================================
-    // CERTIFICATE VERIFICATION
-    // =====================================================
+    let form_name = $("#form_name").val();
+    let license_name = $("#license_name").val();
+    let appl_type = $("#appl_type").val();
 
-    let applicationId = $("#qc_application_id").val();
+    // =========================================
+    // QC STAFF DETAILS
+    // =========================================
 
-    if (!applicationId) {
-        $section.find(".staff-verify-error")
-            .text("Verify the QC certificate first.");
-        return;
-    }
+    let ccNo = $section.find("input[name='staff_cc_no[]']").val();
 
-    let category = "QC";
+    let firstIssue = $section
+        .find("input[name='staff_cc_first_issue[]']").val();
 
-    let appl_type = ($("#appl_type").val() || "").trim();
+    let validityFrom = $section
+        .find("input[name='staff_cc_validity_from[]']").val();
 
-    // =====================================================
-    // CERTIFICATE DETAILS
-    // =====================================================
-
-    let ccNo = $.trim(
-        $section.find('input[name="staff_cc_no[]"]').first().val() || ""
-    );
-
-    let firstIssue = $.trim(
-        $section.find('input[name="staff_cc_first_issue[]"]').first().val() || ""
-    );
-
-    let validityFrom = $.trim(
-        $section.find('input[name="staff_cc_validity_from[]"]').first().val() || ""
-    );
-
-    let validityTo = $.trim(
-        $section.find('input[name="staff_cc_validity_to[]"]').first().val() || ""
-    );
-
-    if (!ccNo) {
-        $section.find(".staff-cc-error")
-            .text("Please enter Certificate Number.");
-        hasError = true;
-    }
-
-    if (!firstIssue) {
-        $section.find(".staff-first-issue-error")
-            .text("Please enter Certificate First Issue.");
-        hasError = true;
-    }
-
-    if (!validityFrom) {
-        $section.find(".staff-validity-from-error")
-            .text("Please enter Validity From Date.");
-        hasError = true;
-    }
-
-    if (!validityTo) {
-        $section.find(".staff-validity-to-error")
-            .text("Please enter Validity To Date.");
-        hasError = true;
-    }
-
-    // =====================================================
-    // DOCUMENT LINKS
-    // =====================================================
-
-    let appDocLink = $section
-        .find(".app-doc-file")
-        .siblings(".file-link")
-        .find("a")
-        .attr("href") || "";
-
-    let consDocLink = $section
-        .find(".cons-doc-file")
-        .siblings(".file-link")
-        .find("a")
-        .attr("href") || "";
-
-    if (!appDocLink) {
-        $section.find(".app_doc_upload_error")
-            .text("Please upload Appointment Letter.");
-        hasError = true;
-    }
-
-    if (!consDocLink) {
-        $section.find(".cons_doc_upload_error")
-            .text("Please upload Consent Letter.");
-        hasError = true;
-    }
-
-    // =====================================================
-    // CERTIFICATE HOLDER NAME
-    // =====================================================
+    let validityTo = $section
+        .find("input[name='staff_cc_validity_to[]']").val();
 
     let certificateHolderName = $.trim(
         $("#certificate-holder-name").text()
     );
 
-    if (!certificateHolderName) {
-        $section.find(".staff-verify-error")
-            .text("Please verify the certificate holder name.");
-        return;
-    }
+    // =========================================
+    // DOCUMENT LINKS
+    // =========================================
 
-    if (hasError) {
-        return;
-    }
+    let appDocLink = $section
+        .find(".app-doc-file")
+        .siblings(".file-link")
+        .find("a")
+        .prop("href") || "";
 
-    // =====================================================
-    // DUPLICATE CHECK
-    // =====================================================
+    let consDocLink = $section
+        .find(".cons-doc-file")
+        .siblings(".file-link")
+        .find("a")
+        .prop("href") || "";
 
-    let isDuplicate = false;
+    // =========================================
+    // VALIDATION
+    // =========================================
 
-    $("#staffqc-records tr.staffqc-record").each(function () {
 
-        let $row = $(this);
+if (!certificateHolderName) {
 
-        let existingCategory = $.trim(
-            $row.find('input[name="staffqc_category[]"]').val() || ""
-        ).toUpperCase();
-
-        let existingCcNo = $.trim(
-            $row.find('input[name="staff_cc_no[]"]').val() ||
-            $row.find("td:eq(2)").text()
-        ).toUpperCase();
-
-        let existingFirstIssue = $.trim(
-            $row.find('input[name="staff_cc_first_issue[]"]').val() || ""
-        );
-
-        let existingValidityFrom = $.trim(
-            $row.find('input[name="staff_cc_validity_from[]"]').val() || ""
-        );
-
-        let existingValidityTo = $.trim(
-            $row.find('input[name="staff_cc_validity_to[]"]').val() || ""
-        );
-
-        if (
-            existingCategory === category &&
-            existingCcNo === ccNo.toUpperCase() &&
-            existingFirstIssue === firstIssue &&
-            existingValidityFrom === validityFrom &&
-            existingValidityTo === validityTo
-        ) {
-            isDuplicate = true;
-            return false;
-        }
+    Swal.fire({
+        title: "Validation Error",
+        text: "Certificate holder name is required.",
+        icon: "warning",
+        width: 450,
+        confirmButtonText: "OK"
     });
 
-    if (isDuplicate) {
-        $section.find(".staff-verify-error")
-            .text("Certificate details duplicate. This certificate is already added.");
-        return;
-    }
+    return;
+}
 
-    // =====================================================
-    // ADD QC RECORD WITH DOCUMENT LINKS
-    // =====================================================
+if (!ccNo) {
 
-    addQCStaffRecord(
-        category,
-        certificateHolderName,
-        ccNo,
-        firstIssue,
-        validityFrom,
-        validityTo,
-        15000,
-        appl_type,
-        appDocLink,
-        "Appointment Letter",
-        consDocLink,
-        "Consent Letter",
-        false
-    );
+    Swal.fire({
+        title: "Validation Error",
+        text: "CC Number is required.",
+        icon: "warning",
+        width: 450,
+        confirmButtonText: "OK"
+    });
 
-    $section.slideUp();
+    return;
+}
 
-    resetQCStaffForm();
+if (!firstIssue || !validityFrom || !validityTo) {
+
+    Swal.fire({
+        title: "Validation Error",
+        text: "Please check all CC dates.",
+        icon: "warning",
+        width: 450,
+        confirmButtonText: "OK"
+    });
+
+    return;
+}
+
+if (!appDocLink || !consDocLink) {
+
+    Swal.fire({
+        title: "Document Required",
+        text: "Please upload both Appointment and Consent documents.",
+        icon: "warning",
+        width: 450,
+        confirmButtonText: "OK"
+    });
+
+    return;
+}
+
+    // =========================================
+    // AJAX SAVE
+    // =========================================
+
+    $.ajax({
+
+        url: BASE_URL + "/save-qc-staff",
+
+        type: "POST",
+
+        data: {
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            application_id: applicationId,
+
+            staff_name: certificateHolderName,
+
+            staff_cc_no: ccNo,
+
+            first_issue: firstIssue,
+
+            validity_from: validityFrom,
+
+            validity_to: validityTo,
+
+            app_doc: appDocLink,
+
+            cons_doc: consDocLink,
+
+            form_name: form_name,
+
+            license_name: license_name,
+
+            appl_type: appl_type
+        },
+
+        beforeSend: function () {
+
+            $("#save_qc").prop("disabled", true);
+
+        },
+
+        success: function (response) {
+
+            if (!response.status) {
+                alert(response.message || "Unable to save QC staff.");
+                return;
+            }
+
+            // =====================================
+            // ADD / UPDATE TABLE ROW
+            // =====================================
+
+            addQCStaffRecord(
+
+                "QC",
+
+                certificateHolderName,
+
+                ccNo,
+
+                firstIssue,
+
+                validityFrom,
+
+                validityTo,
+
+                15000,
+
+                appl_type,
+
+                appDocLink,
+
+                "Appointment Letter",
+
+                consDocLink,
+
+                "Consent Letter",
+
+                false,                  // New staff: fee applicable
+
+                response.row_index,
+
+                response.staff_id
+
+            );
+
+            // =====================================
+            // UPDATE SERIAL NUMBERS
+            // =====================================
+
+            updateQCStaffSerialNumbers();
+
+            // =====================================
+            // UPDATE TOTAL FEE
+            // =====================================
+
+            updateQCStaffTotalFee();
+
+            Swal.fire({
+                title: "Success!",
+                text: response.message,
+                icon: "success",
+                width: 450,
+                confirmButtonText: "OK"
+            });
+
+            // =====================================
+            // HIDE FORM
+            // =====================================
+
+            $section.slideUp();
+
+            // =====================================
+            // RESET FORM
+            // =====================================
+
+            resetQCStaffForm();
+
+        },
+
+        error: function (xhr) {
+
+            console.error(xhr.responseText);
+
+            let message = "Unable to save QC staff.";
+
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+
+            alert(message);
+
+        },
+
+        complete: function () {
+
+            $("#save_qc").prop("disabled", false);
+
+        }
+
+    });
+
 });
 
-function escapeQCValue(value) {
-    return $("<div>").text(String(value ?? "")).html();
-}
     // ============================================================
     // ADD QC / QSC STAFF ROW
     // ============================================================
-function escapeQCValue(value) {
-    return $("<div>").text(String(value ?? "")).html();
-}
 
-function addQCStaffRecord(
+    function addQCStaffRecord(
     category,
     certificateHolderName,
     ccNo,
@@ -9503,130 +9450,320 @@ function addQCStaffRecord(
     appDocName = "",
     consDocLink = "",
     consDocName = "",
-    isExisting = false
+    isExisting = false,
+    staffRowIndex = null,
+    savedStaffId = ""
 ) {
 
-    category = String(category || "").trim().toUpperCase();
+    // ========================================================
+    // 1. GET ROW INDEX
+    // ========================================================
 
-    if (!["QC", "QSC"].includes(category)) {
-        return;
+    if (
+        staffRowIndex === null ||
+        staffRowIndex === undefined ||
+        staffRowIndex === ""
+    ) {
+        staffRowIndex = getNextQCStaffIndex();
     }
 
-    let rowCount = $("#staffqc-records tr.staffqc-record").length + 1;
+    let appDocIndex = staffRowIndex;
+    let consDocIndex = staffRowIndex;
 
-    let safeName = escapeQCValue(certificateHolderName);
-    let safeCcNo = escapeQCValue(ccNo);
-    let safeFirstIssue = escapeQCValue(firstIssue);
-    let safeValidityFrom = escapeQCValue(validityFrom);
-    let safeValidityTo = escapeQCValue(validityTo);
-    let safeAppDoc = escapeQCValue(appDocLink);
-    let safeConsDoc = escapeQCValue(consDocLink);
 
-    let appointmentDocument = safeAppDoc
-        ? `<i class="fa fa-file-pdf-o" style="color:red;"></i>
-           <a href="${safeAppDoc}" target="_blank" class="app-doc-link">
-               ${escapeQCValue(appDocName || "Appointment Letter")}
-           </a>`
-        : `<span class="text-danger">Appointment Letter Not Available</span>`;
+    // ========================================================
+    // 2. ESCAPE HTML VALUES
+    // ========================================================
 
-    let consentDocument = safeConsDoc
-        ? `<i class="fa fa-file-pdf-o" style="color:red;"></i>
-           <a href="${safeConsDoc}" target="_blank" class="cons-doc-link">
-               ${escapeQCValue(consDocName || "Consent Letter")}
-           </a>`
-        : `<span class="text-danger">Consent Letter Not Available</span>`;
+    function escapeHtml(value) {
+        return $("<div>")
+            .text(value == null ? "" : String(value))
+            .html();
+    }
+
+    let safeCategory = escapeHtml(category);
+    let safeName = escapeHtml(certificateHolderName);
+    let safeCCNo = escapeHtml(ccNo);
+
+    let safeFirstIssue = escapeHtml(formatDateDisplay(firstIssue));
+    let safeValidityFrom = escapeHtml(formatDateDisplay(validityFrom));
+    let safeValidityTo = escapeHtml(formatDateDisplay(validityTo));
+
+    let safeAppDocLink = escapeHtml(appDocLink);
+    let safeConsDocLink = escapeHtml(consDocLink);
+
+    let safeAppDocName = escapeHtml(
+        appDocName || "Appointment Letter"
+    );
+
+    let safeConsDocName = escapeHtml(
+        consDocName || "Consent Letter"
+    );
+
+
+    // ========================================================
+    // 3. CREATE TABLE ROW
+    // ========================================================
 
     let row = `
-        <tr class="staffqc-record" data-existing="0">
+        <tr class="staffqc-record"
+            data-id="${escapeHtml(savedStaffId)}"
+            data-row-index="${escapeHtml(staffRowIndex)}"
+            data-existing="${isExisting ? "1" : "0"}">
 
-            <td class="qc-serial-number">${rowCount}.</td>
+            <!-- S.NO -->
+            <td class="sno"></td>
 
+            <!-- STAFF DETAILS -->
             <td>
-                <input type="hidden" name="staffqc_id[]" value="">
-                <input type="hidden" name="row_index[]" value="">
 
                 <input type="hidden"
-                       name="staffqc_category[]"
-                       value="${category}">
+                    name="staffqc_id[]"
+                    value="${escapeHtml(savedStaffId)}">
 
                 <input type="hidden"
-                       name="certificate_holder_name[]"
-                       value="${safeName}">
+                    name="row_index[]"
+                    value="${escapeHtml(staffRowIndex)}">
+
+                <input type="hidden"
+                    name="staffqc_category[]"
+                    value="${safeCategory}">
+
+                <input type="hidden"
+                    name="staff_cc_no[]"
+                    value="${safeCCNo}">
+
+                <input type="hidden"
+                    name="first_issue[]"
+                    value="${safeFirstIssue}">
+
+                <input type="hidden"
+                    name="validity_from[]"
+                    value="${safeValidityFrom}">
+
+                <input type="hidden"
+                    name="validity_to[]"
+                    value="${safeValidityTo}">
+
+                <input type="hidden"
+                    name="app_doc[]"
+                    value="${escapeHtml(appDocIndex)}">
+
+                <input type="hidden"
+                    name="cons_doc[]"
+                    value="${escapeHtml(consDocIndex)}">
+
+                <input type="hidden"
+                    name="app_doc_path[]"
+                    value="${safeAppDocLink}">
+
+                <input type="hidden"
+                    name="cons_doc_path[]"
+                    value="${safeConsDocLink}">
 
                 ${safeName}
+
             </td>
 
+            <!-- CC NUMBER -->
             <td>
-                ${safeCcNo}
-                <input type="hidden" name="staff_cc_no[]" value="${safeCcNo}">
+                ${safeCCNo}
             </td>
 
+            <!-- FIRST ISSUE -->
             <td>
-                ${safeFirstIssue}
-                <input type="hidden"
-                       name="staff_cc_first_issue[]"
-                       value="${safeFirstIssue}">
+                <input type="text"
+                    class="form-control"
+                    name="staff_cc_first_issue[]"
+                    value="${safeFirstIssue}"
+                    readonly>
             </td>
 
+            <!-- VALIDITY FROM -->
             <td>
-                ${safeValidityFrom}
-                <input type="hidden"
-                       name="staff_cc_validity_from[]"
-                       value="${safeValidityFrom}">
+                <input type="text"
+                    class="form-control"
+                    name="staff_cc_validity_from[]"
+                    value="${safeValidityFrom}"
+                    readonly>
             </td>
 
+            <!-- VALIDITY TO -->
             <td>
-                ${safeValidityTo}
-                <input type="hidden"
-                       name="staff_cc_validity_to[]"
-                       value="${safeValidityTo}">
+                <input type="text"
+                    class="form-control"
+                    name="staff_cc_validity_to[]"
+                    value="${safeValidityTo}"
+                    readonly>
             </td>
 
+            <!-- DOCUMENT LINKS -->
             <td>
-                ${appointmentDocument}
-                <br>
-                ${consentDocument}
+                <div class="file-link">
 
-                <input type="hidden"
-                       name="app_doc[]"
-                       class="app_doc"
-                       value="${safeAppDoc}">
+                    ${
+                        appDocLink
+                            ? `
+                                <a href="${safeAppDocLink}"
+                                    target="_blank"
+                                    class="app-doc-link">
 
-                <input type="hidden"
-                       name="cons_doc[]"
-                       class="cons_doc"
-                       value="${safeConsDoc}">
+                                    <i class="fa fa-file-pdf-o"
+                                        style="color:red;"></i>
+
+                                    ${safeAppDocName}
+
+                                </a>
+                            `
+                            : ""
+                    }
+
+                    ${
+                        consDocLink
+                            ? `
+                                <br>
+
+                                <a href="${safeConsDocLink}"
+                                    target="_blank"
+                                    class="cons-doc-link">
+
+                                    <i class="fa fa-file-pdf-o"
+                                        style="color:red;"></i>
+
+                                    ${safeConsDocName}
+
+                                </a>
+                            `
+                            : ""
+                    }
+
+                </div>
             </td>
 
+            <!-- REMOVE BUTTON -->
             <td>
+
                 <button type="button"
-                        class="btn btn-danger remove-qc-staff">
-                    &#128465; Remove
+                    class="btn btn-danger remove-qc-staff">
+
+                    🗑 Remove
+
                 </button>
 
-                <span class="badge bg-danger qc-removed-tag" style="display:none;">
-                    REMOVED
-                </span>
+                <input type="hidden"
+                    name="qc_removed[]"
+                    value="0">
 
-                <input type="hidden" name="qc_removed[]" value="0">
             </td>
 
         </tr>
     `;
 
-    $("#staffqc-records").append(row);
 
-    // Update serial numbers
-    $("#staffqc-records tr.staffqc-record").each(function (index) {
-        $(this).find(".qc-serial-number").text((index + 1) + ".");
-    });
+    // ========================================================
+    // 4. CHECK WHETHER STAFF RECORD ALREADY EXISTS
+    // ========================================================
+
+    let $existingRow = $();
+
+    if (savedStaffId) {
+
+        $existingRow = $("#staffqc-records tr.staffqc-record")
+            .filter(function () {
+
+                let currentId = $(this)
+                    .find("input[name='staffqc_id[]']")
+                    .val();
+
+                return String(currentId) === String(savedStaffId);
+
+            });
+
+    }
+
+
+    // ========================================================
+    // 5. REPLACE EXISTING ROW OR APPEND NEW ROW
+    // ========================================================
+
+    if ($existingRow.length > 0) {
+
+        $existingRow.replaceWith(row);
+
+    } else {
+
+        $("#staffqc-records").append(row);
+
+    }
+
+
+    // ========================================================
+    // 6. UPDATE SERIAL NUMBERS
+    // ========================================================
+
+    updateQCStaffSerialNumbers();
+
+
+    // ========================================================
+    // 7. UPDATE TOTAL QC / QSC FEE
+    // ========================================================
 
     updateQCStaffTotalFee();
+
 }
-    // $(document).on("click", "#cancel_qc", function () {
+
+function formatDateDisplay(value) {
+
+    if (!value) return "";
+
+    let parts = String(value).split(/[-/]/);
+
+    if (parts.length !== 3) return value;
+
+    // YYYY-MM-DD
+    if (parts[0].length === 4) {
+        return `${parts[2].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[0]}`;
+    }
+
+    // DD-MM-YYYY or DD/MM/YYYY
+    return `${parts[0].padStart(2, "0")}/${parts[1].padStart(2, "0")}/${parts[2]}`;
+}    
+
+// $(document).on("click", "#cancel_qc", function () {
     //     $("#staffqc_datasection").stop(true, true).slideUp();
     // });
 
+// ============================================================
+// GET NEXT QC / QSC DOCUMENT AND ROW INDEX
+// ============================================================
+
+function getNextQCStaffIndex() {
+
+    let maxIndex = 0;
+
+    $("#staffqc-records tr.staffqc-record").each(function () {
+
+        let index = parseInt($(this).attr("data-row-index")) || 0;
+
+        if (index > maxIndex) {
+            maxIndex = index;
+        }
+
+    });
+
+    return maxIndex + 1;
+}
+
+
+function updateQCStaffSerialNumbers() {
+
+    $("#staffqc-records tr.staffqc-record").each(function (index) {
+
+        $(this).find("td.sno").text(index + 1);
+
+    });
+
+}
 
 
     // ============================================================
@@ -9634,115 +9771,212 @@ function addQCStaffRecord(
     // ============================================================
     function updateQCStaffTotalFee() {
 
-    let totalFee = 0;
+        let totalFee = 0;
 
-    $("#staffqc-records tr.staffqc-record").each(function () {
+        $("#staffqc-records tr.staffqc-record").each(function () {
 
-        let $row = $(this);
+            let $row = $(this);
 
-        if ($row.find('input[name="qc_removed[]"]').val() === "1") {
+            // Existing/draft row
+            let isExisting = $row.attr("data-existing") === "1";
+
+            // Existing alteration records are FREE
+            if (isExisting) {
+                return;
+            }
+
+            let category = $row
+                .find('input[name="staffqc_category[]"]')
+                .val();
+
+            category = $.trim(category).toUpperCase();
+
+            if (category === "QC") {
+                totalFee += 15000;
+            }
+            else if (category === "QSC") {
+                totalFee += 25000;
+            }
+        });
+
+
+        // Remove previous fee row
+        $("#staffqc-records tr.staffqc-total-fee").remove();
+
+
+        // No NEW staff = no fee
+        if (totalFee <= 0) {
             return;
         }
 
-        // Existing rows are not charged as new staff.
-        if ($row.attr("data-existing") === "1") {
-            return;
-        }
 
-        let category = $.trim(
-            $row.find('input[name="staffqc_category[]"]').val() || ""
-        ).toUpperCase();
-
-        if (category === "QC") {
-            totalFee += 15000;
-        } else if (category === "QSC") {
-            totalFee += 25000;
-        }
-    });
-
-    $("#staffqc-records tr.staffqc-total-fee").remove();
-
-    if (totalFee <= 0) {
-        return;
-    }
-
-    let feeRow = `
+        let feeRow = `
         <tr class="staffqc-total-fee">
-            <td colspan="7" class="fw-bold text-end">Fees</td>
+
+            <td colspan="7" class="fw-bold text-end">
+                Fees
+            </td>
+
             <td>
                 <span class="btn btn-primary">
                     ₹ ${totalFee.toLocaleString("en-IN")}
                 </span>
             </td>
+
         </tr>
     `;
 
-    $("#staffqc-records").append(feeRow);
-}
+        $("#staffqc-records").append(feeRow);
+    }
 
     // ============================================================
     // REMOVE QC / QSC STAFF
     // ============================================================
 
-   // ============================================================
-// SOFT REMOVE QC / QSC STAFF
-// ============================================================
+   $(document).on("click", ".remove-qc-staff", function (e) {
 
-$(document).on("click", ".remove-qc-staff", function () {
+    e.preventDefault();
 
     let $row = $(this).closest("tr.staffqc-record");
 
-    // Prevent removing the same row twice
-    if ($row.find('input[name="qc_removed[]"]').val() === "1") {
-        return;
-    }
+    let staffId = $row.find("input[name='staffqc_id[]']").val()
+        || $row.attr("data-id");
 
-    let staffId = $row.attr("data-id") ||
-        $row.find('input[name="staffqc_id[]"]').val();
+    let ccNo = $row.find("input[name='staff_cc_no[]']").val();
 
-    // ========================================================
-    // EXISTING DATABASE RECORD
-    // Add its ID to removed_staffqc_ids[]
-    // ========================================================
+    let applicationId = $("#qc_application_name").val()
+        || $("input[name='record_id']").val();
 
-    if (staffId) {
 
-        let $form = $row.closest("form");
+    Swal.fire({
 
-        if (!$form.find(
-            `input[name="removed_staffqc_ids[]"][value="${staffId}"]`
-        ).length) {
+        title: "Are you sure?",
+        text: "You want to remove this QC staff record?",
+        icon: "warning",
 
-            $("<input>", {
-                type: "hidden",
-                name: "removed_staffqc_ids[]",
-                value: staffId
-            }).appendTo($form);
+         width: 450,
+
+        showCancelButton: true,
+
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+
+        confirmButtonText: "Yes, remove it!",
+        cancelButtonText: "Cancel",
+
+        reverseButtons: true
+
+    }).then((result) => {
+
+        if (!result.isConfirmed) {
+            return;
         }
-    }
 
-    // ========================================================
-    // MARK ROW AS REMOVED
-    // ========================================================
 
-    $row.find('input[name="qc_removed[]"]').val("1");
+        // ====================================================
+        // NEW UNSAVED ROW
+        // ====================================================
 
-    // Hide Remove button
-    $(this).hide();
+        if (!staffId) {
 
-    // Show REMOVED label
-    $row.find(".qc-removed-tag").show();
+            $row.remove();
 
-    // Optional visual indication
-    $row.addClass("table-danger");
+            updateQCStaffSerialNumbers();
+            updateQCStaffTotalFee();
 
-    // ========================================================
-    // UPDATE TOTAL FEE
-    // ========================================================
+            Swal.fire({
+                title: "Removed!",
+                text: "QC staff record removed successfully.",
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false
+            });
 
-    updateQCStaffTotalFee();
+            return;
+        }
+
+
+        // ====================================================
+        // EXISTING SAVED ROW - UPDATE FLAG TO 0
+        // ====================================================
+
+        $.ajax({
+
+            url: BASE_URL + "/remove-qc-staff",
+
+            type: "POST",
+
+            data: {
+                _token: $('meta[name="csrf-token"]').attr("content"),
+                staff_id: staffId,
+                application_id: applicationId,
+                cc_no: ccNo
+            },
+
+            beforeSend: function () {
+
+                $row.find(".remove-qc-staff")
+                    .prop("disabled", true)
+                    .text("Removing...");
+
+            },
+
+            success: function (response) {
+
+                if (response.status) {
+
+                    $row.remove();
+
+                    updateQCStaffSerialNumbers();
+                    updateQCStaffTotalFee();
+
+                    Swal.fire({
+                        title: "Removed!",
+                        text: response.message || "QC staff removed successfully.",
+                         width: 450,
+                        icon: "success",
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+
+                } else {
+
+                    Swal.fire({
+                        title: "Unable to remove!",
+                        text: response.message || "QC staff could not be removed.",
+                        icon: "error",
+                         width: 450,
+                    });
+
+                    $row.find(".remove-qc-staff")
+                        .prop("disabled", false)
+                        .text("🗑 Remove");
+
+                }
+
+            },
+
+            error: function (xhr) {
+
+                console.error(xhr.responseText);
+
+                Swal.fire({
+                    title: "Error!",
+                    text: "Unable to remove QC staff. Please try again.",
+                    icon: "error"
+                });
+
+                $row.find(".remove-qc-staff")
+                    .prop("disabled", false)
+                    .text("🗑 Remove");
+
+            }
+
+        });
+
+    });
+
 });
-
 
     // ============================================================
     // PAGE LOAD
@@ -10301,5 +10535,13 @@ $(document).on("click", ".remove-qc-staff", function () {
         .addClass('text-danger')
         .text(message);
 }
+
+
+
+// ----------------------date function for all-----------
+// ========================================================
+// DATE VALIDATION - MINIMUM 01-01-1952
+// ========================================================
+
 
 });

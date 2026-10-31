@@ -3650,42 +3650,24 @@ class ReturnapplicantController extends BaseController
 
 
         // Determine if record exists
-        if ($recordId !== '') {
-            $existing = EA_Application_model::where(
-                'application_id',
-                $recordId
-            )->first();
+        $applicationId = null;
+        $existing = null;
 
-            if (!$existing) {
-                return back()
-                    ->withInput()
-                    ->withErrors([
-                        'record_id' => 'The existing application was not found. No new application was created.'
-                    ]);
+        if ($recordId) {
+            $existing = EA_Application_model::where('application_id', $recordId)->first();
+
+            dd($existing); exit;
+            if ($existing) {
+                $applicationId = $existing->application_id;
             }
-
-            $applicationId = $existing->application_id;
-        } else {
-            // Generate an ID only for a genuinely new application
+        }
+        // dd($applicationId); exit;
+        if (!$applicationId) {
             $applicationId = $this->generateApplicationId(
                 $request->appl_type,
                 $request->form_name,
                 $request->license_name
             );
-
-            // Prevent accidentally creating a duplicate
-            if (
-                EA_Application_model::where(
-                    'application_id',
-                    $applicationId
-                )->exists()
-            ) {
-                return back()
-                    ->withInput()
-                    ->withErrors([
-                        'application_id' => 'This application ID already exists. Please retry.'
-                    ]);
-            }
         }
 
 

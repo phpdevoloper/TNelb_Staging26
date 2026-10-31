@@ -312,6 +312,24 @@ Route::middleware(['auth'])->group(function () {
     ->name('uploadownershipdeed');
 
 
+
+
+    // Save-qc------------------
+   Route::post('/save-qc-staff', [StaffController::class, 'saveQCStaff'])
+    ->name('save.qc.staff');
+
+    Route::post('/remove-qc-staff', [StaffController::class, 'removeQCStaff'])
+    ->name('remove.qc.staff');
+
+    Route::get('/edit-qc-staff/{id}', [StaffController::class, 'editQCStaff'])
+    ->name('edit.qc.staff');
+
+      Route::post('/update-qc-staff', [
+            StaffController::class,
+            'updateQCStaff'
+        ])->name('update.qc.staff');
+
+
     # Contractor Application preview
     Route::get('/contractor-application-preview/{application_id}', [PreviewController::class, 'index'])->name('contractor.application.preview');
 
