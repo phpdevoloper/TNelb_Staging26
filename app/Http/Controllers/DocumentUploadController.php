@@ -438,6 +438,39 @@ class DocumentUploadController extends Controller
         }
     }
 
+    /**
+     * Find the active cl_ownership_table row (proprietor 'pr', partner 'pt', director 'dr') a proof upload belongs to.
+     * Rows are matched by row_index, or by ownership_count = row_index + 1 (the active row often has row_index null).
+     * With no row index, the only active owner of that type is used; several owners need an index to pick one.
+     */
+    private function findOwnershipRowForUpload(string $applicationId, string $ownershipType, ?int $rowIndex): ?object
+    {
+        $ownershipType = strtolower(trim($ownershipType));
+
+        if (!in_array($ownershipType, ['pr', 'pt', 'dr'], true)) {
+            return null;
+        }
+
+        $activeRows = DB::table('cl_ownership_table')
+            ->where('application_id', $applicationId)
+            ->where('ownership_type', $ownershipType)
+            ->where('proprietor_flag', 1);
+
+        if ($rowIndex !== null) {
+            return (clone $activeRows)
+                ->where(function ($q) use ($rowIndex) {
+                    $q->where('row_index', $rowIndex)
+                        ->orWhere('ownership_count', $rowIndex + 1);
+                })
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        $rows = $activeRows->orderByDesc('id')->limit(2)->get();
+
+        return $rows->count() === 1 ? $rows->first() : null;
+    }
+
     public function uploadownershipdeed(Request $request)
     {
         try {
@@ -445,7 +478,6 @@ class DocumentUploadController extends Controller
         // ======================================================
         // 1. VALIDATE FILE EXISTENCE
         // ======================================================
-// dd($request->all()); exit;
         $fileInputs = $request->files->all();
 
             $fileInputs = $request->files->all();
@@ -568,17 +600,52 @@ class DocumentUploadController extends Controller
                     : null;
 
                 // ==================================================
+                // 8a. OWNER ROW FOR PROPRIETOR / PARTNER / DIRECTOR PROOFS
+                // Proofs live in cl_ownership_table. An owner added on this
+                // page (e.g. a new director on a draft) has no row until the
+                // form is saved, so its proof goes to the temp table instead
+                // and store() attaches it by session id + ownership_type + row_index.
+                // ==================================================
+
+                $ownershipColumn = [
+                    'age_proof'       => 'age_proof',
+                    'educ_qual_proof' => 'educational_proof',
+                ][$documentCategory] ?? null;
+
+                $ownershipRow = ($recordId !== null && $ownershipColumn !== null)
+                    ? $this->findOwnershipRowForUpload(
+                        $applicationId,
+                        (string) $request->ownership_type,
+                        $rowIndex
+                    )
+                    : null;
+
+                $useTemp = $recordId === null
+                    || ($ownershipColumn !== null && !$ownershipRow);
+
+                // Temp uploads are keyed by the session-based application ID, as for new applications
+                $tempApplicationId = $applicationId;
+
+                if ($useTemp && $recordId !== null) {
+                    if (!session()->has('application_id')) {
+                        session(['application_id' => session()->getId()]);
+                    }
+
+                    $tempApplicationId = session('application_id');
+                }
+
+                // ==================================================
                 // 8. FIND EXISTING TEMP DOCUMENT
-                // Only when record_id is empty
+                // Only when the file goes to the temp table
                 // ==================================================
 
                 $existing = null;
 
-                if ($recordId === null) {
+                if ($useTemp) {
 
                     $existingQuery = DB::table('tnelb_temp_uploaded_documents')
                         ->where('login_id', $loginId)
-                        ->where('application_id', $applicationId)
+                        ->where('application_id', $tempApplicationId)
                         ->where('module', $request->module)
                         ->where('form_name', $request->form_name)
                         ->where('document_category', $documentCategory);
@@ -627,8 +694,14 @@ class DocumentUploadController extends Controller
 
                 $oldStoredPath = null;
 
-                if ($recordId !== null) {
+                if (!$useTemp) {
                     switch ($documentCategory) {
+                        case 'age_proof':
+                        case 'educ_qual_proof':
+                            // Owner row was found in step 8a
+                            $oldStoredPath = $ownershipRow->{$ownershipColumn};
+                            break;
+
                         case 'ownership_doc':
                             $oldStoredPath = DB::table('ccl_forma_meta')
                                 ->where('application_id', $applicationId)
@@ -770,7 +843,7 @@ class DocumentUploadController extends Controller
                 // If updating an existing application's document, retain the
                 // currently stored filename when one already exists. The new
                 // upload will replace that filename in $folderPath.
-                if ($recordId !== null && !empty($oldStoredPath)) {
+                if (!$useTemp && !empty($oldStoredPath)) {
                     $fileName = basename(str_replace('\\', '/', $oldStoredPath));
                 }
 
@@ -791,13 +864,30 @@ class DocumentUploadController extends Controller
                 // ==================================================
                 // 11. EXISTING APPLICATION: ACTUAL TABLES
                 // record_id present = do not insert into temp table
+                // (except proofs of an owner not saved yet, see 8a)
                 // ==================================================
 
-                if ($recordId !== null) {
+                if (!$useTemp) {
 
                     // dd($documentCategory); exit;
 
                     switch ($documentCategory) {
+
+                        // ------------------------------------------
+                        // PROPRIETOR / PARTNER / DIRECTOR
+                        // AGE PROOF AND QUALIFICATION PROOF
+                        // ------------------------------------------
+                        case 'age_proof':
+                        case 'educ_qual_proof':
+
+                            DB::table('cl_ownership_table')
+                                ->where('id', $ownershipRow->id)
+                                ->update([
+                                    $ownershipColumn => $finalPath,
+                                    'updated_at'     => now(),
+                                ]);
+
+                            break;
 
                         // ------------------------------------------
                         // OWNERSHIP DOCUMENT
@@ -1090,7 +1180,7 @@ class DocumentUploadController extends Controller
 
                         DB::table('tnelb_temp_uploaded_documents')->insert([
                             'login_id'              => $loginId,
-                            'application_id'        => $applicationId,
+                            'application_id'        => $tempApplicationId,
                             'record_id_app'         => null,
                             'form_name'             => $request->form_name,
                             'license_name'          => $request->license_name,

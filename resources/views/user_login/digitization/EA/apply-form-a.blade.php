@@ -1684,7 +1684,8 @@ exit; -->
                                         @foreach ($proprietors as $p)
                                             @if ($p->ownership_type === 'dr')
                                                   <tr data-id="{{ $p->id }}">
-                                                    <td>{{ $p->proprietor_name }}</td>
+                                                    <td data-name="{{ $p->proprietor_name }}"
+                                                        data-managing_director="{{ strtoupper(trim((string) $p->managing_director)) === 'YES' ? 'yes' : 'no' }}">{{ $p->proprietor_name }}</td>
                                                     <td>{{ $p->fathers_name }}</td>
                                                     <td data-dob="{{ $p->dob }}"
                                                         data-age="{{ $p->age }}"

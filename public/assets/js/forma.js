@@ -360,8 +360,11 @@ $(document).ready(function () {
                         .find(".file-link");
 
 
+                    // .show(): the partner/director Edit handlers hide this box (inline display:none)
+                    // when the owner has no qualification proof yet
                     container
                         .removeClass("d-none")
+                        .show()
                         .html(`
                         <a href="${file.file_url}"
                            target="_blank"
@@ -406,6 +409,7 @@ $(document).ready(function () {
 
                     container
                         .removeClass("d-none")
+                        .show()
                         .html(`
                         <a href="${file.file_url}"
                            target="_blank"
@@ -1120,7 +1124,7 @@ $(document).ready(function () {
                 id: id,
 
                 proprietor_name:
-                    $tds.eq(0).attr("data-name") || "",
+                    $tds.eq(0).attr("data-name") || $tds.eq(0).text().trim() || "",
 
                 managing_director:
                     $tds.eq(0).attr("data-managing_director") || "no",
@@ -5043,7 +5047,7 @@ $(document).ready(function () {
 
             formData.append(`age_proof[${index}]`, p.age_proof);
 
-            formData.append(`age_proof[${index}]`, p.qualification_text);
+            formData.append(`qual_text[${index}]`, p.qualification_text);
 
             formData.append(`present_business[${index}]`, p.present_business);
             formData.append(`competency[${index}]`, p.competency);
@@ -5246,7 +5250,7 @@ $(document).ready(function () {
                 id: id,
 
                 proprietor_name:
-                    $tds.eq(0).attr("data-name") || "",
+                    $tds.eq(0).attr("data-name") || $tds.eq(0).text().trim() || "",
 
                 managing_director:
                     $tds.eq(0).attr("data-managing_director") || "no",
@@ -8519,16 +8523,9 @@ $(document).ready(function () {
 
     // ---------------exp retrival----------------
 
-    flatpickr('input[name="competency_certificate_validity_to[]"]', {
-        dateFormat: "d-m-Y",
-
-        // onChange: function (selectedDates, dateStr, instance) {
-
-        //     console.log("Selected Date:", dateStr);
-
-        //     checkCompetencyCertificate();
-        // }
-    });
+    // flatpickr('input[name="competency_certificate_validity_to[]"]', {
+    //     dateFormat: "d-m-Y",
+    // });
 
     // flatpickr(
     //     // 'input[name="previous_validity_first_issue"],' +
@@ -8598,27 +8595,30 @@ $(document).ready(function () {
     //     dateFormat: "d-m-Y"
     // });
 
-    flatpickr('input[name="competency_certificate_validity_to[]"]', {
-        dateFormat: "d-m-Y",
+    // flatpickr('input[name="competency_certificate_validity_to[]"]', {
+    //     dateFormat: "d-m-Y",
 
-        onChange: function (selectedDates, dateStr) {
+    //     onChange: function (selectedDates, dateStr) {
 
-            let certificateNo =
-                $('input[name="competency_certificate_number[]"]').first().val();
+    //         console.log(selectedDates, dateStr);
+    //         return false;
 
-            let firstIssue =
-                $('input[name="competency_certificate_first_issue[]"]').first().val();
+    //         let certificateNo =
+    //             $('input[name="competency_certificate_number[]"]').first().val();
 
-            let validFrom =
-                $('input[name="competency_certificate_validity_from[]"]').first().val();
+    //         let firstIssue =
+    //             $('input[name="competency_certificate_first_issue[]"]').first().val();
 
-            let validTo = dateStr;
+    //         let validFrom =
+    //             $('input[name="competency_certificate_validity_from[]"]').first().val();
 
-            // if (certificateNo && firstIssue && validFrom && validTo) {
-            //     checkCompetencyCertificate();
-            // }
-        }
-    });
+    //         let validTo = dateStr;
+
+    //     }
+    // });
+
+
+
     // qcstaff-----------
     // ============================================================
     // ADD QC / QSC STAFF BUTTON
@@ -9908,18 +9908,18 @@ $(document).ready(function () {
         // CLEAR ONLY CURRENT ROW
         // ==================================================
 
-        $result
-            .removeClass('text-success text-danger')
-            .text('');
+        // $result.removeClass('text-success text-danger').text('');
 
-        $holder.text('');
+        // $holder.text('');
 
-        $holderInput.val('');
+        // $holderInput.val('');
 
 
-        let holderName = (
-            $row.find(".certificate_holder_name_others").val() || ""
-        ).trim();
+        // let holderName = (
+        //     $row.find(".certificate_holder_name_others").val() || ""
+        // ).trim();
+
+        let holderName = ($holderInput.val() || "").trim();
 
         if (holderName !== "") {
 
@@ -9936,6 +9936,8 @@ $(document).ready(function () {
                 'Certificate holder name is missing. Please verify first.' +
                 '</span>'
             );
+
+            return false;
         }
 
 
@@ -10131,5 +10133,378 @@ $(document).ready(function () {
         .addClass('text-danger')
         .text(message);
 }
+
+});
+
+// =====================================================================
+// Form A / contractor licence handlers (moved from include/footer.blade.php).
+// Shared by Form A, B, SA, SB, renewal, digitisation and alteration pages.
+// Blade values (draft state, routes) come from window.FORMA_CONFIG, set in the footer.
+// =====================================================================
+$(function () {
+
+    var formaCfg = window.FORMA_CONFIG || {};
+
+    // ----------------------Form A dependencies-----------------------
+
+    // contractor licence age calculation---------------------
+    $(document).on("change", ".dob", function () {
+
+        let dobVal = $(this).val();
+        if (!dobVal) return;
+
+        let dob = new Date(dobVal);
+        let today = new Date();
+
+        let age = today.getFullYear() - dob.getFullYear();
+        let m = today.getMonth() - dob.getMonth();
+
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+
+        // ✅ Target the nearest row instead of global section
+        let row = $(this).closest(".row");
+
+        if (age < 25) {
+            row.find(".age_error").text("Minimum age is 25");
+            row.find(".age").val('');
+            return;
+        }
+
+        row.find(".age_error").text('');
+        row.find(".age").val(age);
+    });
+
+    // ---CL forms qual-----------
+    $(document).on("change", ".qualification", function () {
+
+        let $section = $(this).closest(".border");
+
+        let qualification = $(this).val();
+
+        let $wrapper = $section.find(".qualTextWrapper");
+        let $input = $wrapper.find("input[name='qual_text[]']");
+
+        if (qualification && qualification !== '8TH PASS') {
+
+            if (!$wrapper.is(":visible")) {
+                $wrapper.stop(true, true).slideDown(250);
+                setTimeout(() => $input.focus(), 260);
+            }
+
+        } else {
+
+            if ($wrapper.is(":visible")) {
+                $wrapper.stop(true, true).slideUp(200, function () {
+                    $input.val("");
+                    $wrapper.find(".qual_text_error").text("");
+                });
+            }
+
+        }
+    });
+
+    /* 🔁 Ownership change */
+    $(document).on("change", "#ownership_type_select", function (e, fromDraft = false) {
+
+        let type = $(this).val();
+
+        if (!fromDraft) {
+            $("input[type='file']").val("");
+            $(".ownershipdoc_upload_error").text("");
+        }
+
+        $("#partnershipdeed, #directormom, #proprietor-sectionfresh, #directorfill-section, #partnersfill-section, #proprietor-section, #partner-section, #director-section").hide();
+
+        if (type === "pt") {
+
+            if (fromDraft) {
+                $("#partnershipdeed").slideDown();
+                $("#partner-section").slideDown();
+            } else {
+                $("#partner-section").slideDown();
+                $("#partnershipdeed").slideDown();
+                $("#partnersfill-section").slideDown();
+            }
+
+        } else if (
+            type === "dr" ||
+            type === "pvt" ||
+            type === "public" ||
+            type === "ltd"
+        ) {
+
+            if (fromDraft) {
+                $("#director-section").slideDown();
+                $("#directormom").slideDown();
+            } else {
+                $("#directormom").slideDown();
+                $("#director-section").slideDown();
+                $("#directorfill-section").slideDown();
+            }
+
+        } else if (type === "pr") {
+
+            if (fromDraft) {
+                $("#proprietor-section").slideDown();
+            } else {
+                $("#proprietor-sectionfresh").slideDown();
+                $("#proprietor-section").slideDown();
+            }
+        }
+    });
+
+    // 🔹 Draft load behavior
+    if (formaCfg.isDraft === true) {
+        let savedOwnership = formaCfg.savedOwnership || "";
+
+        $("#partnershipdeed, #directormom").hide();
+
+        if (savedOwnership === 'pt') {
+            $("#partnershipdeed").show();
+        } else if (savedOwnership === 'pvt' || savedOwnership === 'public' || savedOwnership === 'ltd') {
+            $("#directormom").show();
+        }
+    }
+
+    // Restore the draft's ownership type. draftOwnershipType is the application's type
+    // (pr / pt / pvt / public / ltd), which matches the dropdown options; owner rows store
+    // every company type as "dr", which has no option.
+    let draftCount = parseInt(formaCfg.draftCount, 10) || 0;
+    let draftOwnershipType = formaCfg.draftOwnershipType || "";
+
+    if (draftCount > 0 && draftOwnershipType !== "") {
+
+        $("#ownership_type_select").val(draftOwnershipType);
+
+        // Tell change handler this is from draft
+        $("#ownership_type_select").trigger("change", [true]);
+    }
+
+    // ------------------------------------------------------------forma 8_11 Attachments open----------------------
+    $(document).on("change", "input[name='criminal_offence']", function () {
+
+        if ($(this).val() === "yes") {
+
+            $(".criminaloffence_file").stop(true, true).slideDown(300);
+
+        } else {
+
+            $(".criminaloffence_file").stop(true, true).slideUp(300, function () {
+                $("#criminal_offence_doc").val("");
+                $("#criminal_offence_doc_error").text("");
+            });
+
+        }
+
+    });
+
+    $(document).on("change", "input[name='consent_letter_enclose']", function () {
+
+        if ($(this).val() === "yes") {
+
+            $(".consent_letter_enclosefile").stop(true, true).slideDown(300);
+
+        } else {
+
+            $(".consent_letter_enclosefile").stop(true, true).slideUp(300, function () {
+                $("#cc_holders_enclosed_doc").val("");
+                $("#cc_holders_enclosed_doc_error").text("");
+            });
+
+        }
+
+    });
+
+    $(document).on("change", "input[name='cc_holders_enclosed']", function () {
+
+        if ($(this).val() === "yes") {
+
+            $(".cc_holders_enclosedfile").stop(true, true).slideDown(300);
+
+        } else {
+
+            $(".cc_holders_enclosedfile").stop(true, true).slideUp(300, function () {
+                $("#cc_holders_enclosed_doc").val("");
+                $("#cc_holders_enclosed_doc_error").text("");
+            });
+
+        }
+
+    });
+
+    $(document).on("change", "input[name='specimen_signature_enclose']", function () {
+
+        if ($(this).val() === "yes") {
+
+            $(".specimen_signature_enclosefile").stop(true, true).slideDown(300);
+
+        } else {
+
+            $(".specimen_signature_enclosefile").stop(true, true).slideUp(300, function () {
+                $("#specimen_signature").val("");
+                $("#specimen_signature_error").text("");
+            });
+
+        }
+
+    });
+
+    $(document).on("change", "input[name='separate_sheet']", function () {
+
+        if ($(this).val() === "yes") {
+
+            $(".separate_sheetfile").stop(true, true).slideDown(300);
+
+        } else {
+
+            $(".separate_sheetfile").stop(true, true).slideUp(300, function () {
+                $("#separate_sheet_doc").val("");
+                $("#specimen_signature_error").text("");
+            });
+
+        }
+
+    });
+
+    // ---------------verify competency certificate (auto, on change/blur)---------------
+    $(document).on('change blur', '.competency_number, .competency_validity', function () {
+        const $parent = $(this).closest('.competency-fields');
+
+        // Safe value retrieval with fallback to empty string
+        const licenseNumber = ($parent.find('.competency_number').val() || '').trim();
+        const date = ($parent.find('.competency_validity').val() || '').trim();
+        const resultBox = $parent.find('.competency_verify_result');
+
+        if (!licenseNumber || !date) {
+            resultBox.text('⚠ Enter license number and date.');
+            return;
+        }
+
+        resultBox.html(`<span class="text-info">Verifying...</span>`);
+
+        $.ajax({
+            url: formaCfg.verifyLicenseCcUrl,
+            method: 'POST',
+            data: {
+                license_number: licenseNumber,
+                date: date,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                if (response.exists) {
+                    resultBox.html('<span class="text-success">&#10004; License verified.</span>');
+                } else {
+                    resultBox.html('<span class="text-danger">&#10060; License not found.</span>');
+                }
+            },
+            error: function (xhr) {
+                resultBox.html('<span class="text-danger">🚫 Error verifying license. Try again.</span>');
+                console.error(xhr.responseText);
+            }
+        });
+    });
+
+    // ---------------verify previous EA licence (auto, on change/blur)---------------
+    function verifyEALicense() {
+        const licenseNumber = $('#previous_experience_lnumber').val().trim();
+        const date = $('#previous_experience_lnumber_validity').val().trim();
+        const resultBox = $('#competency_verifyea_result');
+
+        if (!licenseNumber || !date) {
+            resultBox.text('⚠ Enter license number and date.');
+            return;
+        }
+
+        resultBox.html(`<span class="text-info">Verifying...</span>`);
+
+        $.ajax({
+            url: formaCfg.verifyLicenseEaUrl,
+            method: 'POST',
+            data: {
+                license_number: licenseNumber,
+                date: date,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                if (response.exists) {
+                    resultBox.html('<span class="text-success">&#10004; License verified.</span>');
+                } else {
+                    resultBox.html('<span class="text-danger">&#10060; License not found.</span>');
+                }
+            },
+            error: function (xhr) {
+                resultBox.html('<span class="text-danger">🚫 Error verifying license. Try again.</span>');
+                console.error(xhr.responseText);
+            }
+        });
+    }
+
+    // Trigger verification on input change or blur
+    $('#previous_experience_lnumber, #previous_experience_lnumber_validity').on('change blur', function () {
+        verifyEALicense();
+    });
+
+    $(document).on('change blur', '.ea_license_number, .ea_license_validity', function () {
+        const $parent = $(this).closest('.experience-fields');
+        const licenseNumber = $parent.find('.ea_license_number').val().trim();
+        const date = $parent.find('.ea_license_validity').val().trim();
+        const resultBox = $parent.find('.ea_license_result');
+
+        if (!licenseNumber || !date) {
+            resultBox.text('⚠ Enter license number and date.');
+            return;
+        }
+
+        resultBox.html(`<span class="text-info">Verifying...</span>`);
+
+        $.ajax({
+            url: formaCfg.verifyLicenseEaUrl,
+            method: 'POST',
+            data: {
+                license_number: licenseNumber,
+                date: date,
+                _token: $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function (response) {
+                if (response.exists) {
+                    resultBox.html('<span class="text-success">&#10004; License verified.</span>');
+                } else {
+                    resultBox.html('<span class="text-danger">&#10060; License not found.</span>');
+                }
+            },
+            error: function (xhr) {
+                resultBox.html(
+                    '<span class="text-danger">🚫 Error verifying license. Try again.</span>');
+                console.error(xhr.responseText);
+            }
+        });
+    });
+
+    // --------------------- alteration_clSubmit --------------------
+    $(document).on('click', '#alteration_clSubmit', function () {
+
+        let applicationId = $('#alteration_cl_application_id').val();
+
+        if (!applicationId || applicationId === '0') {
+            $('#cert_name_error').text('Please select a licence.');
+            return;
+        }
+
+        $('#cert_name_error').text('');
+
+        let selectedOption = $('#alteration_cl_application_id').find(':selected');
+
+        let licenseNumber = selectedOption.data('license-number');
+
+        // Redirect to forma_alter()
+        let url = formaCfg.alterUrl;
+
+        url += '?application_id=' + encodeURIComponent(applicationId);
+        url += '&license_number=' + encodeURIComponent(licenseNumber);
+
+        window.location.href = url;
+    });
 
 });

@@ -1003,7 +1003,7 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-4 mt-1">
-                                                            <input type="text"
+                                                            <input type="date"
                                                                 class="form-control competency_validity_from"
                                                                 name="competency_certificate_validity_from[]"
                                                                 placeholder="Validity From">
@@ -1015,16 +1015,13 @@ exit; -->
                                                                     style="color: red;">*</span></label>
                                                         </div>
                                                         <div class="col-12 col-md-4 mt-1">
-                                                            <input type="text"
+                                                            <input type="date"
                                                                 class="form-control competency_validity_to"
                                                                 name="competency_certificate_validity_to[]"
                                                                 placeholder="Validity To">
                                                             <span class="error text-danger"
                                                                 id="competency_certificate_validity_to_error"></span>
-                                                            {{-- <input type="date"
-                                                                class="form-control flatpickr flatpickr-input competency_validity"
-                                                                name="competency_certificate_validity_to[]"
-                                                                placeholder="Validity To"> --}}
+                                                           
                                                         </div>
 
                                                     </div>
@@ -1560,7 +1557,7 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_from"
                                                                     name="competency_certificate_validity_from[]"
                                                                     placeholder="Validity From">
@@ -1572,16 +1569,13 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_to"
                                                                     name="competency_certificate_validity_to[]"
                                                                     placeholder="Validity To">
                                                                 <span class="error text-danger"
                                                                     id="competency_certificate_validity_to_error"></span>
-                                                                {{-- <input type="date"
-                                                                class="form-control flatpickr flatpickr-input competency_validity"
-                                                                name="competency_certificate_validity_to[]"
-                                                                placeholder="Validity To"> --}}
+                                                            
                                                             </div>
 
                                                         </div>
@@ -1677,17 +1671,19 @@ exit; -->
                                             </th>
                                         </tr>
                                     </thead>
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/HEAD
 
                                     <tbody>
 
                                         @foreach ($proprietors as $p)
                                             @if ($p->ownership_type === 'dr')
                                                   <tr data-id="{{ $p->id }}">
-                                                    <td>{{ $p->proprietor_name }}</td>
+                                                    {{-- data-name / data-managing_director are read by the save (forma.js), like JS-built rows --}}
+                                                    <td data-name="{{ $p->proprietor_name }}"
+                                                        data-managing_director="{{ strtoupper(trim((string) $p->managing_director)) === 'YES' ? 'yes' : 'no' }}">{{ $p->proprietor_name }}
+                                                        @if (strtoupper(trim((string) $p->managing_director)) === 'YES')
+                                                            <span class="managing-director-tag">Managing Director</span>
+                                                        @endif
+                                                    </td>
                                                     <td>{{ $p->fathers_name }}</td>
                                                     <td data-dob="{{ $p->dob }}"
                                                         data-age="{{ $p->age }}"
@@ -2139,7 +2135,7 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_from"
                                                                     name="competency_certificate_validity_from[]"
                                                                     placeholder="Validity From">
@@ -2151,16 +2147,12 @@ exit; -->
                                                                         style="color: red;">*</span></label>
                                                             </div>
                                                             <div class="col-12 col-md-4 mt-1">
-                                                                <input type="text"
+                                                                <input type="date"
                                                                     class="form-control competency_validity_to"
                                                                     name="competency_certificate_validity_to[]"
                                                                     placeholder="Validity To">
                                                                 <span class="error text-danger"
                                                                     id="competency_certificate_validity_to_error"></span>
-                                                                {{-- <input type="date"
-                                                                class="form-control flatpickr flatpickr-input competency_validity"
-                                                                name="competency_certificate_validity_to[]"
-                                                                placeholder="Validity To"> --}}
                                                             </div>
 
                                                         </div>
@@ -2354,9 +2346,7 @@ exit; -->
                                             style="color: red;">*</span></label>
 
                                 </div>
-
                             </div>
-
 
                             <div class="table-responsive">
 
@@ -2482,7 +2472,7 @@ exit; -->
                                                     <td>
 
                                                         <input type="text" name="staff_cc_first_issue[]"
-                                                            value="{{ $staff->staff_cc_first_issue }}" readonly>
+                                                            value="{{ format_date($staff->staff_cc_first_issue) }}" readonly>
 
                                                     </td>
 
@@ -2491,7 +2481,7 @@ exit; -->
                                                     <td>
 
                                                         <input type="text" name="staff_cc_validity_from[]"
-                                                            value="{{ $staff->staff_cc_validity_from }}" readonly>
+                                                            value="{{ format_date($staff->staff_cc_validity_from) }}" readonly>
 
                                                     </td>
 
@@ -2500,7 +2490,7 @@ exit; -->
                                                     <td>
 
                                                         <input type="text" name="staff_cc_validity_to[]"
-                                                            value="{{ $staff->staff_cc_validity_to }}">
+                                                            value="{{ format_date($staff->staff_cc_validity_to) }}">
 
                                                     </td>
 
@@ -2602,7 +2592,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_first_issue[]"
+                                            <input type="date" name="staff_cc_first_issue[]"
                                                 class="form-control" placeholder="CC First Issue">
                                             <span class="text-danger small staff-first-issue-error"></span>
                                         </div>
@@ -2620,7 +2610,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_validity_from[]"
+                                            <input type="date" name="staff_cc_validity_from[]"
                                                 class="form-control" placeholder="CC Validity From">
                                             <span class="text-danger small staff-validity-from-error"></span>
                                         </div>
@@ -2630,7 +2620,7 @@ exit; -->
                                         </div>
 
                                         <div class="col-12 col-md-3">
-                                            <input type="text" name="staff_cc_validity_to[]"
+                                            <input type="date" name="staff_cc_validity_to[]"
                                                 class="form-control" placeholder="CC Validity To">
                                             <span class="text-danger small staff-validity-to-error"></span>
                                         </div>
