@@ -5062,8 +5062,7 @@ partners.forEach((p, index) => {
 
         // -----------------------------------------
 
-       
-        let proprietor = [];
+         let proprietor = [];
 
         // Collect all proprietor rows
         $("#proprietor-section tbody tr").each(function () {
@@ -7298,7 +7297,12 @@ partners.forEach((p, index) => {
             return isValid;
         }
 
-        if ((bankValidity === "") | (bankAmount === "") | (bankAddress === "")) {
+          if (
+            bankValidity === "" ||
+            bankAmount === "" ||
+            Number(bankAmount) <= 10 ||
+            bankAddress === ""
+        ) {
 
             if (bankValidity === "") {
                 $("#bank_validity_error").text("Validity period is required.");
@@ -7306,6 +7310,8 @@ partners.forEach((p, index) => {
 
             if (bankAmount === "") {
                 $("#bank_amount_error").text("Amount is required.");
+            } else if (Number(bankAmount) <= 10) {
+                $("#bank_amount_error").text("Amount must be greater than 10.");
             }
 
             if (bankAddress === "") {
@@ -7315,11 +7321,12 @@ partners.forEach((p, index) => {
             $(".nav-item").each(function () {
                 if ($(this).text().trim() === "Staff & Bank Details") {
                     $(this).addClass("tab-error-bg");
-                    $(this).trigger("click"); // switch to Basic Details tab
+                    $(this).trigger("click");
                 }
             });
 
             const ownershipNotice = document.querySelector(".text-red");
+
             if (ownershipNotice) {
                 ownershipNotice.style.color = "red";
                 ownershipNotice.style.fontWeight = "bold";
@@ -7329,8 +7336,8 @@ partners.forEach((p, index) => {
                 });
             }
 
-            return;
             isValid = false;
+            return;
         }
 
         let hasUploadedFile = $("#bank_doc_section .file-link a").length > 0;
@@ -8932,253 +8939,202 @@ $(document).on("click", "#add_qc_staff", function () {
     // SAVE QC / QSC STAFF
     // ============================================================
 
-    $(document).on("click", "#verify_qc_staff", function () {
+    
+$(document).on("click", "#verify_qc_staff", function () {
 
-        let $section = $("#staffqc_datasection");
+    let $section = $("#staffqc_datasection");
 
-        // let certificateNo = $section
-        //     .find('input[name="staff_cc_no[]"]')
-        //     .val()
-        //     .trim();
+    // =====================================================
+    // 1. DETECT ADD / EDIT MODE
+    // =====================================================
 
-        let certificateNo = $("#edit_qc_id").val()
-        ? $("#edit_qc_cc_no").val()
-        : $('input[name="staff_cc_no[]"]').last().val();
+    let isEditMode = $.trim($("#edit_qc_id").val() || "") !== "";
 
-        let firstIssue = $section
-            .find('input[name="staff_cc_first_issue[]"]')
-            .val()
-            .trim();
+    // Always read the current editable certificate number.
+    // This works for both Add and Edit.
+    let certificateNo = $.trim(
+        $section.find('input[name="staff_cc_no[]"]').last().val() || ""
+    );
 
-        let validityFrom = $section
-            .find('input[name="staff_cc_validity_from[]"]')
-            .val()
-            .trim();
+    let firstIssue = $.trim(
+        $section.find('input[name="staff_cc_first_issue[]"]').last().val() || ""
+    );
 
-        let validityTo = $section
-            .find('input[name="staff_cc_validity_to[]"]')
-            .val()
-            .trim();
+    let validityFrom = $.trim(
+        $section.find('input[name="staff_cc_validity_from[]"]').last().val() || ""
+    );
 
+    let validityTo = $.trim(
+        $section.find('input[name="staff_cc_validity_to[]"]').last().val() || ""
+    );
 
-        // =====================================================
-        // CLEAR PREVIOUS RESULT
-        // =====================================================
+    // =====================================================
+    // 2. CLEAR PREVIOUS RESULT
+    // =====================================================
 
-        $("#certificate-holder-name").text("");
+    $("#certificate-holder-name").text("");
+    $(".staff-verify-error").text("");
 
-        $(".staff-verify-error").text("");
+    $section.attr("data-qc-verified", "0");
 
-        $("#qc_upload_section").hide();
+    $("#qc_upload_section").hide();
 
-        $("#save_qc")
-            .prop("disabled", true);
+    $("#save_qc").prop("disabled", true);
+    $("#update_qc").prop("disabled", true);
 
+    // =====================================================
+    // 3. VALIDATION
+    // =====================================================
 
-        // =====================================================
-        // VALIDATION
-        // =====================================================
+    let hasError = false;
 
-        let hasError = false;
+    if (!certificateNo) {
+        $section.find(".staff-cc-error")
+            .text("Please enter Certificate Number.");
+        hasError = true;
+    }
 
-        if (!certificateNo) {
+    if (!firstIssue) {
+        $section.find(".staff-first-issue-error")
+            .text("Please enter Certificate First Issue.");
+        hasError = true;
+    }
 
-            $section.find(".staff-cc-error")
-                .text("Please enter Certificate Number.");
+    if (!validityFrom) {
+        $section.find(".staff-validity-from-error")
+            .text("Please enter Validity From Date.");
+        hasError = true;
+    }
 
-            hasError = true;
-        }
+    if (!validityTo) {
+        $section.find(".staff-validity-to-error")
+            .text("Please enter Validity To Date.");
+        hasError = true;
+    }
 
-        if (!firstIssue) {
+    if (hasError) {
+        return;
+    }
 
-            $section.find(".staff-first-issue-error")
-                .text("Please enter Certificate First Issue.");
+    // =====================================================
+    // 4. VERIFY CERTIFICATE
+    // =====================================================
 
-            hasError = true;
-        }
+    let $button = $(this);
 
-        if (!validityFrom) {
+    $.ajax({
 
-            $section.find(".staff-validity-from-error")
-                .text("Please enter Validity From Date.");
+        url: BASE_URL + "/check-qc-certificate",
+        type: "POST",
 
-            hasError = true;
-        }
+        data: {
+            _token: $('meta[name="csrf-token"]').attr("content"),
+            staffcategory: "QC",
+            certificate_no: certificateNo,
+            dateof_issue: firstIssue,
+            valid_from: validityFrom,
+            valid_to: validityTo
+        },
 
-        if (!validityTo) {
+        beforeSend: function () {
 
-            $section.find(".staff-validity-to-error")
-                .text("Please enter Validity To Date.");
+            $button.prop("disabled", true).text("Verifying...");
 
-            hasError = true;
-        }
+            $("#certificate-holder-name").text("Checking...");
+        },
 
+        success: function (response) {
 
-        if (hasError) {
-            return;
-        }
+            // =================================================
+            // 5. VERIFICATION SUCCESS
+            // =================================================
 
+            if (response.status === true && response.data) {
 
-        // =====================================================
-        // VERIFY
-        // =====================================================
+                let holderName = response.data.applicant_name || "";
 
-        let $button = $(this);
+                $("#certificate-holder-name").text(holderName);
 
-        $.ajax({
+                $section.attr("data-qc-verified", "1");
 
-            url: BASE_URL + "/check-qc-certificate",
+                // Show upload section.
+                $("#qc_upload_section").slideDown();
 
-            type: "POST",
+                // Store application ID.
+                if ($("#qc_application_id").length === 0) {
 
-            data: {
-
-                _token: $('meta[name="csrf-token"]').attr("content"),
-
-                staffcategory: "QC",
-
-                certificate_no: certificateNo,
-
-                dateof_issue: firstIssue,
-
-                valid_from: validityFrom,
-
-                valid_to: validityTo
-            },
-
-
-            beforeSend: function () {
-
-                $button
-                    .prop("disabled", true)
-                    .text("Verifying...");
-
-                $(".staff-verify-error").text("");
-
-                $("#certificate-holder-name")
-                    .text("Checking...");
-            },
-
-
-            success: function (response) {
-
-                if (response.status === true && response.data) {
-
-                    // ==========================================
-                    // CERTIFICATE VERIFIED
-                    // ==========================================
-
-                    // $("#certificate-holder-name")
-                    //     .text(response.data.applicant_name);
-
-                    $("#certificate-holder-name")
-                        .text(response.data.applicant_name);
-
-                    // Enable Update only when the verified holder name is displayed
-                    if (
-                        $("#update_qc").is(":visible") &&
-                        $.trim($("#certificate-holder-name").text()) !== ""
-                    ) {
-                        $("#update_qc").prop("disabled", false);
-                    }
-
-
-                    // ==========================================
-                    // SHOW UPLOAD SECTION
-                    // ==========================================
-
-                    $("#qc_upload_section")
-                        .slideDown();
-
-
-                    // ==========================================
-                    // ENABLE SAVE
-                    // ==========================================
-
-                    $("#save_qc")
-                        .prop("disabled", false);
-
-
-                    // Optional hidden application ID
-                    if ($("#qc_application_id").length === 0) {
-
-                        $("<input>", {
-                            type: "hidden",
-                            id: "qc_application_id",
-                            name: "qc_application_id",
-                            value: response.data.application_id
-                        }).appendTo($section);
-
-                    } else {
-
-                        $("#qc_application_id")
-                            .val(response.data.application_id);
-                    }
+                    $("<input>", {
+                        type: "hidden",
+                        id: "qc_application_id",
+                        name: "qc_application_id",
+                        value: response.data.application_id || ""
+                    }).appendTo($section);
 
                 } else {
 
-                    // ==========================================
-                    // VERIFICATION FAILED
-                    // ==========================================
-
-                    $("#certificate-holder-name")
-                        .text("");
-
-                    $("#qc_upload_section")
-                        .hide();
-
-                    $("#save_qc")
-                        .prop("disabled", true);
-
-                    $(".staff-verify-error")
-                        .text(
-                            response.message ||
-                            "Certificate verification failed."
-                        );
+                    $("#qc_application_id")
+                        .val(response.data.application_id || "");
                 }
 
-                $("#staffqc_datasection").attr("data-qc-verified", "1");
-
-                    $("#certificate-holder-name").text(response.staff_name);
-
-                    $("#qc_upload_section").show();
+                // Enable the correct button according to mode.
+                if (isEditMode) {
 
                     $("#update_qc").prop("disabled", false);
 
-                    $(".staff-verify-error").text("");
-            },
+                } else {
 
+                    $("#save_qc").prop("disabled", false);
+                }
 
-            error: function (xhr) {
+            } else {
 
-                console.log(xhr.responseText);
+                // =================================================
+                // 6. VERIFICATION FAILED
+                // =================================================
 
-                $("#certificate-holder-name")
-                    .text("");
+                $("#certificate-holder-name").text("");
 
-                $("#qc_upload_section")
-                    .hide();
+                $section.attr("data-qc-verified", "0");
 
-                $("#save_qc")
-                    .prop("disabled", true);
+                $("#qc_upload_section").hide();
 
-                $(".staff-verify-error")
-                    .text(
-                        "Unable to verify certificate. Please try again."
-                    );
-            },
+                $("#save_qc").prop("disabled", true);
+                $("#update_qc").prop("disabled", true);
 
-
-            complete: function () {
-
-                $button
-                    .prop("disabled", false)
-                    .text("Verify Staff");
+                $(".staff-verify-error").text(
+                    response.message ||
+                    "Certificate verification failed."
+                );
             }
+        },
 
-        });
+        error: function (xhr) {
+
+            console.log(xhr.responseText);
+
+            $("#certificate-holder-name").text("");
+
+            $section.attr("data-qc-verified", "0");
+
+            $("#qc_upload_section").hide();
+
+            $("#save_qc").prop("disabled", true);
+            $("#update_qc").prop("disabled", true);
+
+            $(".staff-verify-error").text(
+                "Unable to verify certificate. Please try again."
+            );
+        },
+
+        complete: function () {
+
+            $button.prop("disabled", false).text("Verify Staff");
+        }
 
     });
+
+});
+
 
 $(document).on("click", "#save_qc", function (e) {
 

@@ -1105,7 +1105,7 @@ class LoginController extends BaseController
         foreach ($tables as $formCode => $tableName) {
             $records = DB::table("$tableName as ta")
                 ->where('ta.login_id', $loginId)
-                ->whereIn('ta.appl_type', ['N', 'R', 'RET', 'RETD'])
+                ->whereIn('ta.appl_type', ['N', 'D', 'A', 'R', 'RET', 'RETD'])
                 ->orderByDesc('ta.created_at')
                 ->get()
                 ->map(function ($workflow) use ($formCode, $applicationTables) {

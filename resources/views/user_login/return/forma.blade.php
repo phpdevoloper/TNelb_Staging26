@@ -3357,7 +3357,7 @@ exit; -->
                             <div class="form-section" id="atachment_points">
 
 
-                            <div class="row ">
+                            <div class="row" id="address_proof">
                                <div class="col-md-12">
                         <div class="row align-items-center head_label">
                             <div class="col-12 col-md-12 title_bar">

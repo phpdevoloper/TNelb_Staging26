@@ -209,7 +209,7 @@ class ReturnapplicantController extends BaseController
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
         $isDraft = $request->input('form_action') === 'draft';
-        $recordId = $request->input('record_id');
+               $recordId = trim((string) $request->input('record_id', ''));
 
 
         // dd($recordId); exit;
@@ -298,15 +298,15 @@ class ReturnapplicantController extends BaseController
         $applicationId = null;
         $existing = null;
 
-        if ($recordId) {
+         if ($recordId) {
             $existing = EA_Application_model::where('application_id', $recordId)->first();
-            // dd($existing->application_id); exit;
+
+            // dd($existing); exit;
             if ($existing) {
                 $applicationId = $existing->application_id;
-
-                // dd($applicationId); exit;
             }
         }
+        // dd($applicationId); exit;
         if (!$applicationId) {
             $applicationId = $this->generateApplicationId(
                 $request->appl_type,
@@ -360,11 +360,8 @@ class ReturnapplicantController extends BaseController
 
         $dataToSave['previous_validity_to'] =
             $request->input('previous_validity_to');
-        if ($request->appl_type === 'D') {
-            $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
-        } else {
-            $dataToSave['payment_status'] = $isDraft ? 'draft' : 'pending';
-        }
+       $dataToSave['payment_status'] = 'paid';
+
         $dataToSave['application_status'] = 'P';
         $dataToSave['updated_at'] = DB::raw('NOW()');
 
@@ -465,388 +462,7 @@ class ReturnapplicantController extends BaseController
 
         unset($dataToSave['bank_address'], $dataToSave['bank_validity'], $dataToSave['bank_amount']);
 
-
-        if (
-            is_array($returnsection) &&
-            in_array('qc_staff', $returnsection, true)
-        ) {
-            $processedStaffIdsQC = [];
-
-            if ($request->has('staffqc_category')) {
-
-                $staffCategories = $request->input('staffqc_category', []);
-
-                $staffName = $request->input('certificate_holder_name', []);
-                $staffNameQC = $request->input('certificate_holder_name_qc', []);
-
-                $staffCcNos = $request->input('staff_cc_no', []);
-                $staffFirstIssues = $request->input('staff_cc_first_issue', []);
-                $staffValidityFroms = $request->input('staff_cc_validity_from', []);
-                $staffValidityTos = $request->input('staff_cc_validity_to', []);
-
-                $staffQcIds = $request->input('staffqc_id', []);
-                $rowIndexes = $request->input('row_index', []);
-
-                $removedStaffIds = array_filter(
-                    (array) $request->input('removed_staffqc_ids', []),
-                    fn($id) => is_numeric($id)
-                );
-
-                $now = now();
-
-                // ==========================================================
-                // 1. DEACTIVATE EXPLICITLY REMOVED STAFF
-                // ==========================================================
-
-                if (!empty($removedStaffIds)) {
-
-                    DB::table('cl_staff_tbl')
-                        ->where('application_id', $applicationId)
-                        ->whereIn('staff_category', ['QC', 'QSC'])
-                        ->whereIn('id', $removedStaffIds)
-                        ->update([
-                            'staff_flag' => '0',
-                            'updated_at' => $now,
-                        ]);
-                }
-
-                // ==========================================================
-                // 2. GET CURRENT MAXIMUM ROW INDEX
-                // ==========================================================
-
-                $lastRowIndex = DB::table('cl_staff_tbl')
-                    ->where('application_id', $applicationId)
-                    ->max('row_index');
-
-                $nextRowIndex = ((int) $lastRowIndex) + 1;
-
-
-                $currentRowIndexes = $currentRowIndexes ?? [];
-
-                foreach ($staffCategories as $index => $category) {
-
-                    $category = strtoupper(trim((string) $category));
-
-                    if (!in_array($category, ['QC', 'QSC'], true)) {
-                        continue;
-                    }
-
-                    $ccNo = trim((string) ($staffCcNos[$index] ?? ''));
-
-                    if (
-                        $ccNo === '' ||
-                        in_array(strtolower($ccNo), ['undefined', 'null'], true)
-                    ) {
-                        continue;
-                    }
-
-                    $ccName = $category === 'QC'
-                        ? ($staffNameQC[$index] ?? $staffName[$index] ?? '')
-                        : ($staffName[$index] ?? $staffNameQC[$index] ?? '');
-
-                    $firstIssue = trim((string) ($staffFirstIssues[$index] ?? ''));
-                    $validityFrom = trim((string) ($staffValidityFroms[$index] ?? ''));
-                    $validityTo = trim((string) ($staffValidityTos[$index] ?? ''));
-
-                    $staffId = $staffQcIds[$index] ?? null;
-                    $submittedRowIndex = $rowIndexes[$index] ?? null;
-
-                    // Normalize staff ID.
-                    $staffId = is_numeric($staffId) ? (int) $staffId : null;
-
-                    // Normalize submitted row index.
-                    $submittedRowIndex = (
-                        $submittedRowIndex !== null &&
-                        $submittedRowIndex !== '' &&
-                        is_numeric($submittedRowIndex)
-                    ) ? (int) $submittedRowIndex : null;
-
-                    // ------------------------------------------------------
-                    // 1. FIND EXISTING ROW BY STAFF ID
-                    // ------------------------------------------------------
-
-                    $existing = null;
-
-                    if ($staffId !== null && $staffId > 0) {
-                        $existing = DB::table('cl_staff_tbl')
-                            ->where('id', $staffId)
-                            ->where('application_id', $applicationId)
-                            ->where('staff_category', $category)
-                            ->first();
-                    }
-
-                    // ------------------------------------------------------
-                    // 2. FIND EXISTING ROW BY EXACT ROW INDEX + CATEGORY
-                    // ------------------------------------------------------
-
-                    if (!$existing && $submittedRowIndex !== null) {
-                        $existing = DB::table('cl_staff_tbl')
-                            ->where('application_id', $applicationId)
-                            ->where('row_index', $submittedRowIndex)
-                            ->where('staff_category', $category)
-                            ->first();
-                    }
-
-                    // ------------------------------------------------------
-                    // 3. UPDATE EXISTING ROW OR INSERT NEW ROW
-                    // ------------------------------------------------------
-
-                    $staffData = [
-                        'staff_cc_no' => $ccNo,
-                        'staff_flag' => '1',
-                        'updated_at' => now(),
-                    ];
-
-                    if (trim((string) $ccName) !== '') {
-                        $staffData['staff_name'] = trim((string) $ccName);
-                    }
-
-                    if ($firstIssue !== '') {
-                        $staffData['staff_cc_first_issue'] = $firstIssue;
-                    }
-
-                    if ($validityFrom !== '') {
-                        $staffData['staff_cc_validity_from'] = $validityFrom;
-                    }
-
-                    if ($validityTo !== '') {
-                        $staffData['staff_cc_validity_to'] = $validityTo;
-                    }
-
-                    if ($existing) {
-
-                        // Preserve row_index, app_doc and cons_doc.
-                        DB::table('cl_staff_tbl')
-                            ->where('id', $existing->id)
-                            ->update($staffData);
-
-                        $savedStaffId = $existing->id;
-                        $savedRowIndex = (int) $existing->row_index;
-                    } else {
-
-                        // IMPORTANT:
-                        // Use the submitted row_index first.
-                        // Generate a new one only if the form supplied no row_index.
-
-                        if ($submittedRowIndex !== null) {
-
-                            $newRowIndex = $submittedRowIndex;
-                        } else {
-
-                            // Do not assume MAX(row_index) + 1 is the intended row.
-                            // A missing row index must be corrected in the form payload
-                            // when an existing document row is meant to be reused.
-
-                            throw new \RuntimeException(
-                                'Missing row_index for ' . $category .
-                                    ' staff at form index ' . $index .
-                                    '. Send the existing row_index from the frontend.'
-                            );
-                        }
-
-                        // Check whether another QC/QSC row already occupies this index.
-                        $rowAtIndex = DB::table('cl_staff_tbl')
-                            ->where('application_id', $applicationId)
-                            ->where('row_index', $newRowIndex)
-                            ->whereIn('staff_category', ['QC', 'QSC'])
-                            ->first();
-
-                        if ($rowAtIndex) {
-
-                            if ($rowAtIndex->staff_category !== $category) {
-                                throw new \RuntimeException(
-                                    'Row index ' . $newRowIndex .
-                                        ' already belongs to ' . $rowAtIndex->staff_category .
-                                        '; cannot save it as ' . $category . '.'
-                                );
-                            }
-
-                            // Reuse the existing row instead of inserting a duplicate.
-                            DB::table('cl_staff_tbl')
-                                ->where('id', $rowAtIndex->id)
-                                ->update($staffData);
-
-                            $savedStaffId = $rowAtIndex->id;
-                            $savedRowIndex = (int) $rowAtIndex->row_index;
-                        } else {
-
-                            $savedStaffId = DB::table('cl_staff_tbl')
-                                ->insertGetId(array_merge([
-                                    'login_id' => $request->input('login_id_store'),
-                                    'application_id' => $applicationId,
-                                    'staff_category' => $category,
-                                    'row_index' => $newRowIndex,
-                                    'staff_status' => 'N',
-                                    'created_at' => now(),
-                                ], $staffData));
-
-                            $savedRowIndex = $newRowIndex;
-                        }
-                    }
-
-                    $processedStaffIdsQC[] = $savedStaffId;
-                    $currentRowIndexes[] = $savedRowIndex;
-                }
-
-
-
-                $tempDocs = DB::table('tnelb_temp_uploaded_documents')
-                    ->where(
-                        'login_id',
-                        $request->input('login_id_store')
-                    )
-                    ->where(
-                        'form_name',
-                        $request->input('form_name')
-                    )
-                    ->where(
-                        'license_name',
-                        $request->input('license_name')
-                    )
-                    ->whereIn('document_category', [
-                        'app_doc',
-                        'cons_doc',
-                    ])
-                    ->where(
-                        'appl_type',
-                        trim((string) $request->input('appl_type'))
-                    )
-                    ->where('is_final', '1')
-                    ->get();
-
-                // ==========================================================
-                // 8. PROCESS TEMPORARY DOCUMENTS
-                // ==========================================================
-
-                foreach ($tempDocs as $tempDoc) {
-
-                    $tempRowIndex = trim(
-                        (string) ($tempDoc->row_index ?? '')
-                    );
-
-                    if (
-                        $tempRowIndex === '' ||
-                        !is_numeric($tempRowIndex) ||
-                        in_array(
-                            strtolower($tempRowIndex),
-                            ['undefined', 'null'],
-                            true
-                        )
-                    ) {
-                        continue;
-                    }
-
-                    $tempRowIndex = (int) $tempRowIndex;
-
-                    // ------------------------------------------------------
-                    // BUILD DOCUMENT PATH
-                    // ------------------------------------------------------
-
-                    $documentPath = rtrim(
-                        (string) ($tempDoc->file_path ?? ''),
-                        '/'
-                    );
-
-                    $fileName = ltrim(
-                        (string) ($tempDoc->file_name ?? ''),
-                        '/'
-                    );
-
-                    if ($documentPath !== '' && $fileName !== '') {
-                        $documentPath .= '/' . $fileName;
-                    } elseif ($fileName !== '') {
-                        $documentPath = $fileName;
-                    }
-
-                    if (trim($documentPath) === '') {
-                        continue;
-                    }
-
-                    // ------------------------------------------------------
-                    // FIND EXISTING QC / QSC ROW
-                    // ------------------------------------------------------
-
-                    $staff = DB::table('cl_staff_tbl')
-                        ->where('application_id', $applicationId)
-                        ->where('row_index', $tempRowIndex)
-                        ->whereIn('staff_category', ['QC', 'QSC'])
-                        ->first();
-
-                    // ------------------------------------------------------
-                    // IF MISSING, CREATE A DOCUMENT-ONLY ROW
-                    // ------------------------------------------------------
-                    // Normally the staff loop above creates the row.
-                    // This fallback prevents the uploaded document from being
-                    // discarded if no staff row exists.
-                    //
-                    // The correct staff_category must be available from the
-                    // temporary record or request. Do not guess QC versus QSC.
-
-                    if (!$staff) {
-
-                        $documentStaffCategory = strtoupper(trim(
-                            (string) (
-                                $tempDoc->staff_category
-                                ?? $tempDoc->ownership_type
-                                ?? ''
-                            )
-                        ));
-
-                        if (!in_array(
-                            $documentStaffCategory,
-                            ['QC', 'QSC'],
-                            true
-                        )) {
-                            // Cannot safely assign a document to QC or QSC.
-                            continue;
-                        }
-
-                        $staffId = DB::table('cl_staff_tbl')
-                            ->insertGetId([
-                                'login_id' => $request->input('login_id_store'),
-                                'application_id' => $applicationId,
-                                'row_index' => $tempRowIndex,
-                                'staff_category' => $documentStaffCategory,
-                                $tempDoc->document_category => $documentPath,
-                                'staff_flag' => '1',
-                                'staff_status' => 'N',
-                                'created_at' => $now,
-                                'updated_at' => $now,
-                            ]);
-
-                        $staff = DB::table('cl_staff_tbl')
-                            ->where('id', $staffId)
-                            ->first();
-                    }
-
-                    // ======================================================
-                    // 9. UPDATE ONLY THE RELEVANT DOCUMENT FIELD
-                    // ======================================================
-
-                    if ($tempDoc->document_category === 'app_doc') {
-
-                        DB::table('cl_staff_tbl')
-                            ->where('id', $staff->id)
-                            ->where('application_id', $applicationId)
-                            ->where('row_index', $tempRowIndex)
-                            ->update([
-                                'app_doc' => $documentPath,
-                                'updated_at' => $now,
-                            ]);
-                    } elseif ($tempDoc->document_category === 'cons_doc') {
-
-                        DB::table('cl_staff_tbl')
-                            ->where('id', $staff->id)
-                            ->where('application_id', $applicationId)
-                            ->where('row_index', $tempRowIndex)
-                            ->update([
-                                'cons_doc' => $documentPath,
-                                'updated_at' => $now,
-                            ]);
-                    }
-                }
-            }
-        }
+       
 
         if (
             is_array($returnsection) &&
@@ -1158,1422 +774,1428 @@ class ReturnapplicantController extends BaseController
             is_array($returnsection) &&
             in_array('ownership_details', $returnsection, true)
         ) {
+           
+        // ==========================================
+        // PROPRIETORS
+        // ==========================================
+
+        $newProprietorIds = [];
+
+        if ($request->exists('proprietor_name')) {
+
+            $count = 1;
             $newProprietorIds = [];
 
-            if ($request->exists('proprietor_name')) {
+            // ==========================================
+            // 1. GET PROPRIETOR NAMES SAFELY
+            // ==========================================
 
-                $count = 1;
-                $newProprietorIds = [];
+            $proprietorNames = $request->input('proprietor_name', []);
 
-                // ==========================================
-                // 1. GET PROPRIETOR NAMES SAFELY
-                // ==========================================
-
-                $proprietorNames = $request->input('proprietor_name', []);
-
-                if (!is_array($proprietorNames)) {
-                    $proprietorNames = [];
-                }
-
-                // Fallback: retrieve names from the proprietor JSON if needed
-                if (
-                    empty(array_filter($proprietorNames, function ($name) {
-                        return trim((string) $name) !== '';
-                    }))
-                ) {
-                    $proprietorJson = $request->input('proprietor', '[]');
-
-                    $proprietorData = json_decode($proprietorJson, true);
-
-                    if (is_array($proprietorData)) {
-                        $proprietorNames = [];
-
-                        foreach ($proprietorData as $index => $proprietorRow) {
-                            $proprietorNames[$index] =
-                                $proprietorRow['proprietor_name'] ?? '';
-                        }
-                    }
-                }
-
-                // ==========================================
-                // 2. PROCESS PROPRIETOR ROWS
-                // ==========================================
-
-                foreach ($proprietorNames as $index => $name) {
-
-                    // Skip empty proprietor rows
-                    if (
-                        empty(trim((string) $name)) ||
-                        strtolower(trim((string) $name)) === 'undefined' ||
-                        strtolower(trim((string) $name)) === 'null'
-                    ) {
-                        continue;
-                    }
-
-                    // ==========================================
-                    // 3. GET CURRENT PROPRIETOR DATA
-                    // ==========================================
-
-                    $competencyHolding = data_get(
-                        $request->competency,
-                        $index
-                    );
-
-                    $proprietorId = data_get(
-                        $request->proprietor_id,
-                        $index
-                    );
-
-                    $rowIndex = $count;
-
-                    // ==========================================
-                    // 4. PREPARE PROPRIETOR DATA
-                    // ==========================================
-
-                    $data = [
-                        'login_id' => $request->login_id_store,
-                        'application_id' => $applicationId,
-
-                        'proprietor_name' => strtoupper(trim($name)),
-                        'ownership_type' => 'pr',
-
-                        'proprietor_address' => strtoupper(
-                            data_get(
-                                $request->proprietor_address,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'dob' => data_get(
-                            $request->dob,
-                            $index
-                        ),
-
-                        'age' => data_get(
-                            $request->age,
-                            $index
-                        ),
-
-                        'qualification' => strtoupper(
-                            data_get(
-                                $request->qualification,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'qualification_text' => strtoupper(
-                            data_get(
-                                $request->qual_text,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'fathers_name' => strtoupper(
-                            data_get(
-                                $request->fathers_name,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'present_business' => strtoupper(
-                            data_get(
-                                $request->present_business,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        // Preserve existing proprietor document fields
-                        'educational_proof' => data_get(
-                            $request->qual_proof,
-                            $index
-                        ),
-
-                        'age_proof' => data_get(
-                            $request->age_proof,
-                            $index
-                        ),
-
-                        // Competency certificate
-                        'competency_certificate_holding' => $competencyHolding,
-
-                        'competency_certificate_number' =>
-                        $competencyHolding === 'yes'
-                            ? strtoupper(
-                                data_get(
-                                    $request->competency_certno,
-                                    $index,
-                                    ''
-                                )
-                            )
-                            : null,
-
-                        'competency_certificate_first_issue' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->ccfirstissue,
-                                $index
-                            )
-                            : null,
-
-                        'competency_certificate_validity_from' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->ccvalidityfrom,
-                                $index
-                            )
-                            : null,
-
-                        'competency_certificate_validity_to' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->ccvalidityto,
-                                $index
-                            )
-                            : null,
-
-                        'proprietor_flag' => 1,
-                        'ownership_count' => $rowIndex,
-                        'row_index' => $rowIndex,
-                    ];
-
-                    // ==========================================
-                    // 5. FIND EXISTING PROPRIETOR USING DATABASE ID
-                    // ==========================================
-
-                    $proprietor = null;
-
-                    if (
-                        !empty($proprietorId) &&
-                        is_numeric($proprietorId)
-                    ) {
-                        $proprietor = ProprietorformA::where(
-                            'id',
-                            $proprietorId
-                        )
-                            ->where('application_id', $applicationId)
-                            ->where('ownership_type', 'pr')
-                            ->first();
-                    }
-
-                    // Fallback to existing record with the same row index
-                    if (!$proprietor) {
-                        $proprietor = ProprietorformA::where(
-                            'application_id',
-                            $applicationId
-                        )
-                            ->where('ownership_type', 'pr')
-                            ->where('row_index', $rowIndex)
-                            ->first();
-                    }
-
-                    // ==========================================
-                    // 6. UPDATE EXISTING OR CREATE NEW PROPRIETOR
-                    // ==========================================
-
-                    if ($proprietor) {
-                        $proprietor->update($data);
-                    } else {
-                        $proprietor = ProprietorformA::create($data);
-                    }
-
-                    // Save proprietor row information
-                    $proprietor->row_index = $rowIndex;
-                    $proprietor->ownership_count = $rowIndex;
-                    $proprietor->proprietor_flag = 1;
-                    $proprietor->save();
-
-                    // Store actual database ID
-                    $newProprietorIds[] = $proprietor->id;
-
-                    // ==========================================
-                    // 7. PROCESS TEMPORARY DOCUMENTS
-                    // ==========================================
-
-                    if (
-                        $rowIndex >= 1 &&
-                        (int) $proprietor->row_index === $rowIndex
-                    ) {
-
-                        $documentCategories = [
-                            'educ_qual_proof' => 'educational_proof',
-                            'age_proof'       => 'age_proof',
-                        ];
-
-                        foreach (
-                            $documentCategories as $category => $proprietorColumn
-                        ) {
-
-                            $tempDocs = DB::table(
-                                'tnelb_temp_uploaded_documents'
-                            )
-                                ->where(
-                                    'login_id',
-                                    $request->login_id_store
-                                )
-                                ->where(
-                                    'form_name',
-                                    $request->form_name
-                                )
-                                ->where(
-                                    'application_id',
-                                    $sessionId
-                                )
-                                ->where(
-                                    'license_name',
-                                    $request->license_name
-                                )
-                                ->where(
-                                    'document_category',
-                                    $category
-                                )
-                                ->where(
-                                    'ownership_type',
-                                    'pr'
-                                )
-                                ->where(
-                                    'appl_type',
-                                    trim(
-                                        (string) $request->input(
-                                            'appl_type',
-                                            ''
-                                        )
-                                    )
-                                )
-                                ->where('row_index', $rowIndex)
-                                ->get();
-
-                            foreach ($tempDocs as $tempDoc) {
-
-                                // Verify row index
-                                if (
-                                    !is_numeric($tempDoc->row_index) ||
-                                    (int) $tempDoc->row_index !== $rowIndex ||
-                                    (int) $proprietor->row_index !== $rowIndex
-                                ) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 8. RESOLVE DESTINATION PATH
-                                // ==========================================
-
-                                $dynamicRequest = clone $request;
-
-                                $dynamicRequest->merge([
-                                    'module' => $tempDoc->module,
-                                ]);
-
-                                $pathData = DocPathController::getPath(
-                                    $dynamicRequest
-                                );
-
-                                $destinationRelativePath =
-                                    $pathData->filepath_pro;
-
-                                $destinationFolder = public_path(
-                                    rtrim(
-                                        $destinationRelativePath,
-                                        '/\\'
-                                    ) . DIRECTORY_SEPARATOR
-                                );
-
-                                if (!File::exists($destinationFolder)) {
-                                    File::makeDirectory(
-                                        $destinationFolder,
-                                        0755,
-                                        true
-                                    );
-                                }
-
-                                // ==========================================
-                                // 9. CHECK TEMPORARY FILE
-                                // ==========================================
-
-                                $sourceRelativePath = rtrim(
-                                    $tempDoc->file_path,
-                                    '/\\'
-                                ) . DIRECTORY_SEPARATOR . $tempDoc->file_name;
-
-                                $tempFullPath = public_path(
-                                    $sourceRelativePath
-                                );
-
-                                if (!File::exists($tempFullPath)) {
-                                    \Log::warning(
-                                        'Proprietor temporary document not found',
-                                        [
-                                            'temp_document_id' => $tempDoc->id,
-                                            'row_index' => $rowIndex,
-                                            'path' => $tempFullPath,
-                                        ]
-                                    );
-
-                                    continue;
-                                }
-
-                                $destinationFullPath = $destinationFolder
-                                    . $tempDoc->file_name;
-
-                                // ==========================================
-                                // 10. COPY FILE IF REQUIRED
-                                // ==========================================
-
-                                $sourceRealPath = realpath($tempFullPath);
-
-                                $destinationRealPath = realpath(
-                                    $destinationFullPath
-                                );
-
-                                $samePath = (
-                                    $sourceRealPath !== false &&
-                                    $destinationRealPath !== false &&
-                                    $sourceRealPath === $destinationRealPath
-                                );
-
-                                if (
-                                    !$samePath &&
-                                    !File::exists($destinationFullPath)
-                                ) {
-                                    if (
-                                        !File::copy(
-                                            $tempFullPath,
-                                            $destinationFullPath
-                                        )
-                                    ) {
-                                        continue;
-                                    }
-                                }
-
-                                if (!File::exists($destinationFullPath)) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 11. UPDATE PROPRIETOR DOCUMENT FIELD
-                                // ==========================================
-
-                                $proprietor->{$proprietorColumn} =
-                                    rtrim(
-                                        $destinationRelativePath,
-                                        '/\\'
-                                    ) . '/' . $tempDoc->file_name;
-
-                                $proprietor->row_index = $rowIndex;
-                                $proprietor->ownership_count = $rowIndex;
-
-                                if (!$proprietor->save()) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 12. MARK TEMP DOCUMENT AS PROCESSED
-                                // ==========================================
-
-                                DB::table('tnelb_temp_uploaded_documents')
-                                    ->where('id', $tempDoc->id)
-                                    ->update([
-                                        'is_final' => 1,
-
-                                        'moved_as' => $request->input(
-                                            'form_action'
-                                        ),
-
-                                        'record_id_app' => $applicationId,
-
-                                        'updated_at' => now(),
-                                    ]);
-                            }
-                        }
-                    }
-
-                    // ==========================================
-                    // 13. INCREMENT ROW COUNT
-                    // ==========================================
-
-                    $count++;
-                }
-
-                // ==========================================
-                // 14. DEACTIVATE REMOVED PROPRIETORS
-                // ==========================================
-
-                $deactivateQuery = ProprietorformA::where(
-                    'application_id',
-                    $applicationId
-                )
-                    ->where('ownership_type', 'pr')
-                    ->where('proprietor_flag', 1);
-
-                if (!empty($newProprietorIds)) {
-                    $deactivateQuery->whereNotIn(
-                        'id',
-                        $newProprietorIds
-                    );
-                }
-
-                $deactivateQuery->update([
-                    'proprietor_flag' => 0,
-                ]);
+           if (!is_array($proprietorNames)) {
+                $proprietorNames = [];
             }
 
+            // Fallback: retrieve names from the proprietor JSON if needed
+            if (
+                empty(array_filter($proprietorNames, function ($name) {
+                    return trim((string) $name) !== '';
+                }))
+            ) {
+                $proprietorJson = $request->input('proprietor', '[]');
+
+                $proprietorData = json_decode($proprietorJson, true);
+
+                if (is_array($proprietorData)) {
+                    $proprietorNames = [];
+
+                    foreach ($proprietorData as $index => $proprietorRow) {
+                        $proprietorNames[$index] =
+                            $proprietorRow['proprietor_name'] ?? '';
+                    }
+                }
+            }
+
+            // ==========================================
+            // 2. PROCESS PROPRIETOR ROWS
+            // ==========================================
+
+            foreach ($proprietorNames as $index => $name) {
+
+                // Skip empty proprietor rows
+                if (
+                    empty(trim((string) $name)) ||
+                    strtolower(trim((string) $name)) === 'undefined' ||
+                    strtolower(trim((string) $name)) === 'null'
+                ) {
+                    continue;
+                }
+
+                // ==========================================
+                // 3. GET CURRENT PROPRIETOR DATA
+                // ==========================================
+
+                $competencyHolding = data_get(
+                    $request->competency,
+                    $index
+                );
+
+                $proprietorId = data_get(
+                    $request->proprietor_id,
+                    $index
+                );
+
+                $rowIndex = $count;
+
+                // ==========================================
+                // 4. PREPARE PROPRIETOR DATA
+                // ==========================================
+
+                $data = [
+                    'login_id' => $request->login_id_store,
+                    'application_id' => $applicationId,
+
+                    'proprietor_name' => strtoupper(trim($name)),
+                    'ownership_type' => 'pr',
+
+                    'proprietor_address' => strtoupper(
+                        data_get(
+                            $request->proprietor_address,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'dob' => data_get(
+                        $request->dob,
+                        $index
+                    ),
+
+                    'age' => data_get(
+                        $request->age,
+                        $index
+                    ),
+
+                    'qualification' => strtoupper(
+                        data_get(
+                            $request->qualification,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'qualification_text' => strtoupper(
+                        data_get(
+                            $request->qual_text,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'fathers_name' => strtoupper(
+                        data_get(
+                            $request->fathers_name,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'present_business' => strtoupper(
+                        data_get(
+                            $request->present_business,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    // Preserve existing proprietor document fields
+                    'educational_proof' => data_get(
+                        $request->qual_proof,
+                        $index
+                    ),
+
+                    'age_proof' => data_get(
+                        $request->age_proof,
+                        $index
+                    ),
+
+                    // Competency certificate
+                    'competency_certificate_holding' => $competencyHolding,
+
+                    'competency_certificate_number' =>
+                    $competencyHolding === 'yes'
+                        ? strtoupper(
+                            data_get(
+                                $request->competency_certno,
+                                $index,
+                                ''
+                            )
+                        )
+                        : null,
+
+                    'competency_certificate_first_issue' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->ccfirstissue,
+                            $index
+                        )
+                        : null,
+
+                    'competency_certificate_validity_from' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->ccvalidityfrom,
+                            $index
+                        )
+                        : null,
+
+                    'competency_certificate_validity_to' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->ccvalidityto,
+                            $index
+                        )
+                        : null,
+
+                    'proprietor_flag' => 1,
+                    'ownership_count' => $rowIndex,
+                    'row_index' => $rowIndex,
+                ];
+
+                // ==========================================
+                // 5. FIND EXISTING PROPRIETOR USING DATABASE ID
+                // ==========================================
+
+                $proprietor = null;
+
+                if (
+                    !empty($proprietorId) &&
+                    is_numeric($proprietorId)
+                ) {
+                    $proprietor = ProprietorformA::where(
+                        'id',
+                        $proprietorId
+                    )
+                        ->where('application_id', $applicationId)
+                        ->where('ownership_type', 'pr')
+                        ->first();
+                }
+
+                // Fallback to existing record with the same row index
+                if (!$proprietor) {
+                    $proprietor = ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                        ->where('ownership_type', 'pr')
+                        ->where('row_index', $rowIndex)
+                        ->first();
+                }
+
+                // ==========================================
+                // 6. UPDATE EXISTING OR CREATE NEW PROPRIETOR
+                // ==========================================
+
+                if ($proprietor) {
+                    $proprietor->update($data);
+                } else {
+                    $proprietor = ProprietorformA::create($data);
+                }
+
+                // Save proprietor row information
+                $proprietor->row_index = $rowIndex;
+                $proprietor->ownership_count = $rowIndex;
+                $proprietor->proprietor_flag = 1;
+                $proprietor->save();
+
+                // Store actual database ID
+                $newProprietorIds[] = $proprietor->id;
+
+                // ==========================================
+                // 7. PROCESS TEMPORARY DOCUMENTS
+                // ==========================================
+
+                if (
+                    $rowIndex >= 1 &&
+                    (int) $proprietor->row_index === $rowIndex
+                ) {
+
+                    $documentCategories = [
+                        'educ_qual_proof' => 'educational_proof',
+                        'age_proof'       => 'age_proof',
+                    ];
+
+                    foreach (
+                        $documentCategories as $category => $proprietorColumn
+                    ) {
+
+                        $tempDocs = DB::table(
+                            'tnelb_temp_uploaded_documents'
+                        )
+                            ->where(
+                                'login_id',
+                                $request->login_id_store
+                            )
+                            ->where(
+                                'form_name',
+                                $request->form_name
+                            )
+                            ->where(
+                                'application_id',
+                                $sessionId
+                            )
+                            ->where(
+                                'license_name',
+                                $request->license_name
+                            )
+                            ->where(
+                                'document_category',
+                                $category
+                            )
+                            ->where(
+                                'ownership_type',
+                                'pr'
+                            )
+                            ->where(
+                                'appl_type',
+                                trim(
+                                    (string) $request->input(
+                                        'appl_type',
+                                        ''
+                                    )
+                                )
+                            )
+                            ->where('row_index', $rowIndex)
+                            ->get();
+
+                        foreach ($tempDocs as $tempDoc) {
+
+                            // Verify row index
+                            if (
+                                !is_numeric($tempDoc->row_index) ||
+                                (int) $tempDoc->row_index !== $rowIndex ||
+                                (int) $proprietor->row_index !== $rowIndex
+                            ) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 8. RESOLVE DESTINATION PATH
+                            // ==========================================
+
+                            $dynamicRequest = clone $request;
+
+                            $dynamicRequest->merge([
+                                'module' => $tempDoc->module,
+                            ]);
+
+                            $pathData = DocPathController::getPath(
+                                $dynamicRequest
+                            );
+
+                            $destinationRelativePath =
+                                $pathData->filepath_pro;
+
+                            $destinationFolder = public_path(
+                                rtrim(
+                                    $destinationRelativePath,
+                                    '/\\'
+                                ) . DIRECTORY_SEPARATOR
+                            );
+
+                            if (!File::exists($destinationFolder)) {
+                                File::makeDirectory(
+                                    $destinationFolder,
+                                    0755,
+                                    true
+                                );
+                            }
+
+                            // ==========================================
+                            // 9. CHECK TEMPORARY FILE
+                            // ==========================================
+
+                            $sourceRelativePath = rtrim(
+                                $tempDoc->file_path,
+                                '/\\'
+                            ) . DIRECTORY_SEPARATOR . $tempDoc->file_name;
+
+                            $tempFullPath = public_path(
+                                $sourceRelativePath
+                            );
+
+                            if (!File::exists($tempFullPath)) {
+                                \Log::warning(
+                                    'Proprietor temporary document not found',
+                                    [
+                                        'temp_document_id' => $tempDoc->id,
+                                        'row_index' => $rowIndex,
+                                        'path' => $tempFullPath,
+                                    ]
+                                );
+
+                                continue;
+                            }
+
+                            $destinationFullPath = $destinationFolder
+                                . $tempDoc->file_name;
+
+                            // ==========================================
+                            // 10. COPY FILE IF REQUIRED
+                            // ==========================================
+
+                            $sourceRealPath = realpath($tempFullPath);
+
+                            $destinationRealPath = realpath(
+                                $destinationFullPath
+                            );
+
+                            $samePath = (
+                                $sourceRealPath !== false &&
+                                $destinationRealPath !== false &&
+                                $sourceRealPath === $destinationRealPath
+                            );
+
+                            if (
+                                !$samePath &&
+                                !File::exists($destinationFullPath)
+                            ) {
+                                if (
+                                    !File::copy(
+                                        $tempFullPath,
+                                        $destinationFullPath
+                                    )
+                                ) {
+                                    continue;
+                                }
+                            }
+
+                            if (!File::exists($destinationFullPath)) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 11. UPDATE PROPRIETOR DOCUMENT FIELD
+                            // ==========================================
+
+                            $proprietor->{$proprietorColumn} =
+                                rtrim(
+                                    $destinationRelativePath,
+                                    '/\\'
+                                ) . '/' . $tempDoc->file_name;
+
+                            $proprietor->row_index = $rowIndex;
+                            $proprietor->ownership_count = $rowIndex;
+
+                            if (!$proprietor->save()) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 12. MARK TEMP DOCUMENT AS PROCESSED
+                            // ==========================================
+
+                            DB::table('tnelb_temp_uploaded_documents')
+                                ->where('id', $tempDoc->id)
+                                ->update([
+                                    'is_final' => 1,
+
+                                    'moved_as' => $request->input(
+                                        'form_action'
+                                    ),
+
+                                    'record_id_app' => $applicationId,
+
+                                    'updated_at' => now(),
+                                ]);
+                        }
+                    }
+                }
+
+                // ==========================================
+                // 13. INCREMENT ROW COUNT
+                // ==========================================
+
+                $count++;
+            }
+
+            // ==========================================
+            // 14. DEACTIVATE REMOVED PROPRIETORS
+            // ==========================================
+
+            $deactivateQuery = ProprietorformA::where(
+                'application_id',
+                $applicationId
+            )
+                ->where('ownership_type', 'pr')
+                ->where('proprietor_flag', 1);
+
+            if (!empty($newProprietorIds)) {
+                $deactivateQuery->whereNotIn(
+                    'id',
+                    $newProprietorIds
+                );
+            }
+
+            $deactivateQuery->update([
+                'proprietor_flag' => 0,
+            ]);
+        }
 
 
-            // Partners
-            // dd($request->all()); exit;
+
+        // Partners
+        // dd($request->all()); exit;
 
 
+        $newPartnerIds = [];
+
+        if ($request->exists('partners')) {
+            // dd('partners'); exit;
+            $count = 1;
             $newPartnerIds = [];
 
-            if ($request->exists('partners')) {
-                // dd('partners'); exit;
-                $count = 1;
-                $newPartnerIds = [];
+            // ==========================================
+            // 1. GET PARTNER NAMES SAFELY
+            // ==========================================
 
-                // ==========================================
-                // 1. GET PARTNER NAMES SAFELY
-                // ==========================================
+            $partnerNames = $request->input('partner_name', []);
 
-                $partnerNames = $request->input('partner_name', []);
-
-                if (!is_array($partnerNames)) {
-                    $partnerNames = [];
-                }
-
-                // Fallback: retrieve names from the partners JSON if needed
-                if (
-                    empty(array_filter($partnerNames, function ($name) {
-                        return trim((string) $name) !== '';
-                    }))
-                ) {
-                    $partnersJson = $request->input('partners', '[]');
-
-                    $partnersData = json_decode($partnersJson, true);
-
-                    if (is_array($partnersData)) {
-                        $partnerNames = [];
-
-                        foreach ($partnersData as $index => $partnerRow) {
-                            $partnerNames[$index] = $partnerRow['proprietor_name'] ?? '';
-                        }
-                    }
-                }
-                // dd($partnerNames); exit;
-                if (!is_array($partnerNames)) {
-                    $partnerNames = [];
-                }
-
-                // ==========================================
-                // 2. PROCESS REMAINING PARTNER ROWS
-                // ==========================================
-
-                foreach ($partnerNames as $index => $name) {
-
-                    // Skip empty partner rows
-                    if (
-                        empty($name) ||
-                        strtolower(trim((string) $name)) === 'undefined' ||
-                        strtolower(trim((string) $name)) === 'null'
-                    ) {
-                        continue;
-                    }
-
-                    // ==========================================
-                    // 3. GET CURRENT PARTNER DATA
-                    // ==========================================
-
-                    $competencyHolding = data_get(
-                        $request->partner_competency,
-                        $index
-                    );
-
-                    $partnerId = data_get(
-                        $request->partner_id,
-                        $index
-                    );
-
-                    $rowIndex = $count;
-
-                    // ==========================================
-                    // 4. PREPARE PARTNER DATA
-                    // ==========================================
-
-                    $data = [
-                        'login_id' => $request->login_id_store,
-                        'application_id' => $applicationId,
-                        'proprietor_name' => strtoupper(trim($name)),
-                        'ownership_type' => 'pt',
-
-                        'proprietor_address' => strtoupper(
-                            data_get(
-                                $request->partner_proprietor_address,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'dob' => data_get(
-                            $request->partner_dob,
-                            $index
-                        ),
-
-                        'age' => data_get(
-                            $request->partner_age,
-                            $index
-                        ),
-
-                        'qualification' => strtoupper(
-                            data_get(
-                                $request->partner_qualification,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'qualification_text' => strtoupper(
-                            data_get(
-                                $request->partner_qual_text,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'fathers_name' => strtoupper(
-                            data_get(
-                                $request->partner_fathers_name,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'present_business' => strtoupper(
-                            data_get(
-                                $request->partner_present_business,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'educational_proof' => data_get(
-                            $request->partner_qual_proof,
-                            $index
-                        ),
-
-                        'age_proof' => data_get(
-                            $request->partner_age_proof,
-                            $index
-                        ),
-
-                        // Competency certificate
-                        'competency_certificate_holding' => $competencyHolding,
-
-                        'competency_certificate_number' =>
-                        $competencyHolding === 'yes'
-                            ? strtoupper(
-                                data_get(
-                                    $request->partner_competency_certno,
-                                    $index,
-                                    ''
-                                )
-                            )
-                            : null,
-
-                        'competency_certificate_first_issue' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->partner_ccfirstissue,
-                                $index
-                            )
-                            : null,
-
-                        'competency_certificate_validity_from' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->partner_ccvalidityfrom,
-                                $index
-                            )
-                            : null,
-
-                        'competency_certificate_validity_to' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->partner_ccvalidityto,
-                                $index
-                            )
-                            : null,
-
-                        'proprietor_flag' => 1,
-                        'ownership_count' => $rowIndex,
-                        'row_index' => $rowIndex,
-                        'created_at' => now(),
-                    ];
-
-
-                    // dd($data); exit;
-
-                    // ==========================================
-                    // 5. FIND EXISTING PARTNER USING DATABASE ID
-                    // ==========================================
-
-                    $partner = null;
-
-                    if (
-                        !empty($partnerId) &&
-                        is_numeric($partnerId)
-                    ) {
-                        $partner = ProprietorformA::where(
-                            'id',
-                            $partnerId
-                        )
-                            ->where('application_id', $applicationId)
-                            ->where('ownership_type', 'pt')
-                            ->first();
-                    }
-
-                    // ==========================================
-                    // 6. UPDATE EXISTING OR CREATE NEW PARTNER
-                    // ==========================================
-
-                    if ($partner) {
-                        $partner->update($data);
-                    } else {
-                        $partner = ProprietorformA::create($data);
-                    }
-
-                    // Save partner row information
-                    $partner->row_index = $rowIndex;
-                    $partner->ownership_count = $rowIndex;
-                    $partner->proprietor_flag = 1;
-                    $partner->save();
-
-                    // Store actual database ID
-                    $newPartnerIds[] = $partner->id;
-
-                    // ==========================================
-                    // 7. PROCESS TEMPORARY DOCUMENTS
-                    // ==========================================
-
-                    if (
-                        $rowIndex >= 1 &&
-                        (int) $partner->row_index === $rowIndex
-                    ) {
-
-                        $documentCategories = [
-                            'educ_qual_proof' => 'educational_proof',
-                            'age_proof'       => 'age_proof',
-                        ];
-
-                        foreach (
-                            $documentCategories as $category => $partnerColumn
-                        ) {
-
-                            $tempDocs = DB::table(
-                                'tnelb_temp_uploaded_documents'
-                            )
-                                ->where(
-                                    'login_id',
-                                    $request->login_id_store
-                                )
-                                ->where(
-                                    'form_name',
-                                    $request->form_name
-                                )
-                                ->where(
-                                    'application_id',
-                                    $sessionId
-                                )
-                                ->where(
-                                    'license_name',
-                                    $request->license_name
-                                )
-                                ->where(
-                                    'document_category',
-                                    $category
-                                )
-                                ->where(
-                                    'ownership_type',
-                                    'pt'
-                                )
-                                ->where(
-                                    'appl_type',
-                                    trim(
-                                        (string) $request->input(
-                                            'appl_type',
-                                            ''
-                                        )
-                                    )
-                                )
-                                ->where('row_index', $rowIndex)
-                                ->get();
-
-                            foreach ($tempDocs as $tempDoc) {
-
-                                // Verify row index
-                                if (
-                                    !is_numeric($tempDoc->row_index) ||
-                                    (int) $tempDoc->row_index !== $rowIndex ||
-                                    (int) $partner->row_index !== $rowIndex
-                                ) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 8. RESOLVE DESTINATION PATH
-                                // ==========================================
-
-                                $dynamicRequest = clone $request;
-
-                                $dynamicRequest->merge([
-                                    'module' => $tempDoc->module,
-                                ]);
-
-                                $pathData = DocPathController::getPath(
-                                    $dynamicRequest
-                                );
-
-                                $destinationRelativePath =
-                                    $pathData->filepath_pro;
-
-                                $destinationFolder = public_path(
-                                    rtrim(
-                                        $destinationRelativePath,
-                                        '/\\'
-                                    ) . DIRECTORY_SEPARATOR
-                                );
-
-                                if (!File::exists($destinationFolder)) {
-                                    File::makeDirectory(
-                                        $destinationFolder,
-                                        0755,
-                                        true
-                                    );
-                                }
-
-                                // ==========================================
-                                // 9. CHECK TEMPORARY FILE
-                                // ==========================================
-
-                                $sourceRelativePath = rtrim(
-                                    $tempDoc->file_path,
-                                    '/\\'
-                                ) . DIRECTORY_SEPARATOR . $tempDoc->file_name;
-
-                                $tempFullPath = public_path(
-                                    $sourceRelativePath
-                                );
-
-                                if (!File::exists($tempFullPath)) {
-                                    continue;
-                                }
-
-                                $destinationFullPath = $destinationFolder
-                                    . $tempDoc->file_name;
-
-                                // ==========================================
-                                // 10. COPY FILE IF REQUIRED
-                                // ==========================================
-
-                                $sourceRealPath = realpath($tempFullPath);
-
-                                $destinationRealPath = realpath(
-                                    $destinationFullPath
-                                );
-
-                                $samePath = (
-                                    $sourceRealPath !== false &&
-                                    $destinationRealPath !== false &&
-                                    $sourceRealPath === $destinationRealPath
-                                );
-
-                                if (
-                                    !$samePath &&
-                                    !File::exists($destinationFullPath)
-                                ) {
-                                    if (
-                                        !File::copy(
-                                            $tempFullPath,
-                                            $destinationFullPath
-                                        )
-                                    ) {
-                                        continue;
-                                    }
-                                }
-
-                                if (!File::exists($destinationFullPath)) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 11. UPDATE PARTNER DOCUMENT FIELD
-                                // ==========================================
-
-                                $partner->{$partnerColumn} =
-                                    rtrim(
-                                        $destinationRelativePath,
-                                        '/\\'
-                                    ) . '/' . $tempDoc->file_name;
-
-                                $partner->row_index = $rowIndex;
-
-                                if (!$partner->save()) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 12. MARK TEMP DOCUMENT AS PROCESSED
-                                // ==========================================
-
-                                DB::table('tnelb_temp_uploaded_documents')
-                                    ->where('id', $tempDoc->id)
-                                    ->update([
-                                        'is_final' => 1,
-
-                                        'moved_as' => $request->input(
-                                            'form_action'
-                                        ),
-
-                                        'application_id' => $applicationId,
-
-                                        'updated_at' => now(),
-                                    ]);
-                            }
-                        }
-                    }
-
-                    // ==========================================
-                    // 13. INCREMENT ROW COUNT
-                    // ==========================================
-
-                    $count++;
-                }
-
-                // ==========================================
-                // 14. DEACTIVATE REMOVED PARTNERS
-                // ==========================================
-
-                // $deactivateQuery = ProprietorformA::where(
-                //     'application_id',
-                //     $applicationId
-                // )
-                //     ->where('ownership_type', 'pt')
-                //     ->where('proprietor_flag', 1);
-
-                // if (!empty($newPartnerIds)) {
-                //     $deactivateQuery->whereNotIn(
-                //         'id',
-                //         $newPartnerIds
-                //     );
-                // }
-
-                // $deactivateQuery->update([
-                //     'proprietor_flag' => 0,
-                // ]);
-
-                // Deactivate only existing active partners absent from this submission
-                $deactivateQuery = ProprietorformA::where(
-                    'application_id',
-                    $applicationId
-                )
-                    ->where('ownership_type', 'pt')
-                    ->where('proprietor_flag', 1);
-
-                if (!empty($newPartnerIds)) {
-                    $deactivateQuery->whereNotIn('id', $newPartnerIds);
-                }
-
-                $deactivateQuery->update([
-                    'proprietor_flag' => 0,
-                ]);
+            if (!is_array($partnerNames)) {
+                $partnerNames = [];
             }
 
+            // Fallback: retrieve names from the partners JSON if needed
+            if (
+                empty(array_filter($partnerNames, function ($name) {
+                    return trim((string) $name) !== '';
+                }))
+            ) {
+                $partnersJson = $request->input('partners', '[]');
 
-            // ----------------director------------------------
+                $partnersData = json_decode($partnersJson, true);
 
+                if (is_array($partnersData)) {
+                    $partnerNames = [];
 
+                    foreach ($partnersData as $index => $partnerRow) {
+                        $partnerNames[$index] = $partnerRow['proprietor_name'] ?? '';
+                    }
+                }
+            }
+            // dd($partnerNames); exit;
+            if (!is_array($partnerNames)) {
+                $partnerNames = [];
+            }
 
             // ==========================================
-            // DIRECTORS
+            // 2. PROCESS REMAINING PARTNER ROWS
             // ==========================================
 
+            foreach ($partnerNames as $index => $name) {
+
+                // Skip empty partner rows
+                if (
+                    empty($name) ||
+                    strtolower(trim((string) $name)) === 'undefined' ||
+                    strtolower(trim((string) $name)) === 'null'
+                ) {
+                    continue;
+                }
+
+                // ==========================================
+                // 3. GET CURRENT PARTNER DATA
+                // ==========================================
+
+                $competencyHolding = data_get(
+                    $request->partner_competency,
+                    $index
+                );
+
+                $partnerId = data_get(
+                    $request->partner_id,
+                    $index
+                );
+
+                $rowIndex = $count;
+
+                // ==========================================
+                // 4. PREPARE PARTNER DATA
+                // ==========================================
+
+                $data = [
+                    'login_id' => $request->login_id_store,
+                    'application_id' => $applicationId,
+                    'proprietor_name' => strtoupper(trim($name)),
+                    'ownership_type' => 'pt',
+
+                    'proprietor_address' => strtoupper(
+                        data_get(
+                            $request->partner_proprietor_address,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'dob' => data_get(
+                        $request->partner_dob,
+                        $index
+                    ),
+
+                    'age' => data_get(
+                        $request->partner_age,
+                        $index
+                    ),
+
+                    'qualification' => strtoupper(
+                        data_get(
+                            $request->partner_qualification,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'qualification_text' => strtoupper(
+                        data_get(
+                            $request->partner_qual_text,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'fathers_name' => strtoupper(
+                        data_get(
+                            $request->partner_fathers_name,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'present_business' => strtoupper(
+                        data_get(
+                            $request->partner_present_business,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'educational_proof' => data_get(
+                        $request->partner_qual_proof,
+                        $index
+                    ),
+
+                    'age_proof' => data_get(
+                        $request->partner_age_proof,
+                        $index
+                    ),
+
+                    // Competency certificate
+                    'competency_certificate_holding' => $competencyHolding,
+
+                    'competency_certificate_number' =>
+                    $competencyHolding === 'yes'
+                        ? strtoupper(
+                            data_get(
+                                $request->partner_competency_certno,
+                                $index,
+                                ''
+                            )
+                        )
+                        : null,
+
+                    'competency_certificate_first_issue' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->partner_ccfirstissue,
+                            $index
+                        )
+                        : null,
+
+                    'competency_certificate_validity_from' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->partner_ccvalidityfrom,
+                            $index
+                        )
+                        : null,
+
+                    'competency_certificate_validity_to' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->partner_ccvalidityto,
+                            $index
+                        )
+                        : null,
+
+                    'proprietor_flag' => 1,
+                    'ownership_count' => $rowIndex,
+                    'row_index' => $rowIndex,
+                    'created_at' => now(),
+                ];
+
+
+                // dd($data); exit;
+
+                // ==========================================
+                // 5. FIND EXISTING PARTNER USING DATABASE ID
+                // ==========================================
+
+                $partner = null;
+
+                if (
+                    !empty($partnerId) &&
+                    is_numeric($partnerId)
+                ) {
+                    $partner = ProprietorformA::where(
+                        'id',
+                        $partnerId
+                    )
+                        ->where('application_id', $applicationId)
+                        ->where('ownership_type', 'pt')
+                        ->first();
+                }
+
+                // ==========================================
+                // 6. UPDATE EXISTING OR CREATE NEW PARTNER
+                // ==========================================
+
+                if ($partner) {
+                    $partner->update($data);
+                } else {
+                    $partner = ProprietorformA::create($data);
+                }
+
+                // Save partner row information
+                $partner->row_index = $rowIndex;
+                $partner->ownership_count = $rowIndex;
+                $partner->proprietor_flag = 1;
+                $partner->save();
+
+                // Store actual database ID
+                $newPartnerIds[] = $partner->id;
+
+                // ==========================================
+                // 7. PROCESS TEMPORARY DOCUMENTS
+                // ==========================================
+
+                if (
+                    $rowIndex >= 1 &&
+                    (int) $partner->row_index === $rowIndex
+                ) {
+
+                    $documentCategories = [
+                        'educ_qual_proof' => 'educational_proof',
+                        'age_proof'       => 'age_proof',
+                    ];
+
+                    foreach (
+                        $documentCategories as $category => $partnerColumn
+                    ) {
+
+                        $tempDocs = DB::table(
+                            'tnelb_temp_uploaded_documents'
+                        )
+                            ->where(
+                                'login_id',
+                                $request->login_id_store
+                            )
+                            ->where(
+                                'form_name',
+                                $request->form_name
+                            )
+                            ->where(
+                                'application_id',
+                                $sessionId
+                            )
+                            ->where(
+                                'license_name',
+                                $request->license_name
+                            )
+                            ->where(
+                                'document_category',
+                                $category
+                            )
+                            ->where(
+                                'ownership_type',
+                                'pt'
+                            )
+                            ->where(
+                                'appl_type',
+                                trim(
+                                    (string) $request->input(
+                                        'appl_type',
+                                        ''
+                                    )
+                                )
+                            )
+                            ->where('row_index', $rowIndex)
+                            ->get();
+
+                        foreach ($tempDocs as $tempDoc) {
+
+                            // Verify row index
+                            if (
+                                !is_numeric($tempDoc->row_index) ||
+                                (int) $tempDoc->row_index !== $rowIndex ||
+                                (int) $partner->row_index !== $rowIndex
+                            ) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 8. RESOLVE DESTINATION PATH
+                            // ==========================================
+
+                            $dynamicRequest = clone $request;
+
+                            $dynamicRequest->merge([
+                                'module' => $tempDoc->module,
+                            ]);
+
+                            $pathData = DocPathController::getPath(
+                                $dynamicRequest
+                            );
+
+                            $destinationRelativePath =
+                                $pathData->filepath_pro;
+
+                            $destinationFolder = public_path(
+                                rtrim(
+                                    $destinationRelativePath,
+                                    '/\\'
+                                ) . DIRECTORY_SEPARATOR
+                            );
+
+                            if (!File::exists($destinationFolder)) {
+                                File::makeDirectory(
+                                    $destinationFolder,
+                                    0755,
+                                    true
+                                );
+                            }
+
+                            // ==========================================
+                            // 9. CHECK TEMPORARY FILE
+                            // ==========================================
+
+                            $sourceRelativePath = rtrim(
+                                $tempDoc->file_path,
+                                '/\\'
+                            ) . DIRECTORY_SEPARATOR . $tempDoc->file_name;
+
+                            $tempFullPath = public_path(
+                                $sourceRelativePath
+                            );
+
+                            if (!File::exists($tempFullPath)) {
+                                continue;
+                            }
+
+                            $destinationFullPath = $destinationFolder
+                                . $tempDoc->file_name;
+
+                            // ==========================================
+                            // 10. COPY FILE IF REQUIRED
+                            // ==========================================
+
+                            $sourceRealPath = realpath($tempFullPath);
+
+                            $destinationRealPath = realpath(
+                                $destinationFullPath
+                            );
+
+                            $samePath = (
+                                $sourceRealPath !== false &&
+                                $destinationRealPath !== false &&
+                                $sourceRealPath === $destinationRealPath
+                            );
+
+                            if (
+                                !$samePath &&
+                                !File::exists($destinationFullPath)
+                            ) {
+                                if (
+                                    !File::copy(
+                                        $tempFullPath,
+                                        $destinationFullPath
+                                    )
+                                ) {
+                                    continue;
+                                }
+                            }
+
+                            if (!File::exists($destinationFullPath)) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 11. UPDATE PARTNER DOCUMENT FIELD
+                            // ==========================================
+
+                            $partner->{$partnerColumn} =
+                                rtrim(
+                                    $destinationRelativePath,
+                                    '/\\'
+                                ) . '/' . $tempDoc->file_name;
+
+                            $partner->row_index = $rowIndex;
+
+                            if (!$partner->save()) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 12. MARK TEMP DOCUMENT AS PROCESSED
+                            // ==========================================
+
+                            DB::table('tnelb_temp_uploaded_documents')
+                                ->where('id', $tempDoc->id)
+                                ->update([
+                                    'is_final' => 1,
+
+                                    'moved_as' => $request->input(
+                                        'form_action'
+                                    ),
+
+                                    'application_id' => $applicationId,
+
+                                    'updated_at' => now(),
+                                ]);
+                        }
+                    }
+                }
+
+                // ==========================================
+                // 13. INCREMENT ROW COUNT
+                // ==========================================
+
+                $count++;
+            }
+
+            // ==========================================
+            // 14. DEACTIVATE REMOVED PARTNERS
+            // ==========================================
+
+            // $deactivateQuery = ProprietorformA::where(
+            //     'application_id',
+            //     $applicationId
+            // )
+            //     ->where('ownership_type', 'pt')
+            //     ->where('proprietor_flag', 1);
+
+            // if (!empty($newPartnerIds)) {
+            //     $deactivateQuery->whereNotIn(
+            //         'id',
+            //         $newPartnerIds
+            //     );
+            // }
+
+            // $deactivateQuery->update([
+            //     'proprietor_flag' => 0,
+            // ]);
+
+            // Deactivate only existing active partners absent from this submission
+            $deactivateQuery = ProprietorformA::where(
+                'application_id',
+                $applicationId
+            )
+                ->where('ownership_type', 'pt')
+                ->where('proprietor_flag', 1);
+
+            if (!empty($newPartnerIds)) {
+                $deactivateQuery->whereNotIn('id', $newPartnerIds);
+            }
+
+            $deactivateQuery->update([
+                'proprietor_flag' => 0,
+            ]);
+        }
+
+
+        // ----------------director------------------------
+
+
+
+        // ==========================================
+        // DIRECTORS
+        // ==========================================
+
+        $newdirectorIds = [];
+
+        if ($request->exists('directors')) {
+            // dd('directors'); exit;
+            $count = 1;
             $newdirectorIds = [];
 
-            if ($request->exists('directors')) {
-                // dd('directors'); exit;
-                $count = 1;
-                $newdirectorIds = [];
+            // ==========================================
+            // 1. GET DIRECTOR NAMES SAFELY
+            // ==========================================
 
-                // ==========================================
-                // 1. GET DIRECTOR NAMES SAFELY
-                // ==========================================
+            $directorNames = $request->input('director_name', []);
 
-                $directorNames = $request->input('director_name', []);
+            if (!is_array($directorNames)) {
+                $directorNames = [];
+            }
 
-                if (!is_array($directorNames)) {
+            // Fallback: retrieve names from the directors JSON if needed
+            if (
+                empty(array_filter($directorNames, function ($name) {
+                    return trim((string) $name) !== '';
+                }))
+            ) {
+                $directorsJson = $request->input('directors', '[]');
+
+                $directorsData = json_decode($directorsJson, true);
+
+                if (is_array($directorsData)) {
                     $directorNames = [];
-                }
 
-                // Fallback: retrieve names from the directors JSON if needed
+                    foreach ($directorsData as $index => $directorRow) {
+                        $directorNames[$index] = $directorRow['proprietor_name'] ?? '';
+                    }
+                }
+            }
+
+            // ==========================================
+            // 2. PROCESS DIRECTOR ROWS
+            // ==========================================
+
+            foreach ($directorNames as $index => $name) {
+
+                // Skip empty director rows
                 if (
-                    empty(array_filter($directorNames, function ($name) {
-                        return trim((string) $name) !== '';
-                    }))
+                    empty(trim((string) $name)) ||
+                    strtolower(trim((string) $name)) === 'undefined' ||
+                    strtolower(trim((string) $name)) === 'null'
                 ) {
-                    $directorsJson = $request->input('directors', '[]');
-
-                    $directorsData = json_decode($directorsJson, true);
-
-                    if (is_array($directorsData)) {
-                        $directorNames = [];
-
-                        foreach ($directorsData as $index => $directorRow) {
-                            $directorNames[$index] = $directorRow['proprietor_name'] ?? '';
-                        }
-                    }
+                    continue;
                 }
 
                 // ==========================================
-                // 2. PROCESS DIRECTOR ROWS
+                // 3. GET CURRENT DIRECTOR DATA
                 // ==========================================
 
-                foreach ($directorNames as $index => $name) {
+                $rowIndex = $count;
 
-                    // Skip empty director rows
-                    if (
-                        empty(trim((string) $name)) ||
-                        strtolower(trim((string) $name)) === 'undefined' ||
-                        strtolower(trim((string) $name)) === 'null'
-                    ) {
-                        continue;
-                    }
+                $directorId = data_get(
+                    $request->director_id,
+                    $index
+                );
 
-                    // ==========================================
-                    // 3. GET CURRENT DIRECTOR DATA
-                    // ==========================================
+                $competencyHolding = data_get(
+                    $request->director_competency,
+                    $index,
+                    'no'
+                );
 
-                    $rowIndex = $count;
+                // ==========================================
+                // 4. PREPARE DIRECTOR DATA
+                // ==========================================
 
-                    $directorId = data_get(
-                        $request->director_id,
+                $data = [
+                    'login_id' => $request->login_id_store,
+                    'application_id' => $applicationId,
+
+                    'proprietor_name' => strtoupper(trim($name)),
+                    'ownership_type' => 'dr',
+
+                    'managing_director' => strtoupper(
+                        data_get(
+                            $request->director_managing_director,
+                            $index,
+                            'NO'
+                        )
+                    ),
+
+                    'fathers_name' => strtoupper(
+                        data_get(
+                            $request->director_fathers_name,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'proprietor_address' => strtoupper(
+                        data_get(
+                            $request->director_proprietor_address,
+                            $index,
+                            ''
+                        )
+                    ),
+
+                    'dob' => data_get(
+                        $request->director_dob,
                         $index
-                    );
+                    ),
 
-                    $competencyHolding = data_get(
-                        $request->director_competency,
-                        $index,
-                        'no'
-                    );
+                    'age' => data_get(
+                        $request->director_age,
+                        $index
+                    ),
 
-                    // ==========================================
-                    // 4. PREPARE DIRECTOR DATA
-                    // ==========================================
+                    'qualification' => strtoupper(
+                        data_get(
+                            $request->director_qualification,
+                            $index,
+                            ''
+                        )
+                    ),
 
-                    $data = [
-                        'login_id' => $request->login_id_store,
-                        'application_id' => $applicationId,
+                    'qualification_text' => strtoupper(
+                        data_get(
+                            $request->director_qual_text,
+                            $index,
+                            ''
+                        )
+                    ),
 
-                        'proprietor_name' => strtoupper(trim($name)),
-                        'ownership_type' => 'dr',
+                    'present_business' => strtoupper(
+                        data_get(
+                            $request->director_present_business,
+                            $index,
+                            ''
+                        )
+                    ),
 
-                        'managing_director' => strtoupper(
+                    // Director educational and age proof fields
+                    'educational_proof' => data_get(
+                        $request->director_qual_proof,
+                        $index
+                    ),
+
+                    'age_proof' => data_get(
+                        $request->director_age_proof,
+                        $index
+                    ),
+
+                    // Competency certificate
+                    'competency_certificate_holding' => $competencyHolding,
+
+                    'competency_certificate_number' =>
+                    $competencyHolding === 'yes'
+                        ? strtoupper(
                             data_get(
-                                $request->director_managing_director,
-                                $index,
-                                'NO'
-                            )
-                        ),
-
-                        'fathers_name' => strtoupper(
-                            data_get(
-                                $request->director_fathers_name,
+                                $request->director_competency_certno,
                                 $index,
                                 ''
                             )
-                        ),
+                        )
+                        : null,
 
-                        'proprietor_address' => strtoupper(
-                            data_get(
-                                $request->director_proprietor_address,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'dob' => data_get(
-                            $request->director_dob,
+                    'competency_certificate_first_issue' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->director_ccfirstissue,
                             $index
-                        ),
+                        )
+                        : null,
 
-                        'age' => data_get(
-                            $request->director_age,
+                    'competency_certificate_validity_from' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->director_ccvalidityfrom,
                             $index
-                        ),
+                        )
+                        : null,
 
-                        'qualification' => strtoupper(
-                            data_get(
-                                $request->director_qualification,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'qualification_text' => strtoupper(
-                            data_get(
-                                $request->director_qual_text,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        'present_business' => strtoupper(
-                            data_get(
-                                $request->director_present_business,
-                                $index,
-                                ''
-                            )
-                        ),
-
-                        // Director educational and age proof fields
-                        'educational_proof' => data_get(
-                            $request->director_qual_proof,
+                    'competency_certificate_validity_to' =>
+                    $competencyHolding === 'yes'
+                        ? data_get(
+                            $request->director_ccvalidityto,
                             $index
-                        ),
+                        )
+                        : null,
 
-                        'age_proof' => data_get(
-                            $request->director_age_proof,
-                            $index
-                        ),
+                    'proprietor_flag' => 1,
+                    'ownership_count' => $rowIndex,
+                    'row_index' => $rowIndex,
+                ];
 
-                        // Competency certificate
-                        'competency_certificate_holding' => $competencyHolding,
+                // ==========================================
+                // 5. FIND EXISTING DIRECTOR USING DATABASE ID
+                // ==========================================
 
-                        'competency_certificate_number' =>
-                        $competencyHolding === 'yes'
-                            ? strtoupper(
-                                data_get(
-                                    $request->director_competency_certno,
-                                    $index,
-                                    ''
-                                )
-                            )
-                            : null,
+                $director = null;
 
-                        'competency_certificate_first_issue' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->director_ccfirstissue,
-                                $index
-                            )
-                            : null,
+                if (
+                    !empty($directorId) &&
+                    is_numeric($directorId)
+                ) {
+                    $director = ProprietorformA::where(
+                        'id',
+                        $directorId
+                    )
+                        ->where('application_id', $applicationId)
+                        ->where('ownership_type', 'dr')
+                        ->first();
+                }
 
-                        'competency_certificate_validity_from' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->director_ccvalidityfrom,
-                                $index
-                            )
-                            : null,
+                // Fallback to existing director with the same row index
+                if (!$director) {
+                    $director = ProprietorformA::where(
+                        'application_id',
+                        $applicationId
+                    )
+                        ->where('ownership_type', 'dr')
+                        ->where('row_index', $rowIndex)
+                        ->first();
+                }
 
-                        'competency_certificate_validity_to' =>
-                        $competencyHolding === 'yes'
-                            ? data_get(
-                                $request->director_ccvalidityto,
-                                $index
-                            )
-                            : null,
+                // ==========================================
+                // 6. UPDATE EXISTING OR CREATE NEW DIRECTOR
+                // ==========================================
 
-                        'proprietor_flag' => 1,
-                        'ownership_count' => $rowIndex,
-                        'row_index' => $rowIndex,
+                if ($director) {
+
+                    // Do not overwrite original creation timestamp
+                    $director->update($data);
+                } else {
+
+                    $data['created_at'] = now();
+
+                    $director = ProprietorformA::create($data);
+                }
+
+                // Save director row information
+                $director->row_index = $rowIndex;
+                $director->ownership_count = $rowIndex;
+                $director->proprietor_flag = 1;
+                $director->save();
+
+                // Store actual database ID
+                $newdirectorIds[] = $director->id;
+
+                // ==========================================
+                // 7. PROCESS TEMPORARY DOCUMENTS
+                // ==========================================
+
+                if (
+                    $rowIndex >= 1 &&
+                    (int) $director->row_index === $rowIndex
+                ) {
+
+                    $documentCategories = [
+                        'educ_qual_proof' => 'educational_proof',
+                        'age_proof'       => 'age_proof',
                     ];
 
-                    // ==========================================
-                    // 5. FIND EXISTING DIRECTOR USING DATABASE ID
-                    // ==========================================
-
-                    $director = null;
-
-                    if (
-                        !empty($directorId) &&
-                        is_numeric($directorId)
-                    ) {
-                        $director = ProprietorformA::where(
-                            'id',
-                            $directorId
-                        )
-                            ->where('application_id', $applicationId)
-                            ->where('ownership_type', 'dr')
-                            ->first();
-                    }
-
-                    // Fallback to existing director with the same row index
-                    if (!$director) {
-                        $director = ProprietorformA::where(
-                            'application_id',
-                            $applicationId
-                        )
-                            ->where('ownership_type', 'dr')
-                            ->where('row_index', $rowIndex)
-                            ->first();
-                    }
-
-                    // ==========================================
-                    // 6. UPDATE EXISTING OR CREATE NEW DIRECTOR
-                    // ==========================================
-
-                    if ($director) {
-
-                        // Do not overwrite original creation timestamp
-                        $director->update($data);
-                    } else {
-
-                        $data['created_at'] = now();
-
-                        $director = ProprietorformA::create($data);
-                    }
-
-                    // Save director row information
-                    $director->row_index = $rowIndex;
-                    $director->ownership_count = $rowIndex;
-                    $director->proprietor_flag = 1;
-                    $director->save();
-
-                    // Store actual database ID
-                    $newdirectorIds[] = $director->id;
-
-                    // ==========================================
-                    // 7. PROCESS TEMPORARY DOCUMENTS
-                    // ==========================================
-
-                    if (
-                        $rowIndex >= 1 &&
-                        (int) $director->row_index === $rowIndex
+                    foreach (
+                        $documentCategories as $category => $directorColumn
                     ) {
 
-                        $documentCategories = [
-                            'educ_qual_proof' => 'educational_proof',
-                            'age_proof'       => 'age_proof',
-                        ];
-
-                        foreach (
-                            $documentCategories as $category => $directorColumn
-                        ) {
-
-                            $tempDocs = DB::table(
-                                'tnelb_temp_uploaded_documents'
+                        $tempDocs = DB::table(
+                            'tnelb_temp_uploaded_documents'
+                        )
+                            ->where(
+                                'login_id',
+                                $request->login_id_store
                             )
-                                ->where(
-                                    'login_id',
-                                    $request->login_id_store
-                                )
-                                ->where(
-                                    'form_name',
-                                    $request->form_name
-                                )
-                                ->where(
-                                    'application_id',
-                                    $sessionId
-                                )
-                                ->where(
-                                    'license_name',
-                                    $request->license_name
-                                )
-                                ->where(
-                                    'document_category',
-                                    $category
-                                )
-                                ->where(
-                                    'ownership_type',
-                                    'dr'
-                                )
-                                ->where(
-                                    'appl_type',
-                                    trim(
-                                        (string) $request->input(
-                                            'appl_type',
-                                            ''
-                                        )
+                            ->where(
+                                'form_name',
+                                $request->form_name
+                            )
+                            ->where(
+                                'application_id',
+                                $sessionId
+                            )
+                            ->where(
+                                'license_name',
+                                $request->license_name
+                            )
+                            ->where(
+                                'document_category',
+                                $category
+                            )
+                            ->where(
+                                'ownership_type',
+                                'dr'
+                            )
+                            ->where(
+                                'appl_type',
+                                trim(
+                                    (string) $request->input(
+                                        'appl_type',
+                                        ''
                                     )
                                 )
-                                ->where('row_index', $rowIndex)
-                                ->get();
+                            )
+                            ->where('row_index', $rowIndex)
+                            ->get();
 
-                            foreach ($tempDocs as $tempDoc) {
+                        foreach ($tempDocs as $tempDoc) {
 
-                                // Verify row index
-                                if (
-                                    !is_numeric($tempDoc->row_index) ||
-                                    (int) $tempDoc->row_index !== $rowIndex ||
-                                    (int) $director->row_index !== $rowIndex
-                                ) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 8. RESOLVE DESTINATION PATH
-                                // ==========================================
-
-                                $dynamicRequest = clone $request;
-
-                                $dynamicRequest->merge([
-                                    'module' => $tempDoc->module,
-                                ]);
-
-                                $pathData = DocPathController::getPath(
-                                    $dynamicRequest
-                                );
-
-                                $destinationRelativePath =
-                                    $pathData->filepath_pro;
-
-                                $destinationFolder = public_path(
-                                    rtrim(
-                                        $destinationRelativePath,
-                                        '/\\'
-                                    ) . DIRECTORY_SEPARATOR
-                                );
-
-                                if (!File::exists($destinationFolder)) {
-
-                                    File::makeDirectory(
-                                        $destinationFolder,
-                                        0755,
-                                        true
-                                    );
-                                }
-
-                                // ==========================================
-                                // 9. CHECK TEMPORARY FILE
-                                // ==========================================
-
-                                $sourceRelativePath = rtrim(
-                                    $tempDoc->file_path,
-                                    '/\\'
-                                ) . DIRECTORY_SEPARATOR . $tempDoc->file_name;
-
-                                $tempFullPath = public_path(
-                                    $sourceRelativePath
-                                );
-
-                                if (!File::exists($tempFullPath)) {
-
-                                    \Log::warning(
-                                        'Director temporary document not found',
-                                        [
-                                            'temp_document_id' => $tempDoc->id,
-                                            'row_index' => $rowIndex,
-                                            'path' => $tempFullPath,
-                                        ]
-                                    );
-
-                                    continue;
-                                }
-
-                                $destinationFullPath = $destinationFolder
-                                    . $tempDoc->file_name;
-
-                                // ==========================================
-                                // 10. COPY FILE IF REQUIRED
-                                // ==========================================
-
-                                $sourceRealPath = realpath($tempFullPath);
-
-                                $destinationRealPath = realpath(
-                                    $destinationFullPath
-                                );
-
-                                $samePath = (
-                                    $sourceRealPath !== false &&
-                                    $destinationRealPath !== false &&
-                                    $sourceRealPath === $destinationRealPath
-                                );
-
-                                if (
-                                    !$samePath &&
-                                    !File::exists($destinationFullPath)
-                                ) {
-
-                                    if (
-                                        !File::copy(
-                                            $tempFullPath,
-                                            $destinationFullPath
-                                        )
-                                    ) {
-                                        continue;
-                                    }
-                                }
-
-                                if (!File::exists($destinationFullPath)) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 11. UPDATE DIRECTOR DOCUMENT FIELD
-                                // ==========================================
-
-                                $director->{$directorColumn} =
-                                    rtrim(
-                                        $destinationRelativePath,
-                                        '/\\'
-                                    ) . '/' . $tempDoc->file_name;
-
-                                $director->row_index = $rowIndex;
-                                $director->ownership_count = $rowIndex;
-
-                                if (!$director->save()) {
-                                    continue;
-                                }
-
-                                // ==========================================
-                                // 12. MARK TEMP DOCUMENT AS PROCESSED
-                                // ==========================================
-
-                                DB::table('tnelb_temp_uploaded_documents')
-                                    ->where('id', $tempDoc->id)
-                                    ->update([
-                                        'is_final' => 1,
-
-                                        'moved_as' => $request->input(
-                                            'form_action'
-                                        ),
-
-                                        'record_id_app' => $applicationId,
-
-                                        'updated_at' => now(),
-                                    ]);
+                            // Verify row index
+                            if (
+                                !is_numeric($tempDoc->row_index) ||
+                                (int) $tempDoc->row_index !== $rowIndex ||
+                                (int) $director->row_index !== $rowIndex
+                            ) {
+                                continue;
                             }
+
+                            // ==========================================
+                            // 8. RESOLVE DESTINATION PATH
+                            // ==========================================
+
+                            $dynamicRequest = clone $request;
+
+                            $dynamicRequest->merge([
+                                'module' => $tempDoc->module,
+                            ]);
+
+                            $pathData = DocPathController::getPath(
+                                $dynamicRequest
+                            );
+
+                            $destinationRelativePath =
+                                $pathData->filepath_pro;
+
+                            $destinationFolder = public_path(
+                                rtrim(
+                                    $destinationRelativePath,
+                                    '/\\'
+                                ) . DIRECTORY_SEPARATOR
+                            );
+
+                            if (!File::exists($destinationFolder)) {
+
+                                File::makeDirectory(
+                                    $destinationFolder,
+                                    0755,
+                                    true
+                                );
+                            }
+
+                            // ==========================================
+                            // 9. CHECK TEMPORARY FILE
+                            // ==========================================
+
+                            $sourceRelativePath = rtrim(
+                                $tempDoc->file_path,
+                                '/\\'
+                            ) . DIRECTORY_SEPARATOR . $tempDoc->file_name;
+
+                            $tempFullPath = public_path(
+                                $sourceRelativePath
+                            );
+
+                            if (!File::exists($tempFullPath)) {
+
+                                \Log::warning(
+                                    'Director temporary document not found',
+                                    [
+                                        'temp_document_id' => $tempDoc->id,
+                                        'row_index' => $rowIndex,
+                                        'path' => $tempFullPath,
+                                    ]
+                                );
+
+                                continue;
+                            }
+
+                            $destinationFullPath = $destinationFolder
+                                . $tempDoc->file_name;
+
+                            // ==========================================
+                            // 10. COPY FILE IF REQUIRED
+                            // ==========================================
+
+                            $sourceRealPath = realpath($tempFullPath);
+
+                            $destinationRealPath = realpath(
+                                $destinationFullPath
+                            );
+
+                            $samePath = (
+                                $sourceRealPath !== false &&
+                                $destinationRealPath !== false &&
+                                $sourceRealPath === $destinationRealPath
+                            );
+
+                            if (
+                                !$samePath &&
+                                !File::exists($destinationFullPath)
+                            ) {
+
+                                if (
+                                    !File::copy(
+                                        $tempFullPath,
+                                        $destinationFullPath
+                                    )
+                                ) {
+                                    continue;
+                                }
+                            }
+
+                            if (!File::exists($destinationFullPath)) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 11. UPDATE DIRECTOR DOCUMENT FIELD
+                            // ==========================================
+
+                            $director->{$directorColumn} =
+                                rtrim(
+                                    $destinationRelativePath,
+                                    '/\\'
+                                ) . '/' . $tempDoc->file_name;
+
+                            $director->row_index = $rowIndex;
+                            $director->ownership_count = $rowIndex;
+
+                            if (!$director->save()) {
+                                continue;
+                            }
+
+                            // ==========================================
+                            // 12. MARK TEMP DOCUMENT AS PROCESSED
+                            // ==========================================
+
+                            DB::table('tnelb_temp_uploaded_documents')
+                                ->where('id', $tempDoc->id)
+                                ->update([
+                                    'is_final' => 1,
+
+                                    'moved_as' => $request->input(
+                                        'form_action'
+                                    ),
+
+                                    'record_id_app' => $applicationId,
+
+                                    'updated_at' => now(),
+                                ]);
                         }
                     }
-
-                    // ==========================================
-                    // 13. INCREMENT ROW COUNT
-                    // ==========================================
-
-                    $count++;
                 }
 
                 // ==========================================
-                // 14. DEACTIVATE REMOVED DIRECTORS
+                // 13. INCREMENT ROW COUNT
                 // ==========================================
 
-                $deactivateQuery = ProprietorformA::where(
-                    'application_id',
-                    $applicationId
-                )
-                    ->where('ownership_type', 'dr')
-                    ->where('proprietor_flag', 1);
-
-                if (!empty($newdirectorIds)) {
-                    $deactivateQuery->whereNotIn('id', $newdirectorIds);
-                }
-
-                $deactivateQuery->update([
-                    'proprietor_flag' => 0,
-                ]);
+                $count++;
             }
+
+            // ==========================================
+            // 14. DEACTIVATE REMOVED DIRECTORS
+            // ==========================================
+
+            $deactivateQuery = ProprietorformA::where(
+                'application_id',
+                $applicationId
+            )
+                ->where('ownership_type', 'dr')
+                ->where('proprietor_flag', 1);
+
+            if (!empty($newdirectorIds)) {
+                $deactivateQuery->whereNotIn('id', $newdirectorIds);
+            }
+
+            $deactivateQuery->update([
+                'proprietor_flag' => 0,
+            ]);
+        }
+
         }
 
         // ==========================================================
@@ -3682,11 +3304,10 @@ class ReturnapplicantController extends BaseController
         $dataToSave = $validatedData;
         $dataToSave['application_id'] = $applicationId;
         $dataToSave['login_id'] = $request->login_id_store;
-        // if ($request->appl_type === 'D') {
-        //     $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
-        // } else {
-        $dataToSave['payment_status'] = $isDraft ? 'draft' : 'paid';
-        // }
+       $dataToSave['payment_status'] = 'paid';
+
+       dd($dataToSave['payment_status']);exit;
+
         $dataToSave['application_status'] = 'P';
         // $dataToSave['created_at'] = now();
         $dataToSave['updated_at'] = DB::raw('NOW()');
