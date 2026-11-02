@@ -1260,20 +1260,18 @@
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
                                                                  - {{$applicant->previous_application_number}},
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }} ,
-                                                                     {{ \Carbon\Carbon::parse($applicant->previous_validity_first_issue)->format('d-m-Y') }},
+                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }},
+                                                                {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }} , 
+                                                                 {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }}
+
+
 
                                                                      {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }},
 
                                                                       {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }},
 
 
-
-                                                        <div class="row">
-
-
-
-                                                        <div class="col-lg-12 col-12 d-flex align-items-center">
+                                                           {{-- <div class="col-lg-12 col-12 d-flex align-items-center">
                                                             <div class="verify-result_EA "></div>  <!-- Result on left -->
                                                             <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                 data-license="{{ $applicant->previous_application_number }}"
@@ -1284,7 +1282,7 @@
                                                                 >
                                                                 Verify
                                                             </button>
-                                                        </div>
+                                                        </div> --}}
 
 
 
@@ -1786,92 +1784,72 @@
 
 
                                         <div class="col-lg-8">
-                                            <p><strong>8.The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern</strong></p>
+                                            <p><strong>8. The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern</strong></p>
                                         </div>
-                                        <div class="table-responsive">
+                                        <div class="col-lg-12">
+                                           <div class="table-responsive">
                                             <table class="table table-bordered">
-                                                <thead>
+                                            <thead>
+                                                <tr>
+                                                    <th>Name of Signatory</th>
+                                                    <th>Age of Signatory</th>
+                                                    <th>Qualification of Signatory</th>
+                                                    <th>Designation</th>
+                                                    <th>Specimen Signature</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                            @if ($authoritysignatory->count() > 0)
+
+                                                @foreach ($authoritysignatory as $index => $authority)
                                                     <tr>
-                                                        <th>Name of Signatory</th>
-                                                        <th>Age of Signatory</th>
-                                                        <th>Qualification of Signatory</th>
-                                                        <th>Designation</th>
-                                                        <th>Specimen Signature</th>
+                                                        <td>
+                                                            {{ $authority->name_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ $authority->age_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ $authority->qualification_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ $authority->designation_of_authorised_to_sign ?? '-' }}
+                                                        </td>
+
+                                                        <td>
+                                                            @if (!empty($authority->specimen_sign))
+                                                            <a href="{{ asset($authority->specimen_sign) }}"
+                                                                target="_blank"                                                                                                                             class="file_view fw-bold">
+                                                                                                                                <i class="fa fa-file-pdf-o"
+                                                                                                                                    style="color:red;"></i>
+                                                                                                                                View Document
+                                                                                                                            </a>
+                                                            @else
+                                                                <span class="text-muted">No document uploaded</span>
+                                                            @endif
+                                                        </td>
                                                     </tr>
-                                                </thead>
+                                                @endforeach
 
-                                                <tbody>
-                                                    @php
-                                                        $hasAuthorizedPersons = false;
-                                                    @endphp
-
-                                                    @forelse($authoritysignatory as $signatory)
-                                                        @php
-                                                            $authorizedPersons = json_decode(
-                                                                $signatory->name_of_authorised_to_sign ?? '[]', true
-                                                            ) ?? [];
-
-                                                            $authorizedage = json_decode(
-                                                                $signatory->age_of_authorised_to_sign ?? '[]', true
-                                                            ) ?? [];
-
-                                                            $authorizedqualify = json_decode(
-                                                                $signatory->qualification_of_authorised_to_sign ?? '[]', true
-                                                            ) ?? [];
-
-                                                            $designations = json_decode(
-                                                                $signatory->designation ?? '[]', true
-                                                            ) ?? [];
-
-                                                            $signatures = json_decode(
-                                                                $signatory->specimen_signature ?? '[]', true
-                                                            ) ?? [];
-                                                        @endphp
-
-                                                        @foreach($authorizedPersons as $index => $person)
-                                                            @php
-                                                                $hasAuthorizedPersons = true;
-                                                            @endphp
-
-                                                            <tr>
-                                                                <td>{{ strtoupper($person ?? '') }}</td>
-
-                                                                <td>{{ $authorizedage[$index] ?? '' }}</td>
-
-                                                                <td>{{ strtoupper($authorizedqualify[$index] ?? '') }}</td>
-
-                                                                <td>
-                                                                    {{ is_array($designations)
-                                                                        ? ($designations[$index] ?? '')
-                                                                        : ($signatory->designation ?? '') }}
-                                                                </td>
-
-                                                                <td>
-                                                                    @if(isset($signatures[$index]) && $signatures[$index])
-                                                                        <a href="{{ asset($signatures[$index]) }}"
-                                                                        target="_blank">View Signature</a>
-                                                                    @elseif(!empty($signatory->specimen_signature))
-                                                                        <a href="{{ asset($signatory->specimen_signature) }}"
-                                                                        target="_blank">View Signature</a>
-                                                                    @endif
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
-                                                    @empty
-                                                        <tr>
-                                                            <td colspan="5" class="text-center">No authorized persons</td>
-                                                        </tr>
-                                                    @endforelse
-
-                                                    @if($authoritysignatory->isNotEmpty() && !$hasAuthorizedPersons)
-                                                        <tr>
-                                                            <td colspan="5" class="text-center">No authorized persons</td>
-                                                        </tr>
-                                                    @endif
-                                                </tbody>
-                                            </table>
+                                            @else
+                                                <tr>
+                                                    <td colspan="5" class="text-center">
+                                                        No signatory records found.
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        </tbody>
+                                        </table>
+                                        </div>
                                         </div>
 
+
+
+                                               
 
 
                                     </div>
@@ -2029,11 +2007,20 @@
                                                     </div>
 
 
-                                                     <div class="col-lg-6">
+                                                    <div class="col-lg-6">
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p>{{ $applicant->amount }}</p>
+                                                    </div>
+
+                                                     <div class="col-lg-6">
+                                                        <p><strong>Total Amount</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        
+                                                            <p>{{ $applicant->amount }}.00</p>
+                                                        
                                                     </div>
 
                                                     @if ($applicant->late_fee > 0)

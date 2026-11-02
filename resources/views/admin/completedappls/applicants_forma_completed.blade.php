@@ -37,6 +37,881 @@
     .text-return{
         color: #6f42c1;
     }
+
+     /* Default (Unchecked = Red) */
+    .status-switch {
+        background-color: #645e5e !important;
+        border-color: #645e5e !important;
+        cursor: pointer;
+    }
+
+    /* Checked = Green */
+    .status-switch:checked {
+        background-color: #198754 !important;
+        border-color: #198754 !important;
+    }
+
+    /* Focus */
+    .status-switch:focus {
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    }
+
+    .checklist_chk .form-check-input:checked {
+        background-color: #4361ee !important;
+        border-color: #4361ee !important;
+    }
+
+    .dash-tl-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10050;
+        background: rgba(10, 24, 48, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0.85rem;
+        backdrop-filter: blur(2px);
+    }
+    .dash-tl-overlay.is-open {
+        display: flex;
+    }
+    .dash-tl-panel {
+        background: #eef3f9;
+        width: min(52rem, 96vw);
+        max-height: min(90vh, 46rem);
+        display: flex;
+        flex-direction: column;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        box-shadow: 0 1.1rem 2.8rem rgba(3, 90, 179, 0.22);
+    }
+    .dash-tl-header {
+        background: linear-gradient(135deg, #035ab3 0%, #0472d9 100%);
+        padding: 0.8rem 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .dash-tl-title {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.3;
+    }
+    .dash-tl-subtitle {
+        margin: 0.15rem 0 0;
+        font-size: 0.76rem;
+        color: rgba(255, 255, 255, 0.88);
+        word-break: break-word;
+    }
+    .dash-tl-close {
+        background: rgba(255, 255, 255, 0.14);
+        border: none;
+        color: #fff;
+        width: 2.15rem;
+        height: 2.15rem;
+        border-radius: 50%;
+        font-size: 1.3rem;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .dash-tl-close:hover,
+    .dash-tl-close:focus-visible {
+        background: rgba(255, 255, 255, 0.28);
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+    .dash-tl-body {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 1rem 1.1rem 1.2rem;
+        background: #eef3f9;
+    }
+    .dash-tl-loading {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-height: 10rem;
+        color: #035ab3;
+        font-weight: 600;
+        font-size: 0.88rem;
+    }
+    .dash-tl-loading.is-visible {
+        display: flex;
+    }
+    .dash-tl-footer {
+        display: none;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 0.75rem 1.1rem;
+        background: #fff;
+        border-top: 1px solid #d7e2f0;
+        flex-shrink: 0;
+    }
+    .dash-tl-overlay.is-approve .dash-tl-footer {
+        display: flex;
+    }
+    body.dash-tl-open {
+        overflow: hidden;
+    }
+
+    .staff-status-switch {
+    width: 45px !important;
+    height: 22px !important;
+    cursor: pointer;
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.staff-status-switch:checked {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+}
+
+.staff-status-switch {
+    width: 45px !important;
+    height: 22px !important;
+    cursor: pointer;
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+}
+
+.staff-status-switch:checked {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+}
+
+
+.approval-success-popup {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.20) !important;
+}
+
+
+/* -------------------------
+   HEADER
+------------------------- */
+
+.approval-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    padding: 22px 25px;
+
+    background: linear-gradient(
+        135deg,
+        #198754,
+        #157347
+    );
+
+    color: #fff;
+
+    text-align: left;
+}
+
+
+.success-icon {
+    width: 52px;
+    height: 52px;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.20);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 30px;
+    font-weight: bold;
+}
+
+
+.approval-title {
+    font-size: 21px;
+    font-weight: 700;
+}
+
+
+.approval-subtitle {
+    font-size: 13px;
+    opacity: .9;
+
+    margin-top: 4px;
+}
+
+
+/* -------------------------
+   MAIN DETAILS
+------------------------- */
+
+.details-section {
+    padding: 22px 25px 5px;
+
+    text-align: left;
+}
+
+
+.section-title {
+    font-size: 16px;
+    font-weight: 700;
+
+    color: #343a40;
+
+    margin-bottom: 12px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+.section-icon {
+    font-size: 18px;
+}
+
+
+.details-card {
+    border: 1px solid #dee2e6;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    background: #f8f9fa;
+}
+
+
+.detail-row {
+    display: flex;
+
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 14px 17px;
+
+    border-bottom: 1px solid #dee2e6;
+}
+
+
+.detail-row:last-child {
+    border-bottom: 0;
+}
+
+
+.detail-label {
+    color: #6c757d;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+.detail-value {
+    color: #212529;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    text-align: right;
+}
+
+
+.licence-number {
+    color: #198754;
+
+    font-size: 17px;
+
+    font-weight: 700;
+}
+
+
+.expiry-date {
+    color: #dc3545;
+
+    font-size: 16px;
+
+    font-weight: 700;
+}
+
+
+/* -------------------------
+   EXPIRY MESSAGE
+------------------------- */
+
+.expiry-message {
+    margin-top: 12px;
+
+    padding: 12px 15px;
+
+    background: #f1f8f4;
+
+    border: 1px solid #b7dfc8;
+
+    border-radius: 8px;
+
+    color: #146c43;
+
+    font-size: 13px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+.expiry-icon {
+    width: 24px;
+    height: 24px;
+
+    border-radius: 50%;
+
+    background: #198754;
+
+    color: #fff;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+}
+
+.approval-success-popup {
+
+    border-radius: 14px !important;
+
+    overflow: hidden !important;
+
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.20) !important;
+
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.approval-header {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 22px 26px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #198754,
+            #157347
+        );
+
+    color: #ffffff;
+
+    text-align: left;
+
+}
+
+
+.success-circle {
+
+    width: 52px;
+
+    height: 52px;
+
+    min-width: 52px;
+
+    border-radius: 50%;
+
+    background:
+        rgba(255, 255, 255, 0.20);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 30px;
+
+    font-weight: 700;
+
+}
+
+
+.approval-title {
+
+    font-size: 21px;
+
+    font-weight: 700;
+
+}
+
+
+.approval-subtitle {
+
+    font-size: 13px;
+
+    opacity: 0.90;
+
+    margin-top: 4px;
+
+}
+
+
+/* =========================================
+   LICENCE DETAILS
+========================================= */
+
+.licence-details {
+
+    padding: 22px 26px 8px;
+
+    text-align: left;
+
+}
+
+
+.section-heading {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    color: #343a40;
+
+    margin-bottom: 12px;
+
+}
+
+
+.heading-icon {
+
+    font-size: 18px;
+
+}
+
+
+.licence-card {
+
+    border: 1px solid #dee2e6;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+
+    background: #f8f9fa;
+
+}
+
+
+.detail-row {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 14px 18px;
+
+    border-bottom: 1px solid #dee2e6;
+
+}
+
+
+.detail-row:last-child {
+
+    border-bottom: none;
+
+}
+
+
+.detail-label {
+
+    color: #6c757d;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+}
+
+
+.detail-value {
+
+    color: #212529;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    text-align: right;
+
+}
+
+
+.licence-number {
+
+    color: #198754;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+}
+
+
+.expiry-date {
+
+    color: #dc3545;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+}
+
+
+/* =========================================
+   EXPIRY MESSAGE
+========================================= */
+
+.expiry-message {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    margin-top: 12px;
+
+    padding: 12px 15px;
+
+    background: #f1f8f4;
+
+    border: 1px solid #b7dfc8;
+
+    border-radius: 8px;
+
+    color: #146c43;
+
+    font-size: 13px;
+
+}
+
+
+.expiry-check {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 24px;
+
+    height: 24px;
+
+    min-width: 24px;
+
+    border-radius: 50%;
+
+    background: #198754;
+
+    color: #ffffff;
+
+    font-weight: 700;
+
+}
+
+
+/* =========================================
+   DIGITISATION CARD
+========================================= */
+
+.digitisation-card {
+
+    margin: 18px 26px 5px;
+
+    padding: 18px;
+
+    border: 1px solid #cfe2ff;
+
+    border-radius: 10px;
+
+    background: #f4f8ff;
+
+    text-align: left;
+
+}
+
+
+.digitisation-title {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    color: #0d6efd;
+
+    margin-bottom: 14px;
+
+}
+
+
+.digitisation-icon {
+
+    font-size: 19px;
+
+}
+
+
+/* =========================================
+   MAPPING
+========================================= */
+
+.mapping-wrapper {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 12px;
+
+}
+
+
+.mapping-item {
+
+    flex: 1;
+
+    padding: 15px 12px;
+
+    border-radius: 8px;
+
+    text-align: center;
+
+}
+
+
+.old-cl {
+
+    background: #fff3cd;
+
+    border: 1px solid #ffe69c;
+
+}
+
+
+.new-cl {
+
+    background: #d1e7dd;
+
+    border: 1px solid #a3cfbb;
+
+}
+
+
+.mapping-label {
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: .5px;
+
+    color: #6c757d;
+
+    margin-bottom: 7px;
+
+}
+
+
+.mapping-value {
+
+    font-size: 16px;
+
+    font-weight: 700;
+
+    word-break: break-word;
+
+}
+
+
+.old-cl .mapping-value {
+
+    color: #856404;
+
+}
+
+
+.new-cl .mapping-value {
+
+    color: #146c43;
+
+}
+
+
+.mapping-arrow {
+
+    font-size: 28px;
+
+    font-weight: 700;
+
+    color: #0d6efd;
+
+}
+
+
+/* =========================================
+   NO MAPPING
+========================================= */
+
+.digitisation-not-found {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    margin: 18px 26px 5px;
+
+    padding: 13px;
+
+    border: 1px solid #dee2e6;
+
+    border-radius: 8px;
+
+    background: #f8f9fa;
+
+    color: #6c757d;
+
+    font-size: 13px;
+
+}
+
+
+.info-icon {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 22px;
+
+    height: 22px;
+
+    border-radius: 50%;
+
+    background: #6c757d;
+
+    color: #ffffff;
+
+    font-weight: 700;
+
+}
+
+
+/* =========================================
+   OK BUTTON
+========================================= */
+
+.approval-ok-button {
+
+    min-width: 110px !important;
+
+    padding: 10px 28px !important;
+
+    border-radius: 7px !important;
+
+    font-weight: 600 !important;
+
+}
+
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+
+    .mapping-wrapper {
+
+        flex-direction: column;
+
+    }
+
+    .mapping-item {
+
+        width: 100%;
+
+    }
+
+    .mapping-arrow {
+
+        transform: rotate(90deg);
+
+    }
+
+    .detail-row {
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 5px;
+
+    }
+
+    .detail-value {
+
+        text-align: left;
+
+    }
+
+}
 </style>
 <div id="content" class="main-content">
     <div class="layout-px-spacing">
@@ -68,11 +943,63 @@
             <div class="row layout-top-spacing">
                 <div class="col-lg-12 layout-spacing">
                     <div class="statbox widget ">
-                        <div class="widget-header applicant_details">
+                        <div class="widget-header applicant_details {{ trim($applicant->appl_type) == 'D' ? 'digitization-header' : '' }}"">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span> </h4>
+                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span>
+                                    @if(trim($applicant->appl_type) == 'A' )
+                                    Parent Application ID: <span style="color:#098501;">{{ $applicant->old_application }}
+                                        </span>
+
+                                    @endif
+                                    </h4>
                                 </div>
+
+                                @if(trim($applicant->appl_type) == 'D')
+
+                                    @if(!empty($cl_digitization))
+                                        <div class="col-xl-6 col-md-6 col-sm-12 col-12 text-center">
+                                            <h3 class="badge badge-primary ">Digitisation Old Certificate Details </h3>
+                                            <div class="table-responsive digi_data">
+                                                <table class="table table-bordered table-sm">
+                                                    <tbody>
+                                                        <tr>
+                                                            <th width="30%">Certificate Number</th>
+                                                            <td>{{ $cl_digitization->clnumber }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Date of First Issue</th>
+                                                            <td>{{ (\Carbon\Carbon::parse($cl_digitization->fissue))->format('d-m-Y') }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Validity From</th>
+                                                            <td>{{ \Carbon\Carbon::parse($cl_digitization->from_date)->format('d-m-Y') }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Validity To</th>
+                                                            <td>{{ \Carbon\Carbon::parse($cl_digitization->to_date)->format('d-m-Y') }}
+                                                            </td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Certificate Document</th>
+                                                            <td>
+                                                                <a href="{{ asset( $cl_digitization->cl_doc) }}"
+                                                                    target="_blank">
+                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
+                                                                    View Document
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+
+
+                                    @endif
+                                @endif
                             </div>
                         </div>
 
@@ -105,6 +1032,9 @@
                                         <button class="nav-link" id="equipment-tab" data-bs-toggle="tab" data-bs-target="#equipment-tab-panel" type="button" role="tab" aria-controls="equipment-tab-panel" aria-selected="false">Equipment / Instruments List</button>
                                     </li>
 
+
+                                    @if(trim($applicant->appl_type) !='D')
+
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="payment-tab" data-bs-toggle="tab"
                                             data-bs-target="#payment-tab-panel" type="button" role="tab"
@@ -112,6 +1042,7 @@
                                             Payment Details
                                         </button>
                                     </li>
+                                    @endif
 
                                     <li class="nav-item" role="presentation">
                                         <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Checklist Details</button>
@@ -127,7 +1058,7 @@
                                                         <div class="col-lg-3">
 
 
-                                                            <p class="text-info"><strong>1. Name of the applicant:</strong></p>
+                                                            <p class="text-info"><strong>1. Name of the Applicant:</strong></p>
 
                                                             <p class="text-info"><strong>2. Business address:</strong></p>
 
@@ -202,7 +1133,7 @@
                                                               <th>Father/s
                                                                 Husband/s
                                                                 Name</th>
-                                                            <th>D.O.B, Age</th>
+                                                            <th>D.O.B, Age and Proof</th>
                                                             <th>Address </th>
                                                             <th>Qualifications and Proof</th>
 
@@ -212,21 +1143,13 @@
                                                             <th>Competency
                                                                 Certificate and
                                                                 Validity </th>
-                                                            <th>Presently
-                                                                Employed
-                                                                and Address </th>
-                                                            <th>If holding a
-                                                                competency
-                                                                certificate -<br>
-                                                                Contractor
-                                                                Details </th>
-                                                            <!-- <th>Documents</th> -->
+
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         @php
 
-                                                            $sortedProprietors = collect($proprietordetailsform_A)
+                                                            $sortedProprietors = collect($cl_ownership_table)
                                                                 ->sortBy(function($item) {
                                                                     return match($item->ownership_type) {
                                                                         'pr' => 1,
@@ -252,77 +1175,67 @@
                                                             <td>{{ $proprietor->proprietor_name }} </td>
                                                             <td> {{ $proprietor->fathers_name }}</td>
                                                             <td>{{ \Carbon\Carbon::parse($proprietor->dob)->format('d-m-Y')
-                                                                 }}, {{ $proprietor->age }} </td>
+                                                                 }}, {{ $proprietor->age }}                                                                  
+                                                                 <a href="{{ asset($proprietor->age_proof) }}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
                                                             <td>{{ $proprietor->proprietor_address }} </td>
                                                              <td> {{ $proprietor->qualification }}, {{ $proprietor->qualification_text }} <a href="{{asset($proprietor->educational_proof)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> </a></td>
 
                                                             <td> {{ $proprietor->present_business }}</td>
-
-                                                           <td>
-                                                            {{ $proprietor->competency_certificate_number }}
-
-                                                            {{ $proprietor->competency_certificate_validity
-                                                                ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y')
-                                                                : ''
-                                                            }}
-
-                                                            @if(!empty($proprietor->competency_certificate_number))
-                                                               <!--  @if(isset($proprietor->proprietor_cc_verify) && $proprietor->proprietor_cc_verify == '1')
-                                                                    <p class="text-success">Valid License</p>
-                                                                @elseif(isset($proprietor->proprietor_cc_verify) && $proprietor->proprietor_cc_verify == '0')
-                                                                    <p class="text-danger">Invalid License</p>
-                                                                @endif -->
-
-                                                                <button type="button"
-                                                                    class="btn btn-primary verify-license"
-                                                                    data-id="{{ $proprietor->id }}"
-                                                                    data-license="{{ $proprietor->competency_certificate_number }}"
-                                                                    data-date="{{ $proprietor->competency_certificate_validity ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity)->format('d-m-Y') : '' }}">
-                                                                    Verify
-                                                                </button>
-                                                            @endif
-
-                                                            <div id="verify-result-{{ $proprietor->id }}"></div>
-                                                        </td>
-
-
                                                             <td>
+                                                                @if(!empty($proprietor->competency_certificate_number))
 
-                                                                {{ $proprietor->presently_employed_name }}<br> {{ $proprietor->presently_employed_address }}
+                                                                    CC No :
+                                                                    {{ $proprietor->competency_certificate_number }},<br>
 
-                                                            </td>
-
-
-                                                          <td>
-                                                            {{ $proprietor->previous_experience_lnumber }}
-                                                            {{ $proprietor->previous_experience_lnumber_validity
-                                                                ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
-                                                                : ''
-                                                            }}
-
-
-
-                                                            @if(!empty($proprietor->previous_experience_lnumber))
-                                                          <!--     @switch($proprietor->proprietor_contractor_verify ?? null)
-                                                                @case('1')
-                                                                    <p class="text-success">Valid License</p>
-                                                                    @break
-                                                                @case('0')
-                                                                    <p class="text-danger">Invalid License</p>
-                                                                    @break
-                                                            @endswitch -->
-                                                                <button class="btn btn-sm btn-primary verify-btn_EA"
-                                                                    data-license="{{ $proprietor->previous_experience_lnumber }}"
-                                                                    data-date="{{ $proprietor->previous_experience_lnumber_validity
-                                                                        ? \Carbon\Carbon::parse($proprietor->previous_experience_lnumber_validity)->format('d-m-Y')
+                                                                    CC First Issue :
+                                                                    {{ $proprietor->competency_certificate_first_issue
+                                                                        ? \Carbon\Carbon::parse($proprietor->competency_certificate_first_issue)->format('d-m-Y')
                                                                         : ''
-                                                                    }}">
-                                                                    Verify
-                                                                </button>
-                                                            @endif
+                                                                    }},<br>
 
-                                                            <div class="verify-result_EA mt-1"></div>
-                                                        </td>
+                                                                    CC Validity From :
+                                                                    {{ $proprietor->competency_certificate_validity_from
+                                                                        ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity_from)->format('d-m-Y')
+                                                                        : ''
+                                                                    }},<br>
+
+                                                                    CC Validity To :
+                                                                    {{ $proprietor->competency_certificate_validity_to
+                                                                        ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity_to)->format('d-m-Y')
+                                                                        : ''
+                                                                    }}
+
+                                                                    <br><br>
+
+                                                                    <button type="button"
+                                                                        class="btn btn-primary verify-cert_ownership"
+
+                                                                        data-id="{{ $proprietor->id }}"
+
+                                                                        data-license="{{ $proprietor->competency_certificate_number }}"
+
+                                                                        data-dateofissue="{{ $proprietor->competency_certificate_first_issue
+                                                                            ? \Carbon\Carbon::parse($proprietor->competency_certificate_first_issue)->format('d-m-Y')
+                                                                            : ''
+                                                                        }}"
+
+                                                                        data-validfrom="{{ $proprietor->competency_certificate_validity_from
+                                                                            ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity_from)->format('d-m-Y')
+                                                                            : ''
+                                                                        }}"
+
+                                                                        data-validto="{{ $proprietor->competency_certificate_validity_to
+                                                                            ? \Carbon\Carbon::parse($proprietor->competency_certificate_validity_to)->format('d-m-Y')
+                                                                            : ''
+                                                                        }}">
+
+                                                                        Verify
+                                                                    </button>
+
+                                                                @endif
+
+                                                                <div id="verify-result-{{ $proprietor->id }}"></div>
+                                                            </td>
 
 
                                                         </tr>
@@ -336,56 +1249,35 @@
                                             </div>
 
 
+
                                             <div class="row">
                                                 <div class="col-lg-12">
                                                     <div class="row mt-2">
                                                         <div class="col-lg-8">
-
-
-                                                            <p class=" text-info"><strong>4. Name and Designation of authorised signatory (if any, in the case of a limited company):</strong></p>
-
-
-
-                                                        </div>
-                                                        <div class="col-lg-4">
-
-
-                                                            <p>{{ strtoupper($applicant->authorised_name_designation) }}
-                                                                @if($applicant->authorised_name_designation === 'yes')
-                                                                - {{$applicant->authorised_name}} , {{$applicant->authorised_designation}}
-                                                                @endif
-                                                            </p>
-                                                        </div>
-
-
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                            <div class="row">
-                                                <div class="col-lg-12">
-                                                    <div class="row mt-2">
-                                                        <div class="col-lg-8">
-                                                            <p class=" text-info"><strong>5. Whether any application for Contractor/s licence was made previously? If so, details thereof:</strong></p>
+                                                            <p class=" text-info"><strong>4. Whether any application for Contractor/s licence was made previously? If so, details thereof:</strong></p>
                                                         </div>
                                                         <div class="col-lg-4">
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
                                                                  - {{$applicant->previous_application_number}},
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }}
+                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }},
+                                                                {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }} , 
+                                                                 {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }}
+
+
 
                                                                                      <div class="row">
 
 
 
-                                                           <div class="col-lg-12 col-12 d-flex align-items-center">
+                                                           {{-- <div class="col-lg-12 col-12 d-flex align-items-center">
                                                             <div class="verify-result_EA "></div>  <!-- Result on left -->
                                                             <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                 data-license="{{ $applicant->previous_application_number }}"
                                                                 data-date="{{ $applicant->previous_application_validity }}">
                                                                 Verify
                                                             </button>
-                                                        </div>
+                                                        </div> --}}
 
 
 
@@ -404,207 +1296,355 @@
 
                                         </div>
                                     </div>
-<!-- ALTER TABLE tnelb_ea_applications
-ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
-                                    <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+
+                                    <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel"
+                                        aria-labelledby="profile-tab" tabindex="0">
                                         <?php //var_dump($workflows->first()->is_verified);die; ?>
                                         @php
                                             $workflow = $workflows?->first();
-                                            $isVerified = trim($workflow?->is_verified, '"') === 'Yes';
 
+                                            $checkedList = [];
 
+                                            if (!empty($workflow?->chklist_status)) {
+                                                $checkedList = is_array($workflow->chklist_status)
+                                                    ? $workflow->chklist_status
+                                                    : json_decode($workflow->chklist_status, true);
+                                            }
                                         @endphp
 
 
-                                        <div class="row mt-3">
-                                            <div class="row mt-3">
-                                                <div class="col-lg-6 d-flex align-items-center justify-content-center">
-                                                    <div class="form-check">
-                                                        <input type="checkbox" id="check_all" name="check_all" class="form-check-input" @if($isVerified) checked disabled @endif>
-                                                        <label class="form-check-label" for="check_all">Check All</label>
-                                                    </div>
+                                        <div class="row mt-2">
+                                            {{-- <div class="checklist-header-row">
+                                                <div class="form-check">
+                                                    <input type="checkbox" id="check_all" name="check_all"
+                                                        class="form-check-input" @if($isVerified) checked disabled
+                                                        @endif>
+                                                    <label class="form-check-label" for="check_all">Check All</label>
                                                 </div>
-                                                <div class="col-lg-6 d-flex align-items-center justify-content-center">
-                                                    <div class="form-check">
-                                                        <input type="checkbox" id="reset_all" name="reset_all" class="form-check-input">
-                                                        <label class="form-check-label" for="reset_all">Reset All</label>
-                                                    </div>
+                                                <div class="form-check">
+                                                    <input type="checkbox" id="reset_all" name="reset_all"
+                                                        class="form-check-input">
+                                                    <label class="form-check-label" for="reset_all">Reset All</label>
                                                 </div>
-                                            </div>
+                                            </div> --}}
                                             <div id="specific-class" class="col-lg-12">
-                                                @php
-                                                    $checkboxes = [
-                                                        'signature_form' => 'Applicant Signature in Application Form',
-                                                        'sign_attached' => 'Applicant Sign attached by Officer',
-                                                        'edu_certificate' => 'Educational Qualification Certificate',
-                                                        'dob_proof' => 'Proof of D.O.B',
-                                                        'photograph' => 'Photograph',
-                                                        'specimen_signature' => 'Specimen Signature',
-                                                        'fees_details' => 'Fees Details',
-                                                        'age_details' => 'Age 18',
-                                                        'experience_details' => 'Two Years Experience after Degree/Diploma',
-                                                        'all_doc_verification' => 'All Documents Filled by Applicant',
-                                                        'safety_certificate' => 'Safety Certificate/ List of Equipment',
-                                                        'contract_copy' => 'Contract Copy of HT Works',
-                                                        'ht_experience_cert' => 'HT Experience Certificate in Specimen Format/ Transformer Details',
-                                                        'experience_in_tamilnadu' => 'Experience in TamilNadu',
-                                                        'intimation_letter' => 'Intimation Letter',
-                                                        'complete_experience_details' => 'Complete Experience Details',
-                                                        'required_qualification_certificate' => 'Required Qualification Certificate',
-                                                    ];
-                                                @endphp
 
-                                                @foreach($checkboxes as $id => $label)
-                                                    <div class="form-check">
-                                                        <input type="checkbox"
-                                                            id="{{ $id }}"
-                                                            name="{{ $id }}"
-                                                            class="form-check-input"
-                                                            @if($isVerified) checked disabled @endif>
-                                                        <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                                                    </div>
-                                                @endforeach
+                                                <div class="table-responsive">
+                                                      <table class="table table-bordered  table-striped align-middle">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Checklist Name</th>
+                                                                <th width="10%" class="text-center">Checked</th>
+                                                                <th width="25%" class="text-center">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+
+                                                        @forelse($checklist as $item)
+
+                                                        @php
+                                                            $savedChecked = (int) ($checkedList_1[$item->id] ?? 0) === 1;
+                                                            $savedVerify = array_key_exists($item->id, $verifyList)
+                                                                ? (int) $verifyList[$item->id]
+                                                                : 1;
+                                                        @endphp
+                                                        <tr>
+
+                                                            <td>
+
+                                                                <label for="checklist_{{ $item->id }}">
+                                                                    {{ $item->checklist_name }}
+                                                                </label>
+
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="check_id[{{ $item->id }}]"
+                                                                    value="{{ $item->id }}">
+
+                                                                <input
+                                                                    type="hidden"
+                                                                    name="cert_name"
+                                                                    value="{{ $applicant->license_name }}">
+
+                                                            </td>
+
+                                                            <td class="text-center checklist_chk">
+
+                                                                <input
+                                                                    type="checkbox"
+                                                                    class="form-check-input"
+                                                                    id="checklist_{{ $item->id }}"
+                                                                    name="checklists[{{ $item->id }}]"
+                                                                    value="1"
+                                                                    {{ $savedChecked ? 'checked' : '' }}>
+                                                            </td>
+
+                                                            <td class="text-center">
+
+                                                                <div class="d-flex align-items-center justify-content-center gap-2">
+
+                                                                    <span
+                                                                        id="statusText_{{ $item->id }}"
+                                                                        class="badge {{ $savedVerify === 1 ? 'bg-success' : 'bg-danger' }}">
+
+                                                                        {{ $savedVerify === 1 ? 'Correct' : 'Incorrect' }}
+
+                                                                    </span>
+
+                                                                    <div class="form-check form-switch">
+
+                                                                        <input
+                                                                            class="form-check-input status-switch"
+                                                                            type="checkbox"
+                                                                            id="status_{{ $item->id }}"
+                                                                            name="status[{{ $item->id }}]"
+                                                                            value="{{ $savedVerify }}"
+                                                                            {{ $savedVerify === 1 ? 'checked' : '' }}>
+
+                                                                    </div>
+
+                                                                </div>
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                        @empty
+
+                                                        <tr>
+                                                            <td colspan="3" class="text-center">
+                                                                No Checklist Available
+                                                            </td>
+                                                        </tr>
+
+                                                        @endforelse
+
+                                                        </tbody>
+                                                    </table>
+                                                </div>
 
                                             </div>
                                         </div>
-
                                     </div>
                                     <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
-                                        <p class="mt-4 mb-2 fw-bold text-info">6. Staff Details</p>
+                                        <p class="mt-4 mb-2 fw-bold text-info">5A . QC Staff Details</p>
                                         <div class="table-responsive">
                                             <table class="table table-bordered">
                                                 <thead>
                                                     <tr>
                                                         <th>Staff Name</th>
+                                                        <th>Competency Certificate Number <br> Certificate First Issue , <br>Validity From<br> Validity To</th>
+                                                        <th>Certificate First Issue , <br>Validity From<br> Validity To</th>
+                                                        <th>Attachments</th>
+                                                        <th>History of Staff</th>
+                                                        <th>Verify</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse ($qcQscStaffs_details as $index => $staff)
+                                                    <tr>
+
+                                                        <td>{{ $staff->staff_name }}</td>
+                                                        <td>{{ $staff->staff_cc_no }}</td>
+                                                        <td>{{ \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') }},<br> {{ \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') }},<br>{{ \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') }} </td>
 
 
-                                                         <th>Staff Category</th>
-                                                        <th>Competency Certificate Number <br>
-                                                            Competency Certificate Validity
-                                                        </th>
+                                                    <td>
+                                                        <div class="file-link">
+                                                        <a href="{{ asset($staff->app_doc) }}" target="_blank">Appointment Letter</a>
+                                                        <br>
+                                                        <a href="{{ asset($staff->cons_doc) }}" target="_blank">Consent Letter</a>
+                                                        </div>
+                                                    </td>
+                                                   <td>
+                                                    @if(!empty($staff->staff_cc_no))
+                                                        <button type="button"
+                                                            class="btn btn-primary verify-staff"
 
+                                                            data-license="{{ $staff->staff_cc_no }}"
+
+                                                            data-dateofissue="{{ $staff->staff_cc_first_issue
+                                                                ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
+                                                                : ''
+                                                            }}"
+
+                                                            data-validfrom="{{ $staff->staff_cc_validity_from
+                                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
+                                                                : ''
+                                                            }}"
+
+                                                            data-validto="{{ $staff->staff_cc_validity_to
+                                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
+                                                                : ''
+                                                            }}">
+
+                                                            View History
+                                                        </button>
+                                                    @endif
+                                                </td>
+                                            <td class="text-center">
+
+                                                @if($staff->staff_category != 'OTHERS')
+
+                                                    @php
+                                                        $verifyFlag = isset($staffVerifyList[$staff->staff_cc_no])
+                                                            ? (int) $staffVerifyList[$staff->staff_cc_no]
+                                                            : 0;
+                                                    @endphp
+
+                                                    <div class="d-flex align-items-center justify-content-center gap-2">
+
+                                                        <span
+                                                            id="staffStatusText_{{ $staff->id }}"
+                                                            class="badge {{ $verifyFlag == 1 ? 'bg-success' : 'bg-danger' }}">
+                                                            {{ $verifyFlag == 1 ? 'Correct' : 'Incorrect' }}
+                                                        </span>
+
+                                                        <div class="form-check form-switch">
+                                                            <input
+                                                                class="form-check-input staff-status-switch"
+                                                                type="checkbox"
+                                                                id="staff_status_{{ $staff->id }}"
+                                                                data-id="{{ $staff->id }}"
+                                                                data-cc-no="{{ $staff->staff_cc_no }}"
+                                                                {{ $verifyFlag == 1 ? 'checked' : '' }}>
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            </td>
+                                                    </tr>
+                                                    @empty
+                                                    <tr>
+                                                        <td colspan="3" class="text-center">No Staffs available.</td>
+                                                    </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <p class="mt-4 mb-2 fw-bold text-info">5B. Other Staff Details</p>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                                <thead>
+                                                    <tr>
+
+                                                        <th>Staff Category </th>
+                                                        <th>Staff Name <br> CC Number <br>CC First Issue , <br>Validity From<br> Validity To</th>
                                                         <th>History of Staff
                                                         </th>
+                                                        <th class="text-center">Verify</th>
 
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    @forelse ($staffdetails as $index => $staff)
+                                                    @forelse ($otherstaffdetails as $index => $staff)
                                                     <tr>
-                                                         <td>{{ $staff->staff_name }}</td>
+
 
                                                         <td>{{ $staff->staff_category }}</td>
-                                                        <td>{{ $staff->cc_number }},{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}
 
-                                                            <button class="btn btn-primary verify-btn_staff"
-                                                                data-license="{{ $staff->cc_number }}"
-                                                                data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}">
-                                                                Verify
-                                                            </button>
-                                                              <span class="verify-result_staff"></span>
+                                                        <td>
 
-                                                               <!-- Warning only for FIRST QC ------------ -->
-                                                               @if($index === 0 && $showQcWarning)
-                                                                    <p class="text-danger fw-bold mt-1">
-                                                                        QC certificate validity period is less than  EA licence period
-                                                                    </p>
-                                                                @endif
+                                                        @if( $staff->staff_category == 'OTHERS')
+                                                            {{ $staff->staff_designation }}
+
+                                                        @else
+                                                        {{ $staff->staff_name }}<br>
+                                                        {{ $staff->staff_cc_no }}<br>
+                                                        {{ $staff->staff_cc_first_issue
+                                                            ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
+                                                            : ''
+                                                        }},<br>
+
+
+                                                        {{ $staff->staff_cc_validity_from
+                                                            ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
+                                                            : ''
+                                                        }},<br>
+
+
+                                                        {{ $staff->staff_cc_validity_to
+                                                            ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
+                                                            : ''
+                                                        }}
+
+
+                                                        @endif
                                                         </td>
 
 
                                                     <td>
-                                                        <button class="btn btn-info history-btn_staff"
-                                                            data-license="{{ $staff->cc_number }}"
-                                                            data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}"
-                                                            data-application_id="{{ $staff->application_id }}"
-                                                            data-bs-toggle="modal" data-bs-target="#showlicense"
-                                                            >
+                                                        @if( $staff->staff_category != 'OTHERS')
+
+
+
+
+
+                                                        <button type="button"
+                                                            class="btn btn-primary verify-otherstaff"
+
+
+
+                                                            data-license="{{ $staff->staff_cc_no }}"
+
+                                                            data-dateofissue="{{ $staff->staff_cc_first_issue
+                                                                ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y')
+                                                                : ''
+                                                            }}"
+
+                                                            data-validfrom="{{ $staff->staff_cc_validity_from
+                                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y')
+                                                                : ''
+                                                            }}"
+
+                                                            data-validto="{{ $staff->staff_cc_validity_to
+                                                                ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y')
+                                                                : ''
+                                                            }}">
 
                                                             View History
                                                         </button>
+
+
+
+
+
                                                         <div class="history-result_staff mt-2"></div>
+                                                        @endif
                                                     </td>
 
+                                                     <td class="text-center">
 
+                                                        @if($staff->staff_category != 'OTHERS')
 
-<!--
-<button class="btn btn-info history-btn_staff" data-license="{{ $staff->cc_number }}"
-                                                            data-date="{{ \Carbon\Carbon::parse($staff->cc_validity)->format('d-m-Y') }}" data-application_id="{{ $staff->application_id }}">Check History</button>
-                                                                <span class="history-result_staff"></span>
-                                                    @php
-                                                        $history = DB::table('tnelb_applicant_cl_staffdetails as s')
-                                                            ->leftJoin('tnelb_ea_applications as a', 's.application_id', '=', 'a.application_id')
-                                                            ->where('s.cc_number', $staff->cc_number)
-                                                            ->where('s.cc_validity', $staff->cc_validity)
-                                                            ->where('a.application_status', 'A')
-                                                            ->get();
+                                                            @php
+                                                                $verifyFlag = isset($staffVerifyList[$staff->staff_cc_no])
+                                                                    ? (int) $staffVerifyList[$staff->staff_cc_no]
+                                                                    : 0;
+                                                            @endphp
 
-                                                        $today = \Carbon\Carbon::today();
-                                                    @endphp
+                                                            <div class="d-flex align-items-center justify-content-center gap-2">
 
-                                                    @if($history->count() > 0)
-                                                        <div class="staff-history mt-2">
+                                                                <span
+                                                                    id="staffStatusText_{{ $staff->id }}"
+                                                                    class="badge {{ $verifyFlag == 1 ? 'bg-success' : 'bg-danger' }}">
+                                                                    {{ $verifyFlag == 1 ? 'Correct' : 'Incorrect' }}
+                                                                </span>
 
-                                                           <ul>
-                                                                @foreach($history as $h)
-                                                                    @php
-                                                                        $today = \Carbon\Carbon::today();
+                                                                <div class="form-check form-switch">
+                                                                    <input
+                                                                        class="form-check-input staff-status-switch"
+                                                                        type="checkbox"
+                                                                        id="staff_status_{{ $staff->id }}"
+                                                                        data-id="{{ $staff->id }}"
+                                                                        data-cc-no="{{ $staff->staff_cc_no }}"
+                                                                        {{ $verifyFlag == 1 ? 'checked' : '' }}>
+                                                                </div>
 
-                                                                        // Get original license
-                                                                        $license = DB::table('cl_forma_lic')
-                                                                            ->where('application_id', $h->application_id)
-                                                                            ->first();
+                                                            </div>
 
-                                                                        // Get renewal license
-                                                                        $renewal = DB::table('cl_forma_lic')
-                                                                            ->where('application_id', $h->application_id)
-                                                                            ->first();
+                                                        @endif
 
-                                                                        $finalLicense = null;
-
-                                                                        if ($license && $renewal) {
-                                                                            // Pick the one with the latest expiry
-                                                                            $licenseDate = \Carbon\Carbon::parse($license->expires_at);
-                                                                            $renewalDate = \Carbon\Carbon::parse($renewal->expires_at);
-
-                                                                            $finalLicense = $licenseDate->gt($renewalDate) ? $license : $renewal;
-                                                                        } elseif ($license) {
-                                                                            $finalLicense = $license;
-                                                                        } elseif ($renewal) {
-                                                                            $finalLicense = $renewal;
-                                                                        }
-
-                                                                        $active = false;
-                                                                        if ($finalLicense && \Carbon\Carbon::parse($finalLicense->expires_at)->gt($today)) {
-                                                                            $active = true;
-                                                                        }
-                                                                    @endphp
-
-                                                                    @if($finalLicense)
-                                                                        <li>
-                                                                            License Number: {{ $finalLicense->license_number }} <br>
-                                                                            Expiry: {{ \Carbon\Carbon::parse($finalLicense->expires_at)->format('d-m-Y') }} <br>
-
-                                                                            @if($active)
-                                                                                <span class="badge bg-success">Active License</span>
-                                                                            @else
-                                                                                <span class="badge bg-danger">Expired License</span>
-                                                                            @endif
-                                                                        </li>
-                                                                    @else
-                                                                        <li>
-                                                                            <span class="text-muted">No license record found</span>
-                                                                        </li>
-                                                                    @endif
-                                                                @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    @else
-                                                        <span class="text-muted">No history found</span>
-                                                    @endif -->
-
-
-
+                                                    </td>
 
                                                     </tr>
                                                     @empty
@@ -658,7 +1698,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
                                             <div class="row ">
                                                 <div class="col-lg-12">
-                                                    <p class="text-info"><strong>7. Bank Solvency Certificate Details</strong></p>
+                                                    <p class="text-info"><strong>6. Bank Solvency Certificate Details</strong></p>
                                                 </div>
                                             </div>
 
@@ -712,7 +1752,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
 
                                         <div class="col-lg-8">
-                                            <p><strong>8. Has the applicant or any of his/her staff referred to under item 6, been
+                                            <p><strong>7. Has the applicant or any of his/her staff referred to under item 6, been
                                                     at any time convicted in any court of law or punished by any other
                                                     authority for criminal offences</strong></p>
                                         </div>
@@ -733,143 +1773,79 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 @endif
 
 
+                                    </div>
+
+                                    <div class="row mt-3">
 
 
                                         <div class="col-lg-8">
-                                            <p><strong>9.(i) Whether consent letter, of the competency certificate holder are enclosed. (including for self)</strong></p>
-                                        </div>
-                                        <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->consent_letter_enclose) }}</p>
-                                        </div>
-
-                                                 @php
-                                                    $consentletter = $attachments_cl->where('type', 'consentletter')->first();
-                                                @endphp
-
-                                                @if($consentletter)
-                                                    <div class="col-lg-2">
-                                                        <a href="{{asset($consentletter->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View</a>
-                                                    </div>
-                                                @endif
-
-
-
-                                        <div class="col-lg-8">
-                                            <p><strong>(ii) Whether original booklet of competency certificate holders are enclosed? (including for self)</strong></p>
-                                        </div>
-                                        <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->cc_holders_enclosed) }}</p>
-                                        </div>
-                                                 @php
-                                                    $ccholders = $attachments_cl->where('type', 'ccholders')->first();
-                                                @endphp
-
-                                                @if($ccholders)
-                                                    <div class="col-lg-2">
-                                                        <a href="{{asset($ccholders->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View</a>
-                                                    </div>
-                                                @endif
-
-
-                                        <div class="col-lg-8">
-                                            <p><strong>10. (i). Whether purchase bill for all the instruments are enclosed in Original.</strong></p>
-                                        </div>
-                                        <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->purchase_bill_enclose) }}</p>
-                                        </div>
-
-
-                                        <div class="col-lg-8">
-                                            <p><strong>(ii). Whether the test reports for instruments and deeds for possess of the instruments are enclosed in original?</strong></p>
-                                        </div>
-                                        <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->test_reports_enclose) }}</p>
-                                        </div>
-
-
-                                        <div class="col-lg-8">
-                                            <p><strong>11. (i). Whether specimen signature of the Proprietor or of the authorised
-                                                    signatory (in case of limited company in triplicate is enclosed)</strong></p>
-                                        </div>
-                                        <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->specimen_signature_enclose) }}</p>
-                                        </div>
-
-                                           @php
-                                                    $specimensignature = $attachments_cl->where('type', 'specimensignature')->first();
-                                                @endphp
-
-                                                @if($specimensignature)
-                                                    <div class="col-lg-2">
-                                                        <a href="{{asset($specimensignature->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View</a>
-                                                    </div>
-                                                @endif
-
-
-                                        <div class="col-lg-10">
-                                            <p><strong>(ii). The name of the person(s) whom the applicant has authorized to sign, if any, on his/their
-                                                    behalf in case of Proprietor or Partnership concern</strong></p>
+                                            <p><strong>8. The name of the person/persons whom the applicant has authorised to sign if any, on his/their behalf in case of Proprietor or Partnership concern</strong></p>
                                         </div>
                                         <div class="col-lg-12">
-
-                                        <div class="table-responsive">
+                                           <div class="table-responsive">
                                             <table class="table table-bordered">
-                                                <thead>
+                                            <thead>
+                                                <tr>
+                                                    <th>Name of Signatory</th>
+                                                    <th>Age of Signatory</th>
+                                                    <th>Qualification of Signatory</th>
+                                                    <th>Designation</th>
+                                                    <th>Specimen Signature</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                            @if ($authoritysignatory->count() > 0)
+
+                                                @foreach ($authoritysignatory as $index => $authority)
                                                     <tr>
-                                                        <th>Name of Signatory</th>
-                                                        <th>Age of Signatory</th>
-                                                        <th>Qualification of Signatory</th>
+                                                        <td>
+                                                            {{ $authority->name_of_authorised_to_sign ?? '-' }}
+                                                        </td>
 
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                            @php
-                                            $authorizedPersons = json_decode($applicant->name_of_authorised_to_sign, true);
+                                                        <td>
+                                                            {{ $authority->age_of_authorised_to_sign ?? '-' }}
+                                                        </td>
 
-                                            $authorizedage = json_decode($applicant->age_of_authorised_to_sign, true);
+                                                        <td>
+                                                            {{ $authority->qualification_of_authorised_to_sign ?? '-' }}
+                                                        </td>
 
-                                            $authorizedqualify = json_decode($applicant->qualification_of_authorised_to_sign, true);
-                                            @endphp
-                                             @if(!empty($authorizedPersons))
-                                                 @foreach($authorizedPersons as $index => $person)
-                                                    <tr>
+                                                        <td>
+                                                            {{ $authority->designation_of_authorised_to_sign ?? '-' }}
+                                                        </td>
 
-                                                        <td>{{ strtoupper($person) }}</td>
-                                                        <td>{{$authorizedage[$index] ?? '' }}</td>
-
-                                                         <td>{{ strtoupper($authorizedqualify[$index] ?? '') }}</td>
-
+                                                        <td>
+                                                            @if (!empty($authority->specimen_sign))
+                                                            <a href="{{ asset($authority->specimen_sign) }}"
+                                                                target="_blank"                                                                                                                             class="file_view fw-bold">
+                                                                                                                                <i class="fa fa-file-pdf-o"
+                                                                                                                                    style="color:red;"></i>
+                                                                                                                                View Document
+                                                                                                                            </a>
+                                                            @else
+                                                                <span class="text-muted">No document uploaded</span>
+                                                            @endif
+                                                        </td>
                                                     </tr>
                                                 @endforeach
+
                                             @else
-                                            <tr>
-                                                <td colspan="3">No authorized persons</td>
-                                            </tr>
+                                                <tr>
+                                                    <td colspan="5" class="text-center">
+                                                        No signatory records found.
+                                                    </td>
+                                                </tr>
                                             @endif
-                                                </tbody>
-                                            </table>
+                                        </tbody>
+                                        </table>
+                                        </div>
                                         </div>
 
 
-                                        </div>
 
-                                        <div class="col-lg-8">
-                                            <p><strong>(iii). Whether the applicant enclosed the specimen signature of the above
-                                                    person/ persons in triplicate in a separate sheet of paper</strong></p>
-                                        </div>
-                                        <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->separate_sheet) }}</p>
-                                        </div>
+                                               
 
-                                             @php
-                                                    $separatesheet = $attachments_cl->where('type', 'separatesheet')->first();
-                                                @endphp
-
-                                                @if($separatesheet)
-                                                    <div class="col-lg-2">
-                                                        <a href="{{asset($separatesheet->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View</a>
-                                                    </div>
-                                                @endif
 
                                     </div>
 
@@ -990,7 +1966,9 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                             <td><a href="{{asset($testfile)}}" target="_blank" class="file_view fw-bold"><i class="fa fa-file-pdf-o"></i> View </a> </td>
                                                             <td><a href="{{asset($purchasefile)}}" target="_blank" class="file_view fw-bold"><i class="fa fa-file-pdf-o"></i> View </a> </td>
 
-                                                            <td>{{ strtoupper($date) }}</td>
+                                                             <td>
+                                                                {{ $date ? \Carbon\Carbon::parse($date)->format('d-m-Y') : '' }}
+                                                            </td>
                                                         </tr>
 
                                                         @endif
@@ -1002,20 +1980,6 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                             </div>
 
                                         </div>
-
-
-
-
-
-
-
-
-
-                                        <!-- --------------18--------------------------- -->
-
-
-
-
                                     </div>
                                 </div>
                                 <!-- -------------------------------- -->
@@ -1029,22 +1993,27 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 </div>
                                                 <div class="row mt-3">
                                                     <div class="col-lg-6">
-                                                        <p><strong> Payment Status</strong></p>
+                                                        <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
+                                                        <p><strong>{{ $applicant->appl_type ?? 'NA' }}</strong></p>
                                                     </div>
 
 
-                                                     <div class="col-lg-6">
+                                                    <div class="col-lg-6">
                                                         <p><strong>Appication Fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        @if($applicant->application_fee > 0)
-                                                        <p>{{ $applicant->application_fee }}.00</p>
-                                                        @else
+                                                        <p>{{ $applicant->amount }}</p>
+                                                    </div>
+
+                                                     <div class="col-lg-6">
+                                                        <p><strong>Total Amount</strong></p>
+                                                    </div>
+                                                    <div class="col-lg-6">
+                                                        
                                                             <p>{{ $applicant->amount }}.00</p>
-                                                        @endif
+                                                        
                                                     </div>
 
                                                     @if ($applicant->late_fee > 0)
@@ -1053,20 +2022,17 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <p><strong>Late fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->late_fee }}.00</p>
+                                                        <p>{{ $applicant->late_fee }}</p>
                                                     </div>
                                                     @endif
 
 
                                                      <div class="col-lg-6">
-                                                        <p><strong>Amount Paid</strong></p>
+                                                        <p><strong>Date of Application</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ format_date_other($applicant->dt_submit) }}</p>
                                                     </div>
-
-
-
 
                                                 </div>
                                             </div>
@@ -1079,7 +2045,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <p><strong> Payment Status</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p class="badge text-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
+                                                        <p class="badge badge-success">{{ strtoupper($applicant->payment_status) ?? 'NA' }}</p>
                                                     </div>
 
                                                     <div class="col-lg-6">
@@ -1092,14 +2058,13 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                         <p><strong>Amount</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->amount }}.00</p>
+                                                        <p>{{ $applicant->amount }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Payment mode:</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>UPI</p>
-                                                        {{-- <P>{{ $applicant->payment_mode }}</P> --}}
+                                                        <P>{{ $applicant->payment_mode }}</P>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong> Payment Time</strong></p>
@@ -1131,128 +2096,60 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
 
         </div>
 
-        <!-- -------------------------------------------- -->
-         <div class="row ">
-             <div class="statbox widget officers_section mb-2">
-                <div class="col-lg-12 col-12 text-center">
-                    <h6>Officers Handling Functions </h6>
-                </div>
-                                            </div>
-
-
-         </div>
+       
         <div class="row">
-            <div id="tabsSimple" class="col-xl-6 col-12 layout-spacing">
-
-
-
-        </div>
+        
          <!-- ------------------------------------ -->
-
+          
                 <!-- ------------------------------------- -->
          <div id="timelineMinimal" class="col-lg-12 layout-spacing">
             <div class="statbox widget box box-shadow">
                 <div class="widget-header">
                     <div class="row">
                         <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                             <h4>Applicant Process Flow</h4>
+                             <h4>Application Process Flow</h4>
                         </div>
                     </div>
                 </div>
                 <div class="widget-content widget-content-area pb-1">
                     <div class="mt-container mx-auto">
-                        <div class="timeline-line">
+                         <div class="timeline-line">
                                     @foreach ($workflows as $row)
 
-                                            <div class="item-timeline">
-                                                <p class="t-time">{{ format_date_other($row->created_at) }}</p>
+                                    <div class="item-timeline">
+                                        <p class="t-time">{{ format_date_other($row->created_at) }}</p>
 
-                                                <div class="t-dot
+                                        <div class="t-dot
                                                     {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
-                                                </div>
-                                                <div class="t-text">
-                                        @php
+                                        </div>
+                                        <div class="t-text">
+                                            @php
                                             // Normalize name if it's "auditor" (any case)
                                             $displayName = $row->name;
                                             if ($displayName && strcasecmp($displayName, 'auditor') === 0) {
-                                                $displayName = 'accountant';
+                                            $displayName = 'Assistant Secretary';
                                             }
-                                        @endphp
-
-
-
-                                        @if ($row->appl_status == 'RE')
-
-                                            @if($row->processed_by == 'AP')
-                                                <p>Resubmitted by Applicant </p>
-                                            @else
-
-                                            <p>Returned by {{ $row->processed_by }}</p>
-                                            @endif
-                                        @elseif ($row->appl_status == 'RET')
-                                            <p>Returned by {{ $row->processed_by }}</p>
-                                        @elseif ($row->appl_status == 'A')
-                                            <p>Approved by {{ $row->processed_by }}</p>
-                                        @else
-                                            <p>Processed by {{ $row->processed_by }}</p>
-                                        @endif
-
-                                        <p class="t-meta-time">
-                                        @if($row->appl_status == 'RET')
-                                         Returned to Applicant
-                                            <br>
-                                         Remarks: {{ $row->remarks }}
-                                         <br>
-
-                                            @php
-                                                 $reasons = json_decode($row->return_reason, true);
                                             @endphp
 
 
 
-                                       <span class="text-return">
-                                        @if(!empty($reasons))
-                                            Return Reason :
+                                            @if ($row->appl_status == 'RE')
 
-                                                {{ collect($reasons)->map(fn($r) => Str::upper($r))->implode(', ') }}
-                                                <br>
-
-                                            Return Remarks :
-                                                @if($row->remarks_return)
-                                                      {{ $row->remarks_return }}
-                                                @else
-                                                    No Remraks
-                                                @endif
-                                            @endif
-
-                                        </span>
-                                        <br>
-
-
-                                        @else
-
-                                            @if (!$row->name)
-                                                Approved by {{ $row->processed_by }}
+                                            @if($row->processed_by == 'AP')
+                                            <p>Resubmitted by Applicant </p>
                                             @else
 
-
-                                                 @if($row->processed_by !== 'AP')
-
-                                                     @if($row->appl_status == 'RE')
-                                                     Returned to {{ $displayName }}<br>
-                                                     @else
-                                                     Forwarded to {{ $displayName }} <br>
-
-                                                     @endif
-
-                                                    Remarks: {{ $row->remarks }}
-
-                                                @endif
+                                            <p>Returned by {{ $row->processed_by }}</p>
                                             @endif
-                                        @endif
-                                        </p>
+                                            @elseif ($row->appl_status == 'RET')
+                                            <p>Returned by {{ $row->processed_by }}</p>
+                                            @elseif ($row->appl_status == 'A')
+                                            <p>Approved by {{ $row->processed_by }}</p>
+                                            @else
+                                            <p>Processed by {{ $row->processed_by }}</p>
+                                            @endif
 
-                                        @if ($row->processed_by !== 'Accountant')
+                                             @if ($row->processed_by !== 'Assistant Secretary')
                                             @if ($row->query_status == "P")
                                                 <p class="text-danger">Note: Query raised by {{ $row->processed_by }} (
                                                     @php
@@ -1270,21 +2167,78 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
                                                 </p>
                                             @endif
                                         @endif
-                                    </div>
 
-                                            </div>
-                                            @endforeach
 
-                                            <div class="item-timeline">
-                                                <p class="t-time">{{ format_date_other($user_entry->dt_submit) }}</p>
-                                                <div class="t-dot t-dot-warning"></div>
-                                                <div class="t-text">
-                                                    <p>Received from Applicant</p>
-                                                    <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License: {{ $user_entry->license_name }}</p>
-                                                </div>
-                                            </div>
+                                            <p class="t-meta-time">
+                                                @if($row->appl_status == 'RET')
+                                                Returned to Applicant
+                                                <br>
+                                                Remarks: {{ $row->remarks }}
+                                                <br>
+
+                                                @php
+                                                $reasons = json_decode($row->return_reason, true);
+                                                @endphp
+
+
+
+                                                <span class="text-return">
+                                                    @if(!empty($reasons))
+                                                    Return Reason :
+
+                                                    {{ collect($reasons)->map(fn($r) => Str::upper($r))->implode(', ') }}
+                                                    <br>
+
+                                                    Return Remarks :
+                                                    @if($row->remarks_return)
+                                                    {{ $row->remarks_return }}
+                                                    @else
+                                                    No Remraks
+                                                    @endif
+                                                    @endif
+
+                                                </span>
+                                                <br>
+
+
+                                                @else
+
+                                                @if (!$row->name)
+                                                Approved by {{ $row->processed_by }}
+                                                @else
+
+
+                                                @if($row->processed_by !== 'AP')
+
+                                                @if($row->appl_status == 'RE')
+                                                Returned to {{ $displayName }}<br>
+                                                @else
+                                                Forwarded to {{ $displayName }} <br>
+
+                                                @endif
+
+                                                Remarks: {{ $row->remarks }}
+
+                                                @endif
+                                                @endif
+                                                @endif
+                                            </p>
+
+
                                         </div>
-                    </div>
+
+                                    </div>
+                                    @endforeach
+
+                                    <div class="item-timeline">
+                                        <p class="t-time">{{ format_date_other($user_entry->dt_submit) }}</p>
+                                        <div class="t-dot t-dot-warning"></div>
+                                        <div class="t-text">
+                                            <p>Received from Applicant</p>
+                                            <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License: {{ $user_entry->license_name }}</p>
+                                        </div>
+                                    </div>
+                                </div>
                 </div>
             </div>
         </div>
@@ -1292,73 +2246,7 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
     </div>
 </div>
 </div>
-<!-- Modal -->
-<div class="modal fade" id="declarationModal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="declarationModalLabel">Approval Declaration</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="confirmApproval">
-                    <label class="form-check-label" for="confirmApproval">
-                        I confirm that all documents have been verified by me as a supervisor.
-                    </label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmForward">Forward to Accountant</button>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="approvalModalLabel">Approval Declaration</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="confirmApproval">
-                    <label class="form-check-label" for="confirmApproval">
-                        I confirm that this application has been reviewed and approved.
-                    </label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmApprovalBtn" disabled>Approve Application</button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- <div class="modal fade" id="forwardmodal" tabindex="-1" aria-labelledby="declarationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="declarationModalLabel">Declaration</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="confirmPresident">
-                    <label class="form-check-label" for="confirmApproval">
-                        I confirm that have been verified by me as a secretary.
-                    </label>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmForward" disabled>Forward to President</button>
-            </div>
-        </div>
-    </div>
-</div> -->
+
 
 <!-- Success Modal -->
 <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
@@ -1409,8 +2297,6 @@ ALTER COLUMN name_of_authorised_to_sign TYPE JSON; -->
     </div>
 </div>
 @include('admin.include.footer')
-
-
 
 <script>
     $(document).on("click", ".verify-license", function () {
@@ -1516,7 +2402,7 @@ $(document).on('click', '.history-btn_staff', function () {
     let application_id = btn.data('application_id');
 
     // Set modal title dynamically
-    $("#showlicense .modal-title").text(`License History of ${license}`);
+    $("#showlicense .modal-title").text(`Certificate Number ${license} Mapped with`);
 
     // Clear any old data first
     $("#showlicense table tbody").html(`
@@ -1561,8 +2447,1391 @@ $(document).on('click', '.history-btn_staff', function () {
 
 
 
+// ----------admin check cert-------------
+$(document).on("click", ".verify-cert_ownership", function () {
+
+    let $button = $(this);
+
+    let id = $button.data("id");
+
+    let certificate_no =
+        $button.attr("data-license") || "";
+
+    let dateof_issue =
+        $button.attr("data-dateofissue") || "";
+
+    let valid_from =
+        $button.attr("data-validfrom") || "";
+
+    let valid_to =
+        $button.attr("data-validto") || "";
 
 
+    console.log("========== ADMIN CC VERIFY ==========");
+    console.log("ID:", id);
+    console.log("Certificate No:", certificate_no);
+    console.log("Date of Issue:", dateof_issue);
+    console.log("Validity From:", valid_from);
+    console.log("Validity To:", valid_to);
+
+
+    // Check required values
+    if (
+        !certificate_no ||
+        !dateof_issue ||
+        !valid_from ||
+        !valid_to
+    ) {
+
+        $("#competencyVerifyModalBody").html(`
+
+            <div class="alert alert-warning">
+                Certificate details are incomplete.
+            </div>
+
+        `);
+
+        $("#competencyVerifyModal").modal("show");
+
+        return;
+    }
+
+
+    // Show loading
+    $("#competencyVerifyModalBody").html(`
+
+        <div class="text-center py-5">
+
+            <div class="spinner-border text-primary mb-3"
+                role="status">
+            </div>
+
+            <div class="text-info">
+                Checking competency certificate...
+            </div>
+
+        </div>
+
+    `);
+
+
+    // Open modal
+    $("#competencyVerifyModal").modal("show");
+
+
+    // Disable button
+    $button
+        .prop("disabled", true)
+        .text("Verifying...");
+
+
+    $.ajax({
+
+        url: "{{ route('admin.checkCompetencyCertificateadmin') }}",
+
+        type: "POST",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            certificate_no: certificate_no,
+
+            dateof_issue: dateof_issue,
+
+            valid_from: valid_from,
+
+            valid_to: valid_to
+
+        },
+
+
+       success: function (response) {
+
+    console.log("ADMIN VERIFY RESPONSE:", response);
+
+    if (response.status === true && response.certificate) {
+
+        let certificate = response.certificate;
+        let records = Array.isArray(response.data) ? response.data : [];
+
+        let result = `
+            <div class="competency-result-box">
+
+                <!-- CERTIFICATE DETAILS -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered">
+                        <tbody>
+
+                            <tr>
+                                <th width="20%">Certificate No</th>
+                                <td width="30%">
+                                    ${certificate.certificate_no ?? '-'}
+                                </td>
+
+                                <th width="20%">Date of Issue</th>
+                                <td width="30%">
+                                    ${certificate.dateof_issue ?? '-'}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>Validity From</th>
+                                <td>
+                                    ${certificate.valid_from ?? '-'}
+                                </td>
+
+                                <th>Validity To</th>
+                                <td>
+                                    ${certificate.valid_to ?? '-'}
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- EXPERIENCE TITLE -->
+                <div class="competency-result-title">
+                    Experience Details
+                </div>
+        `;
+
+        if (records.length > 0) {
+
+            result += `
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Employee Type</th>
+                                <th>Licence Category</th>
+                                <th>Organisation Name</th>
+                                <th>Designation</th>
+                                <th>Address</th>
+                                <th>Nature of Work</th>
+                                <th>Voltage Level</th>
+                                <th>Transformer (kVA)</th>
+                                <th>From Date</th>
+                                <th>To Date</th>
+                                <th>Total Experience</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+            `;
+
+            records.forEach(function (data, index) {
+
+                let licenceCategory = data.emp_cate ?? '-';
+
+                let transformer = '-';
+
+                if (
+                    data.voltage_level &&
+                    data.voltage_level !== 'up_to_650v'
+                ) {
+                    transformer = data.transformer_kva ?? '-';
+                }
+
+                result += `
+                    <tr>
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+                        <td>
+                            ${data.emp_type ?? '-'}
+                        </td>
+
+                        <td>
+                            ${licenceCategory}
+                        </td>
+
+                        <td>
+                            ${data.org_name ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.designation ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.org_address ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.nature_work ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.voltage_level ?? '-'}
+                        </td>
+
+                        <td>
+                            ${transformer}
+                        </td>
+
+                        <td>
+                            ${data.from_date ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.to_date ?? '-'}
+                        </td>
+
+                        <td>
+                            ${data.total_exp ?? '-'}
+                        </td>
+
+                    </tr>
+                `;
+            });
+
+            result += `
+                        </tbody>
+
+                    </table>
+                </div>
+            `;
+
+        } else {
+
+            result += `
+                <div class="alert alert-info">
+                    Certificate found, but no experience data found.
+                </div>
+            `;
+        }
+
+        result += `
+            </div>
+        `;
+
+        $("#competencyVerifyModalBody").html(result);
+
+    } else {
+
+        $("#competencyVerifyModalBody").html(`
+            <div class="alert alert-warning">
+                ${response.message ?? "Certificate not found."}
+            </div>
+        `);
+    }
+},
+
+
+        error: function (xhr) {
+
+            console.log(
+                "ADMIN VERIFY ERROR:",
+                xhr.responseText
+            );
+
+
+            let message =
+                "Unable to check competency certificate.";
+
+
+            // Laravel validation error
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+
+                message =
+                    xhr.responseJSON.message;
+
+            }
+
+
+            $("#competencyVerifyModalBody").html(`
+
+                <div class="alert alert-danger">
+
+                    ${message}
+
+                </div>
+
+            `);
+
+        },
+
+
+        complete: function () {
+
+            $button
+                .prop("disabled", false)
+                .text("Verify");
+
+        }
+
+    });
+
+});
+
+
+
+// verify- competency_staff----------------
+
+$(document).on("click", ".verify-staff", function () {
+
+    let $button = $(this);
+
+    let id = $button.data("id");
+
+    let certificate_no =
+        $button.attr("data-license") || "";
+
+    let dateof_issue =
+        $button.attr("data-dateofissue") || "";
+
+    let valid_from =
+        $button.attr("data-validfrom") || "";
+
+    let valid_to =
+        $button.attr("data-validto") || "";
+
+
+    console.log("========== ADMIN CC VERIFY ==========");
+    console.log("ID:", id);
+    console.log("Certificate No:", certificate_no);
+    console.log("Date of Issue:", dateof_issue);
+    console.log("Validity From:", valid_from);
+    console.log("Validity To:", valid_to);
+
+
+    // Check required values
+    if (
+        !certificate_no ||
+        !dateof_issue ||
+        !valid_from ||
+        !valid_to
+    ) {
+
+        $("#competencyVerifyModalBody").html(`
+
+            <div class="alert alert-warning">
+                Certificate details are incomplete.
+            </div>
+
+        `);
+
+        $("#competencyVerifyModal").modal("show");
+
+        return;
+    }
+
+
+    // Show loading
+    $("#competencyVerifyModalBody").html(`
+
+        <div class="text-center py-5">
+
+            <div class="spinner-border text-primary mb-3"
+                role="status">
+            </div>
+
+            <div class="text-info">
+                Checking competency certificate...
+            </div>
+
+        </div>
+
+    `);
+
+
+    // Open modal
+    $("#competencyVerifyModal").modal("show");
+
+
+    // Disable button
+    $button
+        .prop("disabled", true)
+        .text("Verifying...");
+
+
+    $.ajax({
+
+        url: "{{ route('admin.checkCompetencyCertificateadmin') }}",
+
+        type: "POST",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            certificate_no: certificate_no,
+
+            dateof_issue: dateof_issue,
+
+            valid_from: valid_from,
+
+            valid_to: valid_to
+
+        },
+
+
+        success: function (response) {
+
+            console.log(
+                "ADMIN VERIFY RESPONSE:",
+                response
+            );
+
+
+            // Certificate found
+            if (
+                response.status === true &&
+                response.certificate
+            ) {
+
+                let certificate =
+                    response.certificate;
+
+                let records =
+                    response.data || [];
+
+
+                // ----------------------------------
+                // Certificate Details
+                // ----------------------------------
+                let applicant = response.applicant_details || {};
+                let result = `
+
+                    <div class="competency-result-box">
+
+                           <div class="competency-result-title">
+                                Applicant Details
+                            </div>
+
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th width="20%">Applicant Name</th>
+                                            <td width="30%">${applicant.applicant_name ?? '-'}</td>
+
+                                            <th width="20%">Father's Name</th>
+                                            <td width="30%">${applicant.fathers_name ?? '-'}</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Date of Birth</th>
+                                            <td>${applicant.dob ?? '-'}</td>
+
+                                            <th>Age</th>
+                                            <td>${applicant.age ?? '-'}</td>
+                                        </tr>
+                                   
+
+                                    <tr>
+
+                                        <th width="20%">
+                                            Certificate No
+                                        </th>
+
+                                        <td width="30%">
+                                            ${
+                                                certificate.certificate_no
+                                                ?? '-'
+                                            }
+                                        </td>
+
+
+                                        <th width="20%">
+                                            Date of Issue
+                                        </th>
+
+                                        <td width="30%">
+                                            ${
+                                                certificate.dateof_issue
+                                                ?? '-'
+                                            }
+                                        </td>
+
+                                    </tr>
+
+
+                                    <tr>
+
+                                        <th>
+                                            Validity From
+                                        </th>
+
+                                        <td>
+                                            ${
+                                                certificate.valid_from
+                                                ?? '-'
+                                            }
+                                        </td>
+
+
+                                        <th>
+                                            Validity To
+                                        </th>
+
+                                        <td>
+                                            ${
+                                                certificate.valid_to
+                                                ?? '-'
+                                            }
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        
+
+
+                        <!-- EXPERIENCE TITLE -->
+
+                        <div class="competency-result-title">
+                            Experience Details
+                        </div>
+                `;
+
+
+                // ----------------------------------
+                // Experience Records
+                // ----------------------------------
+
+                if (records.length > 0) {
+
+                    result += `
+
+                        <div class="table-responsive">
+
+                            <table class="table table-bordered table-striped">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            S.No
+                                        </th>
+
+                                        <th>
+                                            Employee Type
+                                        </th>
+
+                                        <th>
+                                            Licence Category
+                                        </th>
+
+                                        <th>
+                                            Organisation Name
+                                        </th>
+
+                                        <th>
+                                            Designation
+                                        </th>
+
+                                        <th>
+                                            Address
+                                        </th>
+
+                                        <th>
+                                            Nature of Work
+                                        </th>
+
+                                        <th>
+                                            Voltage Level
+                                        </th>
+
+                                        <th>
+                                            Transformer (kVA)
+                                        </th>
+
+                                        <th>
+                                            From Date
+                                        </th>
+
+                                        <th>
+                                            To Date
+                                        </th>
+
+                                        <th>
+                                            Total Experience
+                                        </th>
+
+                                         <th colspan="2">
+                                             Documents
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                    `;
+
+
+                    records.forEach(function (data, index) {
+
+                        result += `
+
+                            <tr>
+
+                                <td>
+                                    ${index + 1}
+                                </td>
+
+
+                                <td>
+                                    ${data.emp_type ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${
+                                        data.emp_type === 'emp_cate'
+                                            ? (data.emp_cate ?? '-')
+                                            : '-'
+                                    }
+                                </td>
+
+
+                                <td>
+                                    ${data.org_name ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.designation ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.org_address ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.nature_work ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.voltage_level ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${
+                                        data.voltage_level != 'up_to_650v'
+                                            ? (data.transformer_kva ?? '-')
+                                            : '-'
+                                    }
+                                </td>
+
+
+                                <td>
+                                    ${data.from_date ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.to_date ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.total_exp ?? '-'}
+                              </td>
+                            <td>
+                                ${data.relieve_document
+                                    ? `<a href="${data.relieve_document}"
+                                        target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
+                                    : '-'}
+                            </td>
+
+                            <td>
+                                ${data.support_document
+                                    ? `<a href="${data.support_document}"
+                                        target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
+                                    : '-'}
+                            </td>
+
+                            </tr>
+
+                        `;
+
+                    });
+
+
+                    result += `
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    `;
+
+                } else {
+
+                    result += `
+
+                        <div class="alert alert-info">
+
+                            Certificate found, but no
+                            experience data found.
+
+                        </div>
+
+                    `;
+
+                }
+
+
+                // Close main box
+                result += `
+
+                    </div>
+
+                `;
+
+
+                // Display result
+                $("#competencyVerifyModalBody")
+                    .html(result);
+
+
+            } else {
+
+                // Certificate not found
+
+                $("#competencyVerifyModalBody").html(`
+
+                    <div class="alert alert-warning">
+
+                        ${
+                            response.message ??
+                            "Certificate not found."
+                        }
+
+                    </div>
+
+                `);
+
+            }
+
+        },
+
+
+        error: function (xhr) {
+
+            console.log(
+                "ADMIN VERIFY ERROR:",
+                xhr.responseText
+            );
+
+
+            let message =
+                "Unable to check competency certificate.";
+
+
+            // Laravel validation error
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+
+                message =
+                    xhr.responseJSON.message;
+
+            }
+
+
+            $("#competencyVerifyModalBody").html(`
+
+                <div class="alert alert-danger">
+
+                    ${message}
+
+                </div>
+
+            `);
+
+        },
+
+
+        complete: function () {
+
+            $button
+                .prop("disabled", false)
+                .text("View History");
+
+        }
+
+    });
+
+});
+
+
+// ---------other staff----------------------------------------
+
+$(document).on("click", ".verify-otherstaff", function () {
+
+    let $button = $(this);
+
+    let id = $button.data("id");
+
+    let certificate_no =
+        $button.attr("data-license") || "";
+
+    let dateof_issue =
+        $button.attr("data-dateofissue") || "";
+
+    let valid_from =
+        $button.attr("data-validfrom") || "";
+
+    let valid_to =
+        $button.attr("data-validto") || "";
+
+
+    console.log("========== ADMIN CC VERIFY ==========");
+    console.log("ID:", id);
+    console.log("Certificate No:", certificate_no);
+    console.log("Date of Issue:", dateof_issue);
+    console.log("Validity From:", valid_from);
+    console.log("Validity To:", valid_to);
+
+
+    // Check required values
+    if (
+        !certificate_no ||
+        !dateof_issue ||
+        !valid_from ||
+        !valid_to
+    ) {
+
+        $("#competencyVerifyModalBody").html(`
+
+            <div class="alert alert-warning">
+                Certificate details are incomplete.
+            </div>
+
+        `);
+
+        $("#competencyVerifyModal").modal("show");
+
+        return;
+    }
+
+
+    // Show loading
+    $("#competencyVerifyModalBody").html(`
+
+        <div class="text-center py-5">
+
+            <div class="spinner-border text-primary mb-3"
+                role="status">
+            </div>
+
+            <div class="text-info">
+                Checking competency certificate...
+            </div>
+
+        </div>
+
+    `);
+
+
+    // Open modal
+    $("#competencyVerifyModal").modal("show");
+
+
+    // Disable button
+    $button
+        .prop("disabled", true)
+        .text("Verifying...");
+
+
+    $.ajax({
+
+        url: "{{ route('admin.checkCompetencyotherCertificateadmin') }}",
+
+        type: "POST",
+
+        data: {
+
+            _token: $('meta[name="csrf-token"]').attr("content"),
+
+            certificate_no: certificate_no,
+
+            dateof_issue: dateof_issue,
+
+            valid_from: valid_from,
+
+            valid_to: valid_to
+
+        },
+
+
+        success: function (response) {
+
+            console.log(
+                "ADMIN VERIFY RESPONSE:",
+                response
+            );
+
+
+            // Certificate found
+            if (
+                response.status === true &&
+                response.certificate
+            ) {
+
+              let certificate =
+                    response.certificate;
+
+                let records =
+                    response.data || [];
+
+
+                // ----------------------------------
+                // Certificate Details
+                // ----------------------------------
+                let applicant = response.applicant_details || {};
+                let result = `
+
+                    <div class="competency-result-box">
+
+                           <div class="competency-result-title">
+                                Applicant Details
+                            </div>
+
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered">
+                                    <tbody>
+                                        <tr>
+                                            <th width="20%">Applicant Name</th>
+                                            <td width="30%">${applicant.applicant_name ?? '-'}</td>
+
+                                            <th width="20%">Father's Name</th>
+                                            <td width="30%">${applicant.fathers_name ?? '-'}</td>
+                                        </tr>
+
+                                        <tr>
+                                            <th>Date of Birth</th>
+                                            <td>${applicant.dob ?? '-'}</td>
+
+                                            <th>Age</th>
+                                            <td>${applicant.age ?? '-'}</td>
+                                        </tr>
+                                   
+
+                                    <tr>
+
+                                        <th width="20%">
+                                            Certificate No
+                                        </th>
+
+                                        <td width="30%">
+                                            ${
+                                                certificate.certificate_no
+                                                ?? '-'
+                                            }
+                                        </td>
+
+
+                                        <th width="20%">
+                                            Date of Issue
+                                        </th>
+
+                                        <td width="30%">
+                                            ${
+                                                certificate.dateof_issue
+                                                ?? '-'
+                                            }
+                                        </td>
+
+                                    </tr>
+
+
+                                    <tr>
+
+                                        <th>
+                                            Validity From
+                                        </th>
+
+                                        <td>
+                                            ${
+                                                certificate.valid_from
+                                                ?? '-'
+                                            }
+                                        </td>
+
+
+                                        <th>
+                                            Validity To
+                                        </th>
+
+                                        <td>
+                                            ${
+                                                certificate.valid_to
+                                                ?? '-'
+                                            }
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        
+
+
+                        <!-- EXPERIENCE TITLE -->
+
+                        <div class="competency-result-title">
+                            Experience Details
+                        </div>
+                `;
+
+
+                // ----------------------------------
+                // Experience Records
+                // ----------------------------------
+
+                if (records.length > 0) {
+
+                    result += `
+
+                        <div class="table-responsive">
+
+                            <table class="table table-bordered table-striped">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            S.No
+                                        </th>
+
+                                        <th>
+                                            Employee Type
+                                        </th>
+
+                                        <th>
+                                            Licence Category
+                                        </th>
+
+                                        <th>
+                                            Organisation Name
+                                        </th>
+
+                                        <th>
+                                            Designation
+                                        </th>
+
+                                        <th>
+                                            Address
+                                        </th>
+
+                                        <th>
+                                            Nature of Work
+                                        </th>
+
+                                        <th>
+                                            Voltage Level
+                                        </th>
+
+                                        <th>
+                                            Transformer (kVA)
+                                        </th>
+
+                                        <th>
+                                            From Date
+                                        </th>
+
+                                        <th>
+                                            To Date
+                                        </th>
+
+                                        <th>
+                                            Total Experience
+                                        </th>
+
+                                         <th colspan="2">
+                                             Documents
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                    `;
+
+
+                    records.forEach(function (data, index) {
+
+                        result += `
+
+                            <tr>
+
+                                <td>
+                                    ${index + 1}
+                                </td>
+
+
+                                <td>
+                                    ${data.emp_type ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${
+                                        data.emp_type === 'emp_cate'
+                                            ? (data.emp_cate ?? '-')
+                                            : '-'
+                                    }
+                                </td>
+
+
+                                <td>
+                                    ${data.org_name ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.designation ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.org_address ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.nature_work ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.voltage_level ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${
+                                        data.voltage_level != 'up_to_650v'
+                                            ? (data.transformer_kva ?? '-')
+                                            : '-'
+                                    }
+                                </td>
+
+
+                                <td>
+                                    ${data.from_date ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.to_date ?? '-'}
+                                </td>
+
+
+                                <td>
+                                    ${data.total_exp ?? '-'}
+                              </td>
+                            <td>
+                                ${data.relieve_document
+                                    ? `<a href=" ${data.relieve_document}" target="_blank" rel="noopener noreferrer">View Relieving Document</a>`
+                                    : '-'}
+                            </td>
+
+                            <td>
+                                ${data.support_document
+                                    ? `<a href="${data.support_document}" target="_blank" rel="noopener noreferrer">View Supporting Document</a>`
+                                    : '-'}
+                            </td>
+
+                            </tr>
+
+                        `;
+
+                    });
+
+
+                    result += `
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    `;
+
+                } else {
+
+                    result += `
+
+                        <div class="alert alert-info">
+
+                            Certificate found, but no
+                            experience data found.
+
+                        </div>
+
+                    `;
+
+                }
+
+
+                // Close main box
+                result += `
+
+                    </div>
+
+                `;
+
+
+                // Display result
+                $("#competencyVerifyModalBody")
+                    .html(result);
+
+            } else {
+
+                // Certificate not found
+
+                $("#competencyVerifyModalBody").html(`
+
+                    <div class="alert alert-warning">
+
+                        ${
+                            response.message ??
+                            "Certificate not found."
+                        }
+
+                    </div>
+
+                `);
+
+            }
+
+        },
+
+
+        error: function (xhr) {
+
+            console.log(
+                "ADMIN VERIFY ERROR:",
+                xhr.responseText
+            );
+
+
+            let message =
+                "Unable to check competency certificate.";
+
+
+            // Laravel validation error
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+
+                message =
+                    xhr.responseJSON.message;
+
+            }
+
+
+            $("#competencyVerifyModalBody").html(`
+
+                <div class="alert alert-danger">
+
+                    ${message}
+
+                </div>
+
+            `);
+
+        },
+
+
+        complete: function () {
+
+            $button
+                .prop("disabled", false)
+                .text("View History");
+
+        }
+
+    });
+
+});
+
+// ----------------------------------
+
+$(document).on('change', '.staff-status-switch', function () {
+
+    let id = $(this).data('id');
+
+    if ($(this).is(':checked')) {
+
+        $('#staffStatusText_' + id)
+            .removeClass('bg-danger')
+            .addClass('bg-success')
+            .text('Correct');
+
+    } else {
+
+        $('#staffStatusText_' + id)
+            .removeClass('bg-success')
+            .addClass('bg-danger')
+            .text('InCorrect');
+
+    }
+
+});
+
+$(document).on('change', '.status-switch', function () {
+
+    let id = $(this).attr('id').replace('status_', '');
+
+    let verifyValue = $(this).is(':checked') ? 1 : 0;
+
+    // Store the current value
+    $(this).val(verifyValue);
+
+    if (verifyValue === 1) {
+
+        $('#statusText_' + id)
+            .removeClass('bg-danger')
+            .addClass('bg-success')
+            .text('Correct');
+
+    } else {
+
+        $('#statusText_' + id)
+            .removeClass('bg-success')
+            .addClass('bg-danger')
+            .text('Incorrect');
+    }
+
+    console.log('Checklist ID:', id);
+    console.log('Verify Value:', verifyValue);
+});
 
 
 </script>
+
+
