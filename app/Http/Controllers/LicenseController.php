@@ -372,77 +372,93 @@ class LicenseController extends Controller
 
 
     //    --------------------Admin Panel EA Check --------------------------------------------------
-    public function verifylicenseformAea_admin(Request $request)
-    {
+   public function verifylicenseformAea_admin(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'license_number' => 'required|string|max:50',
+        'first_issue'    => 'required|date',
+        'validity_from'  => 'required|date',
+        'validity_to'    => 'required|date|after_or_equal:validity_from',
+    ], [
+        'first_issue.required' => 'First issue date is required.',
+        'validity_from.required' => 'Validity from date is required.',
+        'validity_to.required' => 'Validity to date is required.',
+        'validity_to.after_or_equal' =>
+            'Validity to date must be on or after validity from date.',
+    ]);
 
-        $input = $request->all();
-
-        // Convert dd-mm-yyyy to Y-m-d before validation
-        if (!empty($input['date'])) {
-            try {
-                $input['date'] = Carbon::createFromFormat('d-m-Y', $input['date'])->format('Y-m-d');
-            } catch (\Exception $e) {
-            }
-        }
-
-
-
-        // Validate the converted input
-        $validator = Validator::make($input, [
-            'license_number' => 'required|string|max:50',
-            'date' => 'required|date',
-        ], [
-            'date.before' => 'Enter a valid date'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $licenseNumber = strtoupper(trim($input['license_number']));
-        $date = $input['date']; // Already in Y-m-d format
-
-        // dd($licenseNumber);
-        // exit;
-
-        // Handle prefixes
-        if (Str::startsWith($licenseNumber, ['C', 'B', 'H', 'WH'])) {
-            $licenseNumber = preg_replace('/^(C|B|H|WH)/', '', $licenseNumber);
-        } elseif (Str::startsWith($licenseNumber, ['EA', 'ESA', 'ESB', 'EB'])) {
-            $licenseNumber = preg_replace('/^(EA|ESB|EB|ESA)/', '', $licenseNumber);
-        } elseif (Str::startsWith($licenseNumber, 'L')) {
-            // keep as is (allowed)
-        }
-
-        // Build queries
-        $query1 = DB::table('ealicense')
-            ->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-
-        $query2 = DB::table('esalicense')
-            ->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-
-        $query3 = DB::table('esblicense')
-            ->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-
-        $query4 = DB::table('cl_forma_lic')
-            ->selectRaw("CAST(license_number AS VARCHAR) AS license_number, expires_at");
-
-        $query5 = DB::table('eblicense')
-            ->selectRaw("CAST(certno AS VARCHAR) AS license_number, vdate AS expires_at");
-
-        $exists = DB::query()
-            ->fromSub(
-                $query1->unionAll($query2)->unionAll($query3)->unionAll($query4)->unionAll($query5),
-                'all_licenses'
-            )
-            ->where('license_number', (string) $licenseNumber)
-            ->whereDate('expires_at', $date)
-            ->exists();
-
+    if ($validator->fails()) {
         return response()->json([
-            'exists' => $exists
-        ]);
+            'errors' => $validator->errors(),
+        ], 422);
     }
+
+    $licenseNumber = strtoupper(trim($request->license_number));
+
+    $firstIssue = Carbon::parse($request->first_issue)->toDateString();
+    $validityFrom = Carbon::parse($request->validity_from)->toDateString();
+    $validityTo = Carbon::parse($request->validity_to)->toDateString();
+
+    // Remove known license prefixes, longest prefixes first.
+    foreach (['ESA', 'ESB', 'EA', 'EB', 'WH', 'C', 'B', 'H'] as $prefix) {
+        if (Str::startsWith($licenseNumber, $prefix)) {
+            $licenseNumber = substr($licenseNumber, strlen($prefix));
+            break;
+        }
+    }
+
+    /*
+     * Replace first_issue_date and validity_from below
+     * with the actual date columns in your database.
+     */
+    $queries = [
+           DB::table('cl_forma_lic')->selectRaw(
+            'CAST(license_number AS VARCHAR) AS license_number,
+            dateof_issue, valid_from, valid_to AS validity_to'
+        ),
+
+        // DB::table('esalicense')->selectRaw(
+        //     'CAST(certno AS VARCHAR) AS license_number,
+        //      dateof_issue, valid_toAS validity_to'
+        // ),
+
+        // DB::table('esblicense')->selectRaw(
+        //     'CAST(certno AS VARCHAR) AS license_number,
+        //      dateof_issue, valid_to AS validity_to'
+        // ),
+
+        // DB::table('cl_forma_lic')->selectRaw(
+        //     'CAST(license_number AS VARCHAR) AS license_number,
+        //      dateof_issue, valid_to, expires_at AS validity_to'
+        // ),
+
+        // DB::table('eblicense')->selectRaw(
+        //     'CAST(certno AS VARCHAR) AS license_number,
+        //      dateof_issue, valid_to AS validity_to'
+        // ),
+    ];
+
+    $allLicenses = array_shift($queries);
+
+    foreach ($queries as $query) {
+        $allLicenses->unionAll($query);
+    }
+
+    $exists = DB::query()
+        ->fromSub($allLicenses, 'all_licenses')
+        ->where('license_number', (string) $licenseNumber)
+        ->whereDate('dateof_issue', $firstIssue)
+        ->whereDate('valid_from', $validityFrom)
+        ->whereDate('validity_to', $validityTo)
+        ->exists();
+
+    return response()->json([
+        'exists' => $exists,
+        'message' => $exists
+            ? 'Valid License'
+            : 'Invalid License or license dates do not match.',
+    ]);
+}
 
 
 

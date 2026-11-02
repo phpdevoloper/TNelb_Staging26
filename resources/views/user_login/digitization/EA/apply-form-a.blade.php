@@ -1828,6 +1828,9 @@ exit; -->
                                                     maxlength="50" id="proprietor_name" name="proprietor_name[]"
                                                     placeholder="Director's Name">
 
+                                                <input type="text" class="form-control mb-2 proprietor_name"
+                                                    maxlength="50" id="proprietor_name" name="proprietor_name[]"
+                                                    placeholder="Director's Name">
 
 
                                                 <span class="error text-danger" id="proprietor_name_error"></span>
@@ -2015,7 +2018,6 @@ exit; -->
 
 
 
-                                    </div>
 
                                 </div>
 
@@ -2264,6 +2266,9 @@ exit; -->
                                 <span class="error text-danger" id="previous_contractor_license_error"></span>
                             </div>
 
+                                        </tbody>
+                                    @else
+                                        <!-- DRAFT / EXISTING APPLICATION -->
 
                             @php
                                 $showPreviousFields =
@@ -2300,6 +2305,10 @@ exit; -->
                                             value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}">
 
 
+                                                    {{-- S.NO --}}
+                                                    <td>
+                                                        {{ $i + 1 }}.
+                                                    </td>
 
                                     </div>
 
@@ -2334,6 +2343,7 @@ exit; -->
 
                             </div>
 
+                                                        {{ $staff->staff_name ?? '' }}
 
                         </div>
                     </div>
@@ -2350,7 +2360,7 @@ exit; -->
                                     <label>5A. Details of Eligible QC Staff appointed on full time basis: <span
                                             style="color: red;">*</span></label>
 
-                                </div>
+                                                    </td>
 
                             </div>
 
@@ -2407,6 +2417,9 @@ exit; -->
                                      <input type="hidden" class="form-control text-box single-line" id="form_name" name="form_name"
                                         value="A">
 
+                                                            @if (!empty($staff->app_doc) && !empty($staff->cons_doc))
+                                                                <br>
+                                                            @endif
 
                                     <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name"
                                         value="EA">
@@ -2692,6 +2705,7 @@ exit; -->
                                             </div>
                                             <div class="text-center ">
 
+                    </div>
 
 
                                             </div>
@@ -2790,6 +2804,9 @@ exit; -->
                                                     <button type="button" class="btn btn-danger ms-2"
                                                         id="cancel_qc">Cancel</button>
 
+                                                        <input type="date" class="form-control cc_firstissue"
+                                                            name="cc_firstissue[{{ $i }}]"
+                                                            value="{{ old('cc_firstissue.' . $i) }}">
 
                                                 </div>
                                             </div>
@@ -2884,8 +2901,11 @@ exit; -->
 
                                                     </td>
 
+                                        <tbody id="staff-container">
 
 
+                                                    $rowIndex = $staff->row_index ?? $i + 1;
+                                                @endphp
 
                                                     {{-- CERTIFICATE NUMBER --}}
                                                     <td class="cc-column">
@@ -2962,6 +2982,8 @@ exit; -->
                                                     </td>
 
 
+                                                    <td class="validity-column"
+                                                        style="{{ $isOthers ? 'display:none;' : '' }}">
 
 
                                                     {{-- ACTION --}}
@@ -3198,6 +3220,8 @@ exit; -->
                                 </div> -->
                             </div>
 
+                                            <div class="row">
+                                                <div class="col-12 col-md-8">
 
 
                         </div>
@@ -3798,6 +3822,11 @@ exit; -->
                                     </div>
                                 </div>
 
+                                <div class="col-12 col-md-5">
+                                    <div class="row ">
+                                        <div class="col-12 col-md-3 ">
+                                            <label for="Name">(iii) Upload Document
+                                            </label>
 
 
                                 <div class="col-12 col-md-5">
@@ -3810,6 +3839,17 @@ exit; -->
                                         </div>
                                         <div class="col-12 col-md-9">
 
+                                                </div>
+                                                <div class="col-12 col-md-5">
+                                                    <button type="button" class="btn btn-info upload-btn"
+                                                        data-login_id="{{ Auth::user()->login_id }}"
+                                                        data-module="ADDRESS PROOF DOCUMENT"
+                                                        data-document_category="Address_proof"
+                                                        data-document_sub_category="APD" data-ownership_type=""
+                                                        data-form_code="{{ $form_code->id }}">
+                                                        <i class="fa fa-upload"></i> Upload
+                                                    </button>
+                                                </div>
 
                                             <div class="row">
                                                 <div class="col-12 col-md-7">
@@ -3876,7 +3916,7 @@ exit; -->
                             </div>
                         </div>
 
-                    </div>
+                                </div>
 
                     <div class="row mt-2">
 
@@ -4972,41 +5012,57 @@ $(document).on("click", "#add-more-authority-name", function () {
             <td>
                 <div class="row">
 
-                    <div class="col-12 col-md-7">
+                $("#authority-names-table tbody tr").each(function () {
 
-                        <input type="file"
-                            class="form-control"
-                            name="specimen_sign[]"
-                            accept="application/pdf">
+                    let currentRowIndex = parseInt(
+                        $(this).attr("data-row-index"),
+                        10
+                    );
 
-                        <span class="file-limit">
-                            PDF only (Max 250 KB)
-                        </span>
+                    if (
+                        !isNaN(currentRowIndex) &&
+                        currentRowIndex > maxRowIndex
+                    ) {
+                        maxRowIndex = currentRowIndex;
+                    }
+                });
 
-                        <br>
+                // ------------------------------------------
+                // GENERATE NEXT INDEX
+                // ------------------------------------------
 
-                        <span class="text-danger Doc_upload_error"></span>
+                let rowIndex = maxRowIndex + 1;
 
-                    </div>
+                console.log("Maximum row index:", maxRowIndex);
+                console.log("New row index:", rowIndex);
 
                     <div class="col-12 col-md-5 specimen-sign-section">
 
-                        <button type="button"
-                            class="btn btn-info upload-btn"
-                            data-login_id="{{ Auth::user()->login_id }}"
-                            data-module="SPECIMEN SIGN"
-                            data-document_category="specimen_sign"
-                            data-document_sub_category="SS"
-                            data-ownership_type=""
-                            data-form_code="{{ $form_code->id }}"
-                            data-row-index="${rowIndex}">
+                        <td>
+                            <input type="hidden"
+                                name="authority_row_index[]"
+                                value="${rowIndex}">
 
-                            <i class="fa fa-upload"></i>
-                            Upload
+                            <input type="text"
+                                class="form-control"
+                                name="name_of_authorised_to_sign[]"
+                                oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
+                        </td>
 
-                        </button>
+                        <td>
+                            <input type="number"
+                                min="15"
+                                max="70"
+                                class="form-control"
+                                name="age_of_authorised_to_sign[]">
+                        </td>
 
-                    </div>
+                        <td>
+                            <input type="text"
+                                class="form-control"
+                                name="qualification_of_authorised_to_sign[]"
+                                oninput="this.value = this.value.replace(/[^a-zA-Z\\s]/g, '')">
+                        </td>
 
                     <div class="col-md-12 mt-1 col-12 file-link"></div>
 
@@ -5017,14 +5073,12 @@ $(document).on("click", "#add-more-authority-name", function () {
                 <button type="button"
                     class="btn btn-danger remove-authority-name">
 
-                    <i class="fa fa-minus"></i>
-                    Remove
+                                    <br>
 
                 </button>
             </td>
 
-        </tr>
-    `;
+                                <div class="col-12 col-md-5 specimen-sign-section">
 
     $tbody.append(row);
 });
@@ -7109,8 +7163,8 @@ function toggleCompetencyFields(type, show) {
                 console.log("Next partner row index:", nextRowIndex);
             });
 
-        // Save or Update Partner
-        $("#save_partner").on("click", function() {
+            let fathersName = $section.find("input[name='fathers_name[]']").val().trim();
+            let presentBusiness = $section.find("input[name='present_business[]']").val().trim();
 
             // alert('111');
 
@@ -7817,6 +7871,8 @@ function toggleCompetencyFields(type, show) {
                 $section.find(".age-file-link").html("");
             }
 
+            $section.find("textarea[name='proprietor_address[]']")
+                .val($tds.eq(3).text().trim());
 
             // ================= ADDRESS =================
 

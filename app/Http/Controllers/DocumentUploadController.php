@@ -1257,6 +1257,9 @@ class DocumentUploadController extends Controller
         // ======================================================
 // dd($request->all()); exit;
         $fileInputs = $request->files->all();
+            // ======================================================
+            // 1. VALIDATE FILE EXISTENCE
+            // ======================================================
 
             $fileInputs = $request->files->all();
 

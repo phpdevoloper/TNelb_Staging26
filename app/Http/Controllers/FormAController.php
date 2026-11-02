@@ -3984,6 +3984,9 @@ class FormAController extends BaseController
         $dataToSave['previous_application_number'] =
             $request->input('previous_application_number');
 
+        $dataToSave['application_ownershiptype'] =
+            $request->input('application_ownershiptype');
+
         $dataToSave['previous_validity_first_issue'] =
             $request->input('previous_validity_first_issue');
 
@@ -4528,6 +4531,16 @@ class FormAController extends BaseController
                             $index,
                             ''
                         )
+                    ),
+
+                      'educational_proof' => data_get(
+                        $request->qual_proof,
+                        $index
+                    ),
+
+                    'age_proof' => data_get(
+                        $request->age_proof,
+                        $index
                     ),
 
                     'fathers_name' => strtoupper(
@@ -5479,6 +5492,16 @@ class FormAController extends BaseController
                         )
                     ),
 
+                             'educational_proof' => data_get(
+                        $request->director_qual_proof,
+                        $index
+                    ),
+
+                    'age_proof' => data_get(
+                        $request->director_age_proof,
+                        $index
+                    ),
+
                     'qualification_text' => strtoupper(
                         data_get(
                             $request->director_qual_text,
@@ -5833,6 +5856,7 @@ class FormAController extends BaseController
                 'proprietor_flag' => 0,
             ]);
         }
+
 
 
         // ==========================================================

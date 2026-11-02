@@ -1266,15 +1266,20 @@
 
 
 
-                                                                                     <div class="row">
+                                                                     {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }},
 
+                                                                      {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }},
 
 
                                                            {{-- <div class="col-lg-12 col-12 d-flex align-items-center">
                                                             <div class="verify-result_EA "></div>  <!-- Result on left -->
                                                             <button class="btn btn-sm btn-primary verify-btn_EA"
                                                                 data-license="{{ $applicant->previous_application_number }}"
-                                                                data-date="{{ $applicant->previous_application_validity }}">
+                                                                data-firstissue="{{ $applicant->previous_validity_first_issue }}"
+                                                                data-validity_from="{{ $applicant->previous_validity_from }}"
+                                                                data-validity_to="{{ $applicant->previous_validity_to }}"
+                                                                
+                                                                >
                                                                 Verify
                                                             </button>
                                                         </div> --}}
@@ -1849,11 +1854,13 @@
 
                                     </div>
 
+                                    
+
                                     <div class="row mt-3">
 
                                             <div class="row ">
                                                 <div class="col-lg-12">
-                                                    <p class="text-info"><strong>12. Address Proof  </strong></p>
+                                                    <p class="text-info"><strong>8. Address Proof  </strong></p>
                                                 </div>
                                             </div>
 
@@ -4135,37 +4142,56 @@ $("#process_return").on("click", function () {
     });
 });
 
+$(document).on('click', '.verify-btn_EA', function (e) {
+    e.preventDefault();
 
-$(document).on('click', '.verify-btn_EA', function () {
     let btn = $(this);
+
     let license = btn.data('license');
-    let date = btn.data('date');
+    let firstIssue = btn.data('firstissue');
+    let validityFrom = btn.data('validity_from');
+    let validityTo = btn.data('validity_to');
+
     let resultDiv = btn.siblings('.verify-result_EA');
 
-    resultDiv.html('<p class="text-info">Checking...</p>');
+    resultDiv.html('<span class="text-info">Checking...</span>');
 
     $.ajax({
-    url: "{{ route('admin.verifylicenseformAea_admin') }}",
+        url: "{{ route('admin.verifylicenseformAea_admin') }}",
         method: "POST",
         data: {
             _token: "{{ csrf_token() }}",
             license_number: license,
-            date: date
+            first_issue: firstIssue,
+            validity_from: validityFrom,
+            validity_to: validityTo
         },
         success: function (response) {
             if (response.exists) {
-                resultDiv.html('<p class="text-success">Valid License</p>');
+                resultDiv.html(
+                    '<span class="text-success">Valid License</span>'
+                );
             } else {
-                resultDiv.html('<p class="text-danger">Invalid License</p>');
+                resultDiv.html(
+                    '<span class="text-danger">Invalid License</span>'
+                );
             }
         },
-        error: function () {
-            resultDiv.html('<p class="text-danger">Error checking license</p>');
+        error: function (xhr) {
+            let message = 'Error checking license';
+
+            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                message = Object.values(xhr.responseJSON.errors)
+                    .flat()
+                    .join('<br>');
+            }
+
+            resultDiv.html(
+                '<span class="text-danger">' + message + '</span>'
+            );
         }
     });
 });
-
-
 
 $(document).on('click', '.verify-btn_staff', function () {
     let btn = $(this);
