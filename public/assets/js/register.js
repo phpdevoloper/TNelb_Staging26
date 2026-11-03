@@ -269,6 +269,24 @@
                     const message = payload.errors?.mobile?.[0] ?? payload.message ?? 'Unable to send OTP.';
                     this.showErrors([{ field: 'mobile', message }]);
                     console.error(`[register] generate-otp failed: ${message}`);
+                } else if (payload.otp) {
+                    // Display OTP temporarily for testing (remove when SMS gateway is configured)
+                    console.log(`%c🔐 OTP for testing: ${payload.otp}`, 'background: #ff6b6b; color: white; padding: 8px; border-radius: 4px; font-weight: bold;');
+                    const otpDisplay = document.createElement('div');
+                    otpDisplay.style.cssText = `
+                        background: #ff6b6b;
+                        color: white;
+                        padding: 12px 16px;
+                        border-radius: 4px;
+                        margin-bottom: 12px;
+                        font-weight: 600;
+                        text-align: center;
+                        font-size: 18px;
+                        letter-spacing: 2px;
+                    `;
+                    otpDisplay.textContent = `Test OTP: ${payload.otp}`;
+                    this.els.otpSection?.parentElement?.insertBefore(otpDisplay, this.els.otpSection);
+                    setTimeout(() => otpDisplay.remove(), 30000); // Remove after 30 seconds
                 }
             } catch (error) {
                 this.showErrors([{ field: 'mobile', message: 'Network problem — check your connection and try again.' }]);
@@ -276,19 +294,16 @@
             } finally {
                 this.setBusy(sendBtn, false);
 
-                // The OTP panel is revealed whatever the API answered, which is the
-                // behaviour this screen shipped with: POST /generate-otp currently
-                // replies 422 "OTP already generated" for every request, so gating the
-                // reveal on `success` would dead-end the wizard. Move this call into the
-                // `ok` branch above once the endpoint is fixed server-side.
                 this.revealOtpSection();
                 this.resetOtpDigits();
-                this.startOtpTimer(Number(this.els.otpSection?.dataset.otpSeconds) || 30);
+                this.startOtpTimer(Number(this.els.otpSection?.dataset.otpSeconds) || 5);
             }
         },
 
-        verifyOtp() {
+        async verifyOtp() {
             const otp = this.otpValue();
+            const mobile = this.els.phone.value.trim();
+
             this.clearError('otp');
 
             if (otp.length !== this.els.otpDigits.length) {
@@ -297,8 +312,31 @@
                 return;
             }
 
-            this.otpVerified = true;
-            this.goToStep(2);
+            const body = new FormData();
+            body.append('_token', this.csrf);
+            body.append('mobile', mobile);
+            body.append('otp', otp);
+
+            this.setBusy(this.els.otpNext, true, '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Verifying…');
+
+            try {
+                const { ok, payload } = await this.post('/verify-otp', body);
+
+                if (!ok || payload.success !== true) {
+                    const message = payload.message ?? 'OTP verification failed.';
+                    this.showErrors([{ field: 'otp', message }]);
+                    console.error(`[register] verify-otp failed: ${message}`);
+                    return;
+                }
+
+                this.otpVerified = true;
+                this.goToStep(2);
+            } catch (error) {
+                this.showErrors([{ field: 'otp', message: 'Network problem — check your connection and try again.' }]);
+                console.error('[register] verify-otp request error:', error);
+            } finally {
+                this.setBusy(this.els.otpNext, false);
+            }
         },
 
         revealOtpSection() {

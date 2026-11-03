@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Schema;
 use App\Models\Register;
 
 use App\Models\Admin\Mst_equipment_tbl;
+use App\Models\OtpVerification;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -89,69 +90,137 @@ class RegisterController extends BaseController
                 'errors' => $validator->errors()
             ], 422);
         }
-        
 
         $mobile = $request->input('mobile');
+
+        // Check if OTP already exists and is not expired
+        $existingOtp = OtpVerification::where('mobile', $mobile)
+            ->where('otp_expiry', '>', now())
+            ->first();
+
+        if ($existingOtp && !$existingOtp->isExpired()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP already sent. Please wait before requesting a new one.'
+            ], 429);
+        }
+
+        // Generate new OTP
         $otp = rand(100000, 999999);
         $otp_expiry = now()->addMinutes(5);
-        $otp_verified = false;
-        $otp_verified_at = null;
-        $otp_verified_by = null;
-        $otp_verified_ip = null;
-        $otp_verified_user_agent = null;
-        $otp_verified_device = null;
 
-        $otp_data = [
+        // Delete old OTP if exists
+        OtpVerification::where('mobile', $mobile)->delete();
+
+        // Create new OTP record
+        OtpVerification::create([
             'mobile' => $mobile,
             'otp' => $otp,
             'otp_expiry' => $otp_expiry,
-            'otp_verified' => $otp_verified,
-            'otp_verified_at' => $otp_verified_at,
-            'otp_verified_by' => $otp_verified_by,
-            'otp_verified_ip' => $otp_verified_ip,
-            'otp_verified_user_agent' => $otp_verified_user_agent,
-            'otp_verified_device' => $otp_verified_device,
-        ];
-
-        $otp_data = json_encode($otp_data);
-        $otp_data = base64_encode($otp_data);
-        $otp_data = urlencode($otp_data);
-        $otp_data = base64_decode($otp_data);
-        $otp_data = json_decode($otp_data, true);
-
-        $otp_data = Register::create($otp_data);
-
-        $otp_data = Register::where('mobile', $mobile)->first();
-
-        if ($otp_data) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP already generated'
-            ], 422);
-        }
-
-        $otp_data->save();
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'OTP generated successfully',
+            'message' => 'OTP sent successfully',
             'otp' => $otp,
             'otp_expiry' => $otp_expiry,
         ], 200);
     }
 
+    /**
+     * Verify OTP for the mobile number
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function verifyOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'mobile' => 'required|digits:10',
+            'otp' => 'required|digits:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $mobile = $request->input('mobile');
+        $otp = $request->input('otp');
+
+        $otpRecord = OtpVerification::where('mobile', $mobile)->first();
+
+        if (!$otpRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP not found. Please request a new OTP.'
+            ], 422);
+        }
+
+        // Check if OTP has expired
+        if ($otpRecord->isExpired()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP has expired. Please request a new OTP.'
+            ], 422);
+        }
+
+        // Check if already verified
+        if ($otpRecord->isAlreadyVerified()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP already verified. Proceed to registration.'
+            ], 200);
+        }
+
+        // Check too many attempts (rate limiting)
+        if ($otpRecord->hasTooManyAttempts(5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many failed attempts. Please request a new OTP.'
+            ], 429);
+        }
+
+        // Check OTP value
+        if ($otpRecord->otp !== $otp) {
+            $otpRecord->recordAttempt();
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid OTP. Please try again.'
+            ], 422);
+        }
+
+        // Mark OTP as verified
+        $otpRecord->markAsVerified();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP verified successfully. Proceed to registration.'
+        ], 200);
+    }
+
     public function store(Request $request)
     {
+        $mobile = $request->input('mobile');
+
+        // Check if OTP was verified for this mobile
+        $otpRecord = OtpVerification::where('mobile', $mobile)->first();
+        if (!$otpRecord || !$otpRecord->is_verified) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please verify your OTP first'
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'salutation' => 'required|in:Mr,Mrs,Ms,Dr',
             'first_name' => 'required|string|max:50',
             'last_name'  => 'required|string|max:50',
             'gender'     => 'required|string',
-            'mobile'     => [
-                'required',
-                'digits:10',
-                Rule::unique('tnelb_registers', 'mobile'),
-            ],
+            'mobile'     => 'required|digits:10',
             'email'      => [
                 'nullable',
                 'email',
@@ -159,8 +228,7 @@ class RegisterController extends BaseController
             ],
             'Address'    => 'required|string',
             'state'      => 'required|string|max:255',
-            'district' => 'nullable|required_if:state,Tamil Nadu|string|max:255',
-
+            'district'   => 'nullable|required_if:state,Tamil Nadu|string|max:255',
             'pincode'    => 'required|digits:6',
         ]);
 
@@ -180,21 +248,19 @@ class RegisterController extends BaseController
         }
         $newLoginId = 'tnelb_' . $newRecord;
 
-        // Store Data in Database
+        // Create registration record
         $register = Register::create([
             'salutation' => $request->input('salutation'),
             'first_name' => $request->input('first_name'),
             'last_name'  => $request->input('last_name'),
             'gender'     => $request->input('gender'),
-            'mobile'     => $request->input('mobile'),
+            'mobile'     => $mobile,
             'email'      => $request->input('email'),
             'address'    => $request->input('Address'),
             'state'      => $request->input('state'),
-            // 'district'   => $request->input('district'),
             'district'   => $request->filled('district') ? $request->district : 0,
             'pincode'    => $request->input('pincode'),
             'login_id'   => $newLoginId,
-            'created_at' => now()
         ]);
 
         return response()->json([
