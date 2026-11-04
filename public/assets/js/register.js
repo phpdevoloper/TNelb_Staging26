@@ -24,9 +24,17 @@
         },
         {
             field: "date_of_birth",
-            message: "Select a valid date of birth.",
-            test: ({ date_of_birth: value = "" }) =>
-                value !== "" && new Date(value) <= new Date(),
+            message: "You must be at least 18 years old to register.",
+            test: ({ date_of_birth: value = "" }) => {
+                if (!value) return false;
+                const dob = new Date(value);
+                const today = new Date();
+                if (dob >= today) return false;
+                const age = today.getFullYear() - dob.getFullYear();
+                const monthDiff = today.getMonth() - dob.getMonth();
+                const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate()) ? age - 1 : age;
+                return actualAge >= 18;
+            },
         },
         {
             field: "gender",
