@@ -67,7 +67,7 @@
 
     #registerform .tnelb-wiz-alert {
         grid-column: 1 / -1;
-        order: 8;
+        order: 12;
     }
 
     /* ============ Card ============ */
@@ -575,19 +575,38 @@
         display: contents;
     }
 
-    #registerform .f-address {
+    /* Structured address block — reading order is Line 1 → Line 2 → City → State → District → Pin Code.
+       The two street lines span the full grid; the rest pair up two-per-row. When #districtRow is
+       hidden (state !== Tamil Nadu) the pin code simply reflows into the first column. */
+    #registerform .f-address-line1 {
+        grid-column: 1 / -1;
+        order: 6;
+    }
+
+    #registerform .f-address-line2 {
         grid-column: 1 / -1;
         order: 7;
     }
 
-    #registerform #districtRow {
-        grid-column: 1 / -1;
+    #registerform .f-city {
         order: 8;
+    }
+
+    #registerform .f-state {
+        order: 9;
+    }
+
+    #registerform #districtRow {
+        order: 10;
+    }
+
+    #registerform .f-pincode {
+        order: 11;
     }
 
     #registerform .tnelb-wiz-nav {
         grid-column: 1 / -1;
-        order: 9;
+        order: 13;
     }
 
     .tnelb-wiz-nav {
@@ -918,33 +937,45 @@
                             icon="envelope"
                             required />
 
-                        <x-form-textarea
-                            name="Address"
-                            label="Address"
-                            placeholder="Enter your address"
-                            field-class="f-address"
-                            :rows="3"
-                            maxlength="500"
+                        {{-- Structured address. data-validate mirrors the rule register.js applies to
+                             each field, so the markup documents what the client checks. --}}
+                        <x-form-input
+                            name="address_line1"
+                            label="Address Line 1"
+                            placeholder="Door / flat no., building, street"
+                            autocomplete="address-line1"
+                            maxlength="150"
+                            field-class="f-address-line1"
+                            data-validate="required"
                             required />
 
+                        <x-form-input
+                            name="address_line2"
+                            label="Address Line 2"
+                            placeholder="Area, landmark (optional)"
+                            autocomplete="address-line2"
+                            maxlength="150"
+                            field-class="f-address-line2"
+                            data-validate="optional" />
+
                         <div class="tnelb-wiz-split">
+                            <x-form-input
+                                name="city"
+                                label="Village / Town / City"
+                                placeholder="Enter village, town or city"
+                                autocomplete="address-level2"
+                                maxlength="60"
+                                field-class="f-city"
+                                data-validate="required"
+                                required />
+
                             <x-form-select
                                 name="state"
                                 label="Select State"
                                 placeholder="--- Select State ---"
                                 :options="$states"
+                                field-class="f-state"
                                 data-state-select
-                                required />
-
-                            <x-form-input
-                                name="pincode"
-                                label="Pincode"
-                                placeholder="Enter pincode"
-                                inputmode="numeric"
-                                pattern="[0-9]{6}"
-                                maxlength="6"
-                                autocomplete="postal-code"
-                                data-filter="digits"
                                 required />
                         </div>
 
@@ -956,9 +987,23 @@
                                 placeholder="--- Select District ---"
                                 :options="$districts"
                                 data-district-select
+                                data-validate="required"
                                 disabled
                                 required />
                         </div>
+
+                        <x-form-input
+                            name="pincode"
+                            label="Pin Code"
+                            placeholder="Enter 6 digit pin code"
+                            inputmode="numeric"
+                            pattern="[0-9]{6}"
+                            maxlength="6"
+                            autocomplete="postal-code"
+                            data-filter="digits"
+                            field-class="f-pincode"
+                            data-validate="pincode"
+                            required />
 
                         {{-- Non-field failures (network, 500, unexpected payload) surface here --}}
                         <x-info-box icon="exclamation-triangle" role="alert" class="tnelb-wiz-alert" data-form-alert hidden>

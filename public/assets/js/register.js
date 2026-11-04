@@ -8,54 +8,66 @@
  * so it must not contain `{{ ... }}` placeholders).
  */
 (() => {
-    'use strict';
+    "use strict";
 
     /** Client-side rules, evaluated against the FormData snapshot of step 2. */
     const VALIDATORS = [
         {
-            field: 'first_name',
-            message: 'First name is required.',
-            test: ({ first_name: value = '' }) => value.trim().length > 0,
+            field: "first_name",
+            message: "First name is required.",
+            test: ({ first_name: value = "" }) => value.trim().length > 0,
         },
         {
-            field: 'last_name',
-            message: 'Last name is required.',
-            test: ({ last_name: value = '' }) => value.trim().length > 0,
+            field: "last_name",
+            message: "Last name is required.",
+            test: ({ last_name: value = "" }) => value.trim().length > 0,
         },
         {
-            field: 'date_of_birth',
-            message: 'Select a valid date of birth.',
-            test: ({ date_of_birth: value = '' }) => value !== '' && new Date(value) <= new Date(),
+            field: "date_of_birth",
+            message: "Select a valid date of birth.",
+            test: ({ date_of_birth: value = "" }) =>
+                value !== "" && new Date(value) <= new Date(),
         },
         {
-            field: 'gender',
-            message: 'Please select gender.',
-            test: ({ gender = '' }) => gender.trim().length > 0,
+            field: "gender",
+            message: "Please select gender.",
+            test: ({ gender = "" }) => gender.trim().length > 0,
         },
         {
-            field: 'email',
-            message: 'Enter a valid email address.',
-            test: ({ email = '' }) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()),
+            field: "email",
+            message: "Enter a valid email address.",
+            test: ({ email = "" }) =>
+                /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim()),
         },
         {
-            field: 'Address',
-            message: 'Address is required.',
-            test: ({ Address: value = '' }) => value.trim().length > 0,
+            field: "address_line1",
+            message: "Address line 1 is required.",
+            test: ({ address_line1: value = "" }) => value.trim().length > 0,
+        },
+        // address_line2 is optional: it may be submitted empty, so it has no validator.
+        // The input's maxlength caps its length on the client; the server re-checks it.
+        {
+            field: "city",
+            message: "Village / town / city is required.",
+            test: ({ city = "" }) => city.trim().length > 0,
         },
         {
-            field: 'state',
-            message: 'Please select a state.',
-            test: ({ state = '' }) => state.trim().length > 0,
+            field: "state",
+            message: "Please select a state.",
+            test: ({ state = "" }) => state.trim().length > 0,
         },
         {
-            field: 'district',
-            message: 'Please select a district.',
-            test: ({ state = '', district = '' }) => state !== 'Tamil Nadu' || district.trim().length > 0,
+            // The district dropdown only exists for Tamil Nadu (see toggleDistrict), so it is
+            // required exactly when it is on screen.
+            field: "district",
+            message: "Please select a district.",
+            test: ({ state = "", district = "" }) =>
+                state !== "Tamil Nadu" || district.trim().length > 0,
         },
         {
-            field: 'pincode',
-            message: 'Enter a valid 6-digit pincode.',
-            test: ({ pincode = '' }) => /^\d{6}$/.test(pincode.trim()),
+            field: "pincode",
+            message: "Enter a valid 6-digit pin code.",
+            test: ({ pincode = "" }) => /^\d{6}$/.test(pincode.trim()),
         },
     ];
 
@@ -73,7 +85,7 @@
         resizeFrame: null,
         root: null,
         urls: {},
-        csrf: '',
+        csrf: "",
         els: {},
 
         /* ------------------------------------------------------------------ */
@@ -81,18 +93,24 @@
         /* ------------------------------------------------------------------ */
 
         init() {
-            this.root = document.querySelector('[data-wizard]');
+            this.root = document.querySelector("[data-wizard]");
             if (!this.root) return;
 
-            const { otpUrl = '', storeUrl = '' } = this.root.dataset;
+            const { otpUrl = "", storeUrl = "" } = this.root.dataset;
             this.urls = { otp: otpUrl, store: storeUrl };
-            this.csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+            this.csrf =
+                document.querySelector('meta[name="csrf-token"]')?.content ??
+                "";
 
             if (!this.urls.otp || !this.urls.store) {
-                console.error('[register] Missing data-otp-url / data-store-url on [data-wizard].');
+                console.error(
+                    "[register] Missing data-otp-url / data-store-url on [data-wizard].",
+                );
             }
             if (!this.csrf) {
-                console.error('[register] Missing <meta name="csrf-token">; POST requests will be rejected.');
+                console.error(
+                    '[register] Missing <meta name="csrf-token">; POST requests will be rejected.',
+                );
             }
 
             this.cacheElements();
@@ -102,29 +120,33 @@
 
         cacheElements() {
             const find = (selector) => this.root.querySelector(selector);
-            const findAll = (selector) => [...this.root.querySelectorAll(selector)];
+            const findAll = (selector) => [
+                ...this.root.querySelectorAll(selector),
+            ];
 
             this.els = {
-                card: document.querySelector('.register-form > .auto-container'),
-                panels: findAll('[data-panel]'),
-                steps: findAll('[data-wiz-step]'),
-                lines: findAll('[data-wiz-line]'),
-                phone: find('[data-phone-input]'),
-                sendBtn: find('[data-send-otp]'),
-                otpSection: find('[data-otp-section]'),
-                otpDigits: findAll('[data-otp-digit]'),
-                otpTimer: find('[data-otp-timer]'),
-                otpTimerWrap: find('[data-otp-timer-wrap]'),
-                otpResend: find('[data-otp-resend]'),
+                card: document.querySelector(
+                    ".register-form > .auto-container",
+                ),
+                panels: findAll("[data-panel]"),
+                steps: findAll("[data-wiz-step]"),
+                lines: findAll("[data-wiz-line]"),
+                phone: find("[data-phone-input]"),
+                sendBtn: find("[data-send-otp]"),
+                otpSection: find("[data-otp-section]"),
+                otpDigits: findAll("[data-otp-digit]"),
+                otpTimer: find("[data-otp-timer]"),
+                otpTimerWrap: find("[data-otp-timer-wrap]"),
+                otpResend: find("[data-otp-resend]"),
                 otpNext: find('[data-action="verify-otp"]'),
-                form: find('[data-register-form]'),
-                mobileMirror: find('[data-mobile-mirror]'),
-                stateSelect: find('[data-state-select]'),
-                districtRow: find('[data-district-row]'),
-                districtSelect: find('[data-district-select]'),
+                form: find("[data-register-form]"),
+                mobileMirror: find("[data-mobile-mirror]"),
+                stateSelect: find("[data-state-select]"),
+                districtRow: find("[data-district-row]"),
+                districtSelect: find("[data-district-select]"),
                 submitBtn: find('[data-register-form] [type="submit"]'),
-                formAlert: find('[data-form-alert]'),
-                formAlertText: find('[data-form-alert-text]'),
+                formAlert: find("[data-form-alert]"),
+                formAlertText: find("[data-form-alert-text]"),
                 success: {
                     name: find('[data-success="name"]'),
                     mobile: find('[data-success="mobile"]'),
@@ -135,14 +157,19 @@
 
         /** One listener per event type on the wizard root — works for markup added later too. */
         bindEvents() {
-            this.root.addEventListener('click', (event) => this.onClick(event));
-            this.root.addEventListener('input', (event) => this.onInput(event));
-            this.root.addEventListener('keydown', (event) => this.onKeyDown(event));
-            this.root.addEventListener('paste', (event) => this.onPaste(event));
-            this.root.addEventListener('change', (event) => this.onChange(event));
+            this.root.addEventListener("click", (event) => this.onClick(event));
+            this.root.addEventListener("input", (event) => this.onInput(event));
+            this.root.addEventListener("keydown", (event) =>
+                this.onKeyDown(event),
+            );
+            this.root.addEventListener("paste", (event) => this.onPaste(event));
+            this.root.addEventListener("change", (event) =>
+                this.onChange(event),
+            );
 
-            this.els.form?.addEventListener('submit', (event) => this.onSubmit(event));
-
+            this.els.form?.addEventListener("submit", (event) =>
+                this.onSubmit(event),
+            );
         },
 
         /* ------------------------------------------------------------------ */
@@ -150,40 +177,42 @@
         /* ------------------------------------------------------------------ */
 
         onClick(event) {
-            const trigger = event.target.closest('[data-action]');
+            const trigger = event.target.closest("[data-action]");
             if (!trigger) return;
 
             const { action, step } = trigger.dataset;
 
             switch (action) {
-                case 'send-otp':
+                case "send-otp":
                     this.sendOtp();
                     break;
-                case 'verify-otp':
+                case "verify-otp":
                     this.verifyOtp();
                     break;
-                case 'go-to-step':
+                case "go-to-step":
                     this.goToStep(Number(step));
                     break;
                 default:
-                    console.error(`[register] Unhandled data-action="${action}".`);
+                    console.error(
+                        `[register] Unhandled data-action="${action}".`,
+                    );
             }
         },
 
         onInput(event) {
             const field = event.target;
 
-            if (field.matches('[data-otp-digit]')) {
+            if (field.matches("[data-otp-digit]")) {
                 this.onOtpDigitInput(field);
                 return;
             }
 
             this.applyFilter(field);
 
-            if (field.matches('[data-phone-input]')) {
+            if (field.matches("[data-phone-input]")) {
                 this.otpVerified = false;
                 this.setNextEnabled(false);
-                this.clearError('mobile');
+                this.clearError("mobile");
                 return;
             }
 
@@ -194,28 +223,31 @@
         onKeyDown(event) {
             const field = event.target;
 
-            if (field.matches('[data-phone-input]') && event.key === 'Enter') {
+            if (field.matches("[data-phone-input]") && event.key === "Enter") {
                 event.preventDefault();
                 this.sendOtp();
                 return;
             }
 
-            if (!field.matches('[data-otp-digit]')) return;
+            if (!field.matches("[data-otp-digit]")) return;
 
-            if (event.key === 'Backspace' && field.value === '') {
+            if (event.key === "Backspace" && field.value === "") {
                 event.preventDefault();
                 this.focusSibling(field, -1);
-            } else if (event.key === 'ArrowLeft') {
+            } else if (event.key === "ArrowLeft") {
                 this.focusSibling(field, -1);
-            } else if (event.key === 'ArrowRight') {
+            } else if (event.key === "ArrowRight") {
                 this.focusSibling(field, 1);
             }
         },
 
         onPaste(event) {
-            if (!event.target.matches('[data-otp-digit]')) return;
+            if (!event.target.matches("[data-otp-digit]")) return;
 
-            const pasted = (event.clipboardData?.getData('text') ?? '').replace(/\D/g, '');
+            const pasted = (event.clipboardData?.getData("text") ?? "").replace(
+                /\D/g,
+                "",
+            );
             if (!pasted) return;
 
             event.preventDefault();
@@ -223,18 +255,23 @@
             const { otpDigits } = this.els;
             const start = otpDigits.indexOf(event.target);
 
-            [...pasted].slice(0, otpDigits.length - start).forEach((digit, offset) => {
-                otpDigits[start + offset].value = digit;
-            });
+            [...pasted]
+                .slice(0, otpDigits.length - start)
+                .forEach((digit, offset) => {
+                    otpDigits[start + offset].value = digit;
+                });
 
-            const filled = Math.min(start + pasted.length, otpDigits.length - 1);
+            const filled = Math.min(
+                start + pasted.length,
+                otpDigits.length - 1,
+            );
             otpDigits[filled].focus();
             this.setNextEnabled(this.otpValue().length === otpDigits.length);
         },
 
         onChange(event) {
-            if (event.target.matches('[data-state-select]')) {
-                this.toggleDistrict(event.target.value === 'Tamil Nadu');
+            if (event.target.matches("[data-state-select]")) {
+                this.toggleDistrict(event.target.value === "Tamil Nadu");
             }
         },
 
@@ -246,33 +283,49 @@
             const { phone, sendBtn } = this.els;
             const mobile = phone.value.trim();
 
-            this.clearError('mobile');
-            this.clearError('otp');
+            this.clearError("mobile");
+            this.clearError("otp");
             this.otpVerified = false;
             this.setNextEnabled(false);
 
             if (!MOBILE_PATTERN.test(mobile)) {
-                this.showErrors([{ field: 'mobile', message: 'Enter a valid 10-digit mobile number starting with 6-9.' }]);
+                this.showErrors([
+                    {
+                        field: "mobile",
+                        message:
+                            "Enter a valid 10-digit mobile number starting with 6-9.",
+                    },
+                ]);
                 phone.focus();
                 return;
             }
 
             const body = new FormData();
-            body.append('mobile', mobile);
+            body.append("mobile", mobile);
 
-            this.setBusy(sendBtn, true, '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Sending OTP…');
+            this.setBusy(
+                sendBtn,
+                true,
+                '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Sending OTP…',
+            );
 
             try {
                 const { ok, payload } = await this.post(this.urls.otp, body);
 
                 if (!ok || payload.success !== true) {
-                    const message = payload.errors?.mobile?.[0] ?? payload.message ?? 'Unable to send OTP.';
-                    this.showErrors([{ field: 'mobile', message }]);
+                    const message =
+                        payload.errors?.mobile?.[0] ??
+                        payload.message ??
+                        "Unable to send OTP.";
+                    this.showErrors([{ field: "mobile", message }]);
                     console.error(`[register] generate-otp failed: ${message}`);
                 } else if (payload.otp) {
                     // Display OTP temporarily for testing (remove when SMS gateway is configured)
-                    console.log(`%c🔐 OTP for testing: ${payload.otp}`, 'background: #ff6b6b; color: white; padding: 8px; border-radius: 4px; font-weight: bold;');
-                    const otpDisplay = document.createElement('div');
+                    console.log(
+                        `%c🔐 OTP for testing: ${payload.otp}`,
+                        "background: #ff6b6b; color: white; padding: 8px; border-radius: 4px; font-weight: bold;",
+                    );
+                    const otpDisplay = document.createElement("div");
                     otpDisplay.style.cssText = `
                         background: #ff6b6b;
                         color: white;
@@ -285,18 +338,29 @@
                         letter-spacing: 2px;
                     `;
                     otpDisplay.textContent = `Test OTP: ${payload.otp}`;
-                    this.els.otpSection?.parentElement?.insertBefore(otpDisplay, this.els.otpSection);
+                    this.els.otpSection?.parentElement?.insertBefore(
+                        otpDisplay,
+                        this.els.otpSection,
+                    );
                     setTimeout(() => otpDisplay.remove(), 30000); // Remove after 30 seconds
                 }
             } catch (error) {
-                this.showErrors([{ field: 'mobile', message: 'Network problem — check your connection and try again.' }]);
-                console.error('[register] generate-otp request error:', error);
+                this.showErrors([
+                    {
+                        field: "mobile",
+                        message:
+                            "Network problem — check your connection and try again.",
+                    },
+                ]);
+                console.error("[register] generate-otp request error:", error);
             } finally {
                 this.setBusy(sendBtn, false);
 
                 this.revealOtpSection();
                 this.resetOtpDigits();
-                this.startOtpTimer(Number(this.els.otpSection?.dataset.otpSeconds) || 5);
+                this.startOtpTimer(
+                    Number(this.els.otpSection?.dataset.otpSeconds) || 5,
+                );
             }
         },
 
@@ -304,27 +368,37 @@
             const otp = this.otpValue();
             const mobile = this.els.phone.value.trim();
 
-            this.clearError('otp');
+            this.clearError("otp");
 
             if (otp.length !== this.els.otpDigits.length) {
-                this.showErrors([{ field: 'otp', message: `Enter the ${this.els.otpDigits.length}-digit OTP.` }]);
-                this.els.otpDigits.find(({ value }) => value === '')?.focus();
+                this.showErrors([
+                    {
+                        field: "otp",
+                        message: `Enter the ${this.els.otpDigits.length}-digit OTP.`,
+                    },
+                ]);
+                this.els.otpDigits.find(({ value }) => value === "")?.focus();
                 return;
             }
 
             const body = new FormData();
-            body.append('_token', this.csrf);
-            body.append('mobile', mobile);
-            body.append('otp', otp);
+            body.append("_token", this.csrf);
+            body.append("mobile", mobile);
+            body.append("otp", otp);
 
-            this.setBusy(this.els.otpNext, true, '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Verifying…');
+            this.setBusy(
+                this.els.otpNext,
+                true,
+                '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Verifying…',
+            );
 
             try {
-                const { ok, payload } = await this.post('/verify-otp', body);
+                const { ok, payload } = await this.post("/verify-otp", body);
 
                 if (!ok || payload.success !== true) {
-                    const message = payload.message ?? 'OTP verification failed.';
-                    this.showErrors([{ field: 'otp', message }]);
+                    const message =
+                        payload.message ?? "OTP verification failed.";
+                    this.showErrors([{ field: "otp", message }]);
                     console.error(`[register] verify-otp failed: ${message}`);
                     return;
                 }
@@ -332,8 +406,14 @@
                 this.otpVerified = true;
                 this.goToStep(2);
             } catch (error) {
-                this.showErrors([{ field: 'otp', message: 'Network problem — check your connection and try again.' }]);
-                console.error('[register] verify-otp request error:', error);
+                this.showErrors([
+                    {
+                        field: "otp",
+                        message:
+                            "Network problem — check your connection and try again.",
+                    },
+                ]);
+                console.error("[register] verify-otp request error:", error);
             } finally {
                 this.setBusy(this.els.otpNext, false);
             }
@@ -343,10 +423,10 @@
             const { otpSection, otpDigits } = this.els;
             if (!otpSection) return;
 
-            otpSection.style.display = 'block';
+            otpSection.style.display = "block";
             void otpSection.offsetHeight; // force reflow so the CSS fade-in runs
-            otpSection.classList.add('is-visible');
-            otpSection.setAttribute('aria-hidden', 'false');
+            otpSection.classList.add("is-visible");
+            otpSection.setAttribute("aria-hidden", "false");
 
             otpDigits.forEach((digit) => {
                 digit.disabled = false;
@@ -355,21 +435,23 @@
 
         resetOtpDigits() {
             this.els.otpDigits.forEach((digit) => {
-                digit.value = '';
+                digit.value = "";
             });
             this.els.otpDigits[0]?.focus();
         },
 
         otpValue() {
-            return this.els.otpDigits.map(({ value }) => value).join('');
+            return this.els.otpDigits.map(({ value }) => value).join("");
         },
 
         onOtpDigitInput(input) {
-            input.value = input.value.replace(/\D/g, '').slice(0, 1);
+            input.value = input.value.replace(/\D/g, "").slice(0, 1);
             if (input.value) this.focusSibling(input, 1);
 
-            this.clearError('otp');
-            this.setNextEnabled(this.otpValue().length === this.els.otpDigits.length);
+            this.clearError("otp");
+            this.setNextEnabled(
+                this.otpValue().length === this.els.otpDigits.length,
+            );
         },
 
         focusSibling(input, direction) {
@@ -388,18 +470,21 @@
             let remaining = seconds;
 
             window.clearInterval(this.timerId);
-            otpTimerWrap?.removeAttribute('hidden');
-            otpResend?.setAttribute('hidden', '');
+            otpTimerWrap?.removeAttribute("hidden");
+            otpResend?.setAttribute("hidden", "");
 
             const tick = () => {
-                const minutes = String(Math.floor(remaining / 60)).padStart(2, '0');
-                const secs = String(remaining % 60).padStart(2, '0');
+                const minutes = String(Math.floor(remaining / 60)).padStart(
+                    2,
+                    "0",
+                );
+                const secs = String(remaining % 60).padStart(2, "0");
                 if (otpTimer) otpTimer.textContent = `${minutes}:${secs}`;
 
                 if (remaining <= 0) {
                     window.clearInterval(this.timerId);
-                    otpTimerWrap?.setAttribute('hidden', '');
-                    otpResend?.removeAttribute('hidden');
+                    otpTimerWrap?.setAttribute("hidden", "");
+                    otpResend?.removeAttribute("hidden");
                     return;
                 }
 
@@ -419,13 +504,13 @@
             if (!districtRow || !districtSelect) return;
 
             if (show) {
-                districtRow.removeAttribute('hidden');
+                districtRow.removeAttribute("hidden");
                 districtSelect.disabled = false;
             } else {
-                districtRow.setAttribute('hidden', '');
+                districtRow.setAttribute("hidden", "");
                 districtSelect.disabled = true;
-                districtSelect.value = '';
-                this.clearError('district');
+                districtSelect.value = "";
+                this.clearError("district");
             }
         },
 
@@ -438,9 +523,9 @@
             if (mobileMirror && phone) mobileMirror.value = phone.value.trim();
 
             const data = Object.fromEntries(new FormData(form).entries());
-            const failures = VALIDATORS
-                .filter(({ test }) => !test(data))
-                .map(({ field, message }) => ({ field, message }));
+            const failures = VALIDATORS.filter(({ test }) => !test(data)).map(
+                ({ field, message }) => ({ field, message }),
+            );
 
             if (failures.length > 0) {
                 this.showErrors(failures);
@@ -448,10 +533,17 @@
                 return;
             }
 
-            this.setBusy(submitBtn, true, '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Saving…');
+            this.setBusy(
+                submitBtn,
+                true,
+                '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Saving…',
+            );
 
             try {
-                const { ok, payload } = await this.post(this.urls.store, new FormData(form));
+                const { ok, payload } = await this.post(
+                    this.urls.store,
+                    new FormData(form),
+                );
 
                 if (ok && payload.success === true) {
                     this.fillSuccessCard(data);
@@ -459,20 +551,35 @@
                     return;
                 }
 
-                const serverErrors = Object.entries(payload.errors ?? {})
-                    .map(([field, messages]) => ({ field, message: messages?.[0] ?? 'Invalid value.' }));
+                const serverErrors = Object.entries(payload.errors ?? {}).map(
+                    ([field, messages]) => ({
+                        field,
+                        message: messages?.[0] ?? "Invalid value.",
+                    }),
+                );
 
                 if (serverErrors.length > 0) {
                     this.showErrors(serverErrors);
                     this.focusField(serverErrors[0].field);
                 } else {
-                    this.showFormAlert(payload.message ?? 'Registration could not be saved. Please try again.');
+                    this.showFormAlert(
+                        payload.message ??
+                            "Registration could not be saved. Please try again.",
+                    );
                 }
 
-                console.error('[register] register.store rejected the submission:', payload);
+                console.error(
+                    "[register] register.store rejected the submission:",
+                    payload,
+                );
             } catch (error) {
-                this.showFormAlert('Network problem — check your connection and try again.');
-                console.error('[register] register.store request error:', error);
+                this.showFormAlert(
+                    "Network problem — check your connection and try again.",
+                );
+                console.error(
+                    "[register] register.store request error:",
+                    error,
+                );
             } finally {
                 this.setBusy(submitBtn, false);
             }
@@ -480,18 +587,21 @@
 
         fillSuccessCard(data) {
             const {
-                salutation = '',
-                first_name: firstName = '',
-                last_name: lastName = '',
-                mobile = '',
-                email = '',
+                salutation = "",
+                first_name: firstName = "",
+                last_name: lastName = "",
+                mobile = "",
+                email = "",
             } = data;
 
             const { name, mobile: mobileEl, email: emailEl } = this.els.success;
 
-            if (name) name.textContent = [salutation, firstName, lastName].filter(Boolean).join(' ');
-            if (mobileEl) mobileEl.textContent = mobile ? `+91 ${mobile}` : '-';
-            if (emailEl) emailEl.textContent = email || '-';
+            if (name)
+                name.textContent = [salutation, firstName, lastName]
+                    .filter(Boolean)
+                    .join(" ");
+            if (mobileEl) mobileEl.textContent = mobile ? `+91 ${mobile}` : "-";
+            if (emailEl) emailEl.textContent = email || "-";
         },
 
         /* ------------------------------------------------------------------ */
@@ -506,35 +616,42 @@
                     slot.textContent = message;
                 } else {
                     this.showFormAlert(message);
-                    console.error(`[register] No [data-error="${field}"] placeholder for: ${message}`);
+                    console.error(
+                        `[register] No [data-error="${field}"] placeholder for: ${message}`,
+                    );
                 }
 
                 this.root
                     .querySelectorAll(`[name="${field}"]`)
-                    .forEach((control) => control.setAttribute('aria-invalid', 'true'));
+                    .forEach((control) =>
+                        control.setAttribute("aria-invalid", "true"),
+                    );
             });
 
             // A rejected mobile number belongs to step 1 — send the user back there.
-            if (errors.some(({ field }) => field === 'mobile') && this.step !== 1) {
+            if (
+                errors.some(({ field }) => field === "mobile") &&
+                this.step !== 1
+            ) {
                 this.goToStep(1);
             }
         },
 
         clearError(field) {
             const slot = this.root.querySelector(`[data-error="${field}"]`);
-            if (slot) slot.textContent = '';
+            if (slot) slot.textContent = "";
 
             this.root
                 .querySelectorAll(`[name="${field}"]`)
-                .forEach((control) => control.removeAttribute('aria-invalid'));
+                .forEach((control) => control.removeAttribute("aria-invalid"));
         },
 
         clearErrors() {
-            this.root.querySelectorAll('[data-error]').forEach((slot) => {
-                slot.textContent = '';
+            this.root.querySelectorAll("[data-error]").forEach((slot) => {
+                slot.textContent = "";
             });
-            this.root.querySelectorAll('[aria-invalid]').forEach((control) => {
-                control.removeAttribute('aria-invalid');
+            this.root.querySelectorAll("[aria-invalid]").forEach((control) => {
+                control.removeAttribute("aria-invalid");
             });
             this.hideFormAlert();
         },
@@ -544,15 +661,17 @@
             if (!formAlert || !formAlertText) return;
 
             formAlertText.textContent = message;
-            formAlert.removeAttribute('hidden');
+            formAlert.removeAttribute("hidden");
         },
 
         hideFormAlert() {
-            this.els.formAlert?.setAttribute('hidden', '');
+            this.els.formAlert?.setAttribute("hidden", "");
         },
 
         focusField(field) {
-            const control = this.root.querySelector(`[name="${field}"]:not([disabled])`);
+            const control = this.root.querySelector(
+                `[name="${field}"]:not([disabled])`,
+            );
             control?.focus();
         },
 
@@ -570,37 +689,43 @@
 
             this.els.panels.forEach((panel) => {
                 const isActive = Number(panel.dataset.panel) === step;
-                panel.classList.toggle('is-active', isActive);
+                panel.classList.toggle("is-active", isActive);
                 panel.inert = !isActive; // locked panels stay laid out but unfocusable
             });
 
             this.els.steps.forEach((marker) => {
                 const index = Number(marker.dataset.wizStep);
-                const bullet = marker.querySelector('span');
+                const bullet = marker.querySelector("span");
 
-                marker.classList.toggle('is-active', index === step);
-                marker.classList.toggle('is-done', index < step);
+                marker.classList.toggle("is-active", index === step);
+                marker.classList.toggle("is-done", index < step);
 
                 if (index === step) {
-                    marker.setAttribute('aria-current', 'step');
+                    marker.setAttribute("aria-current", "step");
                 } else {
-                    marker.removeAttribute('aria-current');
+                    marker.removeAttribute("aria-current");
                 }
 
                 if (bullet) {
-                    bullet.innerHTML = index < step ? '<i class="fa fa-check" aria-hidden="true"></i>' : String(index);
+                    bullet.innerHTML =
+                        index < step
+                            ? '<i class="fa fa-check" aria-hidden="true"></i>'
+                            : String(index);
                 }
             });
 
             const [line1, line2] = this.els.lines;
-            if (line1) line1.style.width = step > 1 ? '100%' : '60%';
-            if (line2) line2.style.width = step > 2 ? '100%' : step === 2 ? '60%' : '0';
+            if (line1) line1.style.width = step > 1 ? "100%" : "60%";
+            if (line2)
+                line2.style.width =
+                    step > 2 ? "100%" : step === 2 ? "60%" : "0";
 
             if (focus) {
-                this.els.panels.find((panel) => Number(panel.dataset.panel) === step)?.focus({ preventScroll: true });
+                this.els.panels
+                    .find((panel) => Number(panel.dataset.panel) === step)
+                    ?.focus({ preventScroll: true });
             }
         },
-
 
         /* ------------------------------------------------------------------ */
         /* Helpers                                                             */
@@ -612,12 +737,12 @@
          */
         async post(url, body) {
             const response = await fetch(url, {
-                method: 'POST',
-                credentials: 'same-origin',
+                method: "POST",
+                credentials: "same-origin",
                 headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': this.csrf,
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRF-TOKEN": this.csrf,
                 },
                 body,
             });
@@ -627,50 +752,66 @@
             try {
                 payload = await response.json();
             } catch (error) {
-                console.error(`[register] ${url} returned a non-JSON body (HTTP ${response.status}).`, error);
+                console.error(
+                    `[register] ${url} returned a non-JSON body (HTTP ${response.status}).`,
+                    error,
+                );
             }
 
-            return { ok: response.ok, status: response.status, payload: payload ?? {} };
+            return {
+                ok: response.ok,
+                status: response.status,
+                payload: payload ?? {},
+            };
         },
 
         applyFilter(input) {
             const pattern = INPUT_FILTERS[input.dataset.filter];
             if (!pattern) return;
 
-            const limit = input.maxLength > 0 ? input.maxLength : input.value.length;
-            const cleaned = input.value.replace(pattern, '').slice(0, limit);
+            const limit =
+                input.maxLength > 0 ? input.maxLength : input.value.length;
+            const cleaned = input.value.replace(pattern, "").slice(0, limit);
             if (cleaned === input.value) return;
 
             const caret = input.selectionStart;
             input.value = cleaned;
 
-            if (input.type === 'text' || input.type === 'tel') {
-                const position = Math.min(caret ?? cleaned.length, cleaned.length);
+            if (input.type === "text" || input.type === "tel") {
+                const position = Math.min(
+                    caret ?? cleaned.length,
+                    cleaned.length,
+                );
                 input.setSelectionRange(position, position);
             }
         },
 
-        setBusy(button, busy, busyLabel = '') {
+        setBusy(button, busy, busyLabel = "") {
             if (!button) return;
 
             if (busy) {
                 button.dataset.idleLabel ??= button.innerHTML;
                 if (busyLabel) button.innerHTML = busyLabel;
                 button.disabled = true;
-                button.setAttribute('aria-busy', 'true');
+                button.setAttribute("aria-busy", "true");
                 return;
             }
 
-            if (button.dataset.idleLabel) button.innerHTML = button.dataset.idleLabel;
+            if (button.dataset.idleLabel)
+                button.innerHTML = button.dataset.idleLabel;
             button.disabled = false;
-            button.removeAttribute('aria-busy');
+            button.removeAttribute("aria-busy");
         },
     };
 
     // The <script> tag is deferred, so the DOM is already parsed here; the guard
     // keeps the file safe if it is ever loaded without `defer`.
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => RegisterWizard.init(), { once: true });
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            () => RegisterWizard.init(),
+            { once: true },
+        );
     } else {
         RegisterWizard.init();
     }
