@@ -146,6 +146,7 @@ class RegisterController extends BaseController
             'salutation' => 'required|in:Mr,Mrs,Ms,Dr',
             'first_name' => 'required|string|max:50',
             'last_name'  => 'required|string|max:50',
+            'date_of_birth' => 'required|date|before:today',
             'gender'     => 'required|string',
             'mobile'     => [
                 'required',
@@ -160,9 +161,33 @@ class RegisterController extends BaseController
             'Address'    => 'required|string',
             'state'      => 'required|string|max:255',
             'district' => 'nullable|required_if:state,Tamil Nadu|string|max:255',
-
             'pincode'    => 'required|digits:6',
+        ], [
+            'date_of_birth.date' => 'Date of birth must be a valid date.',
+            'date_of_birth.before' => 'Date of birth must be in the past.',
         ]);
+
+        // Add custom validation using after callback
+        $validator->after(function ($validator) {
+            $dob = $validator->getData()['date_of_birth'] ?? null;
+            if ($dob) {
+                $dobDate = Carbon::parse($dob);
+                $age = $dobDate->diffInYears(Carbon::now());
+                if ($age < 18) {
+                    $validator->errors()->add('date_of_birth', 'You must be at least 18 years old to register.');
+                }
+            }
+
+            $firstName = $validator->getData()['first_name'] ?? '';
+            $lastName = $validator->getData()['last_name'] ?? '';
+            if ($firstName && $lastName) {
+                $combinedName = strtoupper(preg_replace('/\s+/', '', $firstName . $lastName));
+                $existing = Register::whereRaw("UPPER(REPLACE(CONCAT(first_name, last_name), ' ', '')) = ?", [$combinedName])->first();
+                if ($existing) {
+                    $validator->errors()->add('last_name', 'An applicant with the same name combination already exists. Please contact support if this is an error.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return response()->json([

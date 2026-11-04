@@ -1258,10 +1258,12 @@
                             <dt>Application fee</dt>
                             <dd><span>:</span> {{ $dash($payment->amount ?? '') }}</dd>
                         </div>
-                        
+                        @if ($payment->late_fee )
+                            
+                        @endif
                         <div>
                             <dt>Late fee</dt>
-                            <dd><span>:</span> {{ $payment->late_fee == 0 ? '—' : $payment->late_fee }}</dd>
+                            <dd><span>:</span> {{ empty($payment?->late_fee) ? '—' : $payment->late_fee }}</dd>
                         </div>
 
                         <div>

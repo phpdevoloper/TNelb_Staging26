@@ -190,6 +190,7 @@ $(document).ready(function () {
                 case "salutation": $("#salutationError").text(messages[0]); break;
                 case "first_name": $("#FirstNameError").text(messages[0]); break;
                 case "last_name": $("#lastnameError").text(messages[0]); break;
+                case "date_of_birth": $("#DateOfBirthError").text(messages[0]); break;
                 case "gender": $("#GenderError").text(messages[0]); break;
                 case "mobile": $("#PhoneNoError").text(messages[0]); goToStep(1); break;
                 case "email":
@@ -209,6 +210,7 @@ $(document).ready(function () {
 
         const firstName = $("#first_name").val().trim();
         const lastName = $("#lastname").val().trim();
+        const dob = $("#date_of_birth").val();
         const gender = $("input[name='gender']:checked").val();
         const email = $("#EmailAddress").val().trim();
         const address = $("#Address").val().trim();
@@ -219,6 +221,28 @@ $(document).ready(function () {
 
         if (!firstName) { $("#FirstNameError").text("First name is required."); valid = false; }
         if (!lastName) { $("#lastnameError").text("Last name is required."); valid = false; }
+
+        // DOB validation: must be a valid date, 18+ years old, and not in the future
+        if (!dob) {
+            $("#DateOfBirthError").text("Date of birth is required.");
+            valid = false;
+        } else {
+            const dobDate = new Date(dob);
+            const today = new Date();
+            if (dobDate >= today) {
+                $("#DateOfBirthError").text("Date of birth must be in the past.");
+                valid = false;
+            } else {
+                const age = today.getFullYear() - dobDate.getFullYear();
+                const monthDiff = today.getMonth() - dobDate.getMonth();
+                const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate()) ? age - 1 : age;
+                if (actualAge < 18) {
+                    $("#DateOfBirthError").text("You must be at least 18 years old to register.");
+                    valid = false;
+                }
+            }
+        }
+
         if (!gender) { $("#GenderError").text("Please select gender."); valid = false; }
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("#EmailError").text("Enter a valid email address."); valid = false; }
         if (!address) { $("#AddressError").text("Address is required."); valid = false; }
@@ -232,6 +256,7 @@ $(document).ready(function () {
             salutation: $("#salutation").val().trim(),
             first_name: firstName,
             last_name: lastName,
+            date_of_birth: dob,
             gender: gender,
             mobile: $("#PhoneNo").val().trim(),
             email: email,
