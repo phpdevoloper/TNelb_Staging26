@@ -2,36 +2,35 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin\Mst_equipment_tbl;
 use App\Models\Admin\TnelbFee;
-use App\Models\admin\TnelbForms;
-use App\Models\EA_Application_model;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
+use App\Models\EA_Application_model;
 use App\Models\MstLicence;
+use App\Models\OtpVerification;
+use App\Models\Register;
 use App\Services\Competency\CompetencyCertificateService;
-use App\Services\Competency\FormWSchema;
-use App\Services\Competency\FormWHSchema;
 use App\Services\Competency\FormPSchema;
+use App\Services\Competency\FormWHSchema;
+use App\Services\Competency\FormWSchema;
 use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\SensitiveProofCryptService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use App\Models\Register;
-
-use App\Models\Admin\Mst_equipment_tbl;
-
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class RegisterController extends BaseController
 {
     protected $today;
+
     public function __construct()
     {
         parent::__construct();
@@ -50,8 +49,8 @@ class RegisterController extends BaseController
 
     /**
      * Check if the mobile number is valid and unique
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function checkMobile(Request $request)
     {
@@ -62,23 +61,23 @@ class RegisterController extends BaseController
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
-        
+
         return response()->json([
             'success' => true,
-            'message' => 'Mobile number is valid'
+            'message' => 'Mobile number is valid',
         ], 200);
     }
 
     /**
      * Generate OTP for the mobile number
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     *
+     * @return JsonResponse
      */
     public function generateOtp(Request $request)
-    {   
+    {
         $validator = Validator::make($request->all(), [
             'mobile' => 'required|digits:10|unique:tnelb_registers,mobile',
         ]);
@@ -86,62 +85,135 @@ class RegisterController extends BaseController
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
-        
 
         $mobile = $request->input('mobile');
+
+        // Check if OTP already exists and is not expired
+        $existingOtp = OtpVerification::where('mobile', $mobile)
+            ->where('otp_expiry', '>', now())
+            ->first();
+
+        if ($existingOtp && ! $existingOtp->isExpired()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP already sent. Please wait before requesting a new one.',
+            ], 429);
+        }
+
+        // Generate new OTP
         $otp = rand(100000, 999999);
         $otp_expiry = now()->addMinutes(5);
-        $otp_verified = false;
-        $otp_verified_at = null;
-        $otp_verified_by = null;
-        $otp_verified_ip = null;
-        $otp_verified_user_agent = null;
-        $otp_verified_device = null;
 
-        $otp_data = [
+        // Delete old OTP if exists
+        OtpVerification::where('mobile', $mobile)->delete();
+
+        // Create new OTP record
+        OtpVerification::create([
             'mobile' => $mobile,
             'otp' => $otp,
             'otp_expiry' => $otp_expiry,
-            'otp_verified' => $otp_verified,
-            'otp_verified_at' => $otp_verified_at,
-            'otp_verified_by' => $otp_verified_by,
-            'otp_verified_ip' => $otp_verified_ip,
-            'otp_verified_user_agent' => $otp_verified_user_agent,
-            'otp_verified_device' => $otp_verified_device,
-        ];
-
-        $otp_data = json_encode($otp_data);
-        $otp_data = base64_encode($otp_data);
-        $otp_data = urlencode($otp_data);
-        $otp_data = base64_decode($otp_data);
-        $otp_data = json_decode($otp_data, true);
-
-        $otp_data = Register::create($otp_data);
-
-        $otp_data = Register::where('mobile', $mobile)->first();
-
-        if ($otp_data) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP already generated'
-            ], 422);
-        }
-
-        $otp_data->save();
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'OTP generated successfully',
+            'message' => 'OTP sent successfully',
             'otp' => $otp,
             'otp_expiry' => $otp_expiry,
         ], 200);
     }
 
+    /**
+     * Verify OTP for the mobile number
+     *
+     * @return JsonResponse
+     */
+    public function verifyOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'mobile' => 'required|digits:10',
+            'otp' => 'required|digits:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $mobile = $request->input('mobile');
+        $otp = $request->input('otp');
+
+        $otpRecord = OtpVerification::where('mobile', $mobile)->first();
+
+        if (! $otpRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP not found. Please request a new OTP.',
+            ], 422);
+        }
+
+        // Check if OTP has expired
+        if ($otpRecord->isExpired()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP has expired. Please request a new OTP.',
+            ], 422);
+        }
+
+        // Check if already verified
+        if ($otpRecord->isAlreadyVerified()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP already verified. Proceed to registration.',
+            ], 200);
+        }
+
+        // Check too many attempts (rate limiting)
+        if ($otpRecord->hasTooManyAttempts(5)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Too many failed attempts. Please request a new OTP.',
+            ], 429);
+        }
+
+        // Check OTP value
+        if ($otpRecord->otp !== $otp) {
+            $otpRecord->recordAttempt();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid OTP. Please try again.',
+            ], 422);
+        }
+
+        // Mark OTP as verified
+        $otpRecord->markAsVerified();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP verified successfully. Proceed to registration.',
+        ], 200);
+    }
+
     public function store(Request $request)
     {
+        $mobile = $request->input('mobile');
+
+        // Check if OTP was verified for this mobile
+        $otpRecord = OtpVerification::where('mobile', $mobile)->first();
+        if (! $otpRecord || ! $otpRecord->is_verified) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please verify your OTP first',
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'salutation' => 'required|in:Mr,Mrs,Ms,Dr',
             'first_name' => 'required|string|max:50',
@@ -158,8 +230,10 @@ class RegisterController extends BaseController
                 'email',
                 Rule::unique('tnelb_registers', 'email'),
             ],
-            'Address'    => 'required|string',
-            'state'      => 'required|string|max:255',
+            'address_line1' => 'required|string|max:100',
+            'address_line2' => 'nullable|string|max:100',
+            'city' => 'required|string|max:50',
+            'state' => 'required|string|max:255',
             'district' => 'nullable|required_if:state,Tamil Nadu|string|max:255',
             'pincode'    => 'required|digits:6',
         ], [
@@ -192,9 +266,11 @@ class RegisterController extends BaseController
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
+
+        $validated = $validator->validated();
 
         // Generate Login ID
         $latestRecord = Register::latest('id')->first();
@@ -203,38 +279,36 @@ class RegisterController extends BaseController
         } else {
             $newRecord = 1120;
         }
-        $newLoginId = 'tnelb_' . $newRecord;
+        $newLoginId = 'tnelb_'.$newRecord;
 
-        // Store Data in Database
+        // Create registration record
         $register = Register::create([
-            'salutation' => $request->input('salutation'),
-            'first_name' => $request->input('first_name'),
-            'last_name'  => $request->input('last_name'),
-            'gender'     => $request->input('gender'),
-            'mobile'     => $request->input('mobile'),
-            'email'      => $request->input('email'),
-            'address'    => $request->input('Address'),
-            'state'      => $request->input('state'),
-            // 'district'   => $request->input('district'),
-            'district'   => $request->filled('district') ? $request->district : 0,
-            'pincode'    => $request->input('pincode'),
-            'login_id'   => $newLoginId,
-            'created_at' => now()
+            'salutation' => $validated['salutation'],
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'gender' => $validated['gender'],
+            'mobile' => $mobile,
+            'email' => $validated['email'] ?? null,
+            'address_line1' => $validated['address_line1'],
+            'address_line2' => $validated['address_line2'] ?? null,
+            'city' => $validated['city'],
+            'state' => $validated['state'],
+            'district' => filled($validated['district'] ?? null) ? $validated['district'] : 0,
+            'pincode' => $validated['pincode'],
+            'login_id' => $newLoginId,
         ]);
 
         return response()->json([
-            'success'  => true,
-            'message'  => 'Registration successful!',
+            'success' => true,
+            'message' => 'Registration successful!',
             'login_id' => $newLoginId,
         ], 200);
     }
-
 
     public function user_login()
     {
         return view('user_login.index');
     }
-
 
     public function cc_renew_form($appl_id)
     {
@@ -467,10 +541,9 @@ class RegisterController extends BaseController
         ));
     }
 
-
     public function apply_form_s()
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('logout');
         }
         $authUser = Auth::user();
@@ -478,7 +551,7 @@ class RegisterController extends BaseController
         $user = [
             'user_id' => $authUser->login_id,
             'salutation' => $authUser->salutation,
-            'applicant_name' => $authUser->first_name . ' ' . $authUser->last_name,
+            'applicant_name' => $authUser->first_name.' '.$authUser->last_name,
         ];
         // var_dump($user);die;
 
@@ -493,13 +566,10 @@ class RegisterController extends BaseController
         return view('user_login.apply-form-s', compact('user'));
     }
 
-
-
     public function apply_form_w()
     {
         return app(FormWController::class)->create();
     }
-
 
     public function apply_form_wh()
     {
@@ -509,7 +579,7 @@ class RegisterController extends BaseController
     public function apply_form_a()
     {
 
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('logout');
         }
 
@@ -520,7 +590,6 @@ class RegisterController extends BaseController
             ->orderBy('id')
             ->get();
 
-
         $form_code = MstLicence::where('cert_licence_code', $cert_licence_code)
             ->where('status', 1)
             ->orderBy('id')
@@ -528,10 +597,8 @@ class RegisterController extends BaseController
 
         $loginId = Auth::user()->login_id;
 
-
         $applicationIds = EA_Application_model::where('login_id', $loginId)
             ->pluck('application_id');
-
 
         $today = Carbon::today();
 
@@ -572,15 +639,14 @@ class RegisterController extends BaseController
 
     public function apply_form($form_name, $application_id)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('logout');
         }
-
 
         $application = CC_Forms_Meta::findByApplicationId((string) $application_id)
             ?? DB::table('tnelb_application_tbl')->where('application_id', $application_id)->first();
 
-        if (!$application) {
+        if (! $application) {
             return redirect()->back()->with('error', 'Application not found.');
         }
 

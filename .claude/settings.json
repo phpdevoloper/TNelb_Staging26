@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; [[ \"$f\" == *.php ]] && php -l \"$f\" > /dev/null || true; }",
+            "timeout": 10,
+            "statusMessage": "Checking PHP syntax..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(composer *)",
+      "Bash(php artisan *)",
+      "Bash(vendor/bin/phpunit *)",
+      "Bash(vendor/bin/pint *)",
+      "Bash(npx *)"
+    ]
+  }
+}

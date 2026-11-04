@@ -75,6 +75,7 @@ Route::get('/feedback', [IndexController::class, 'feedback'])->name('feedback');
 
 Route::post('/check-mobile', [RegisterController::class, 'checkMobile'])->name('check-mobile');
 Route::post('/generate-otp', [RegisterController::class, 'generateOtp'])->name('generate-otp');
+Route::post('/verify-otp', [RegisterController::class, 'verifyOtp'])->name('verify-otp');
 
 Route::get('/register', [RegisterController::class, 'register'])->name('register');
 Route::post('/register', [RegisterController::class, 'store'])->name('register.store');
