@@ -56,18 +56,49 @@ $(document).on(
 
         let $section = $("#staffqc_datasection");
 
+        // Reset verification
         $section.attr("data-qc-verified", "0");
 
         $("#update_qc").prop("disabled", true);
 
-        // Clear the previously verified name
-        $("#certificate-holder-name").text("");
+        // Clear certificate holder name
+       
+        $section.find("#certificate-holder-name").text("");
 
-        // Clear previous verification errors
+        // Show warning only once
+        if (!$section.find(".staff-reverify-message").length) {
+
+            $section.find("#certificate-holder-name")
+                .closest("p")
+                .after(`
+                    <p class="text-danger staff-reverify-message mt-1">
+                        Verify the staff details then only Update will enable.
+                    </p>
+                `);
+        }
+
+        // Clear verification errors
         $section.find(".staff-verify-error").text("");
+
+        
+
+        // Clear appointment document
+        $section.find(".app-doc-file").val("");
+        $section.find(".app_doc").val("");
+        $section.find(".app_doc_upload_error").text("");
+        $section.find(".app-doc-file").siblings(".file-link").empty();
+
+        // Clear consent document
+        $section.find(".cons-doc-file").val("");
+        $section.find(".cons_doc").val("");
+        $section.find(".cons_doc_upload_error").text("");
+        $section.find(".cons-doc-file").siblings(".file-link").empty();
+
+        // Clear staff ID
+        $section.find('input[name="staffqc_id[]"]').val("");
+
     }
 );
-
 
 
 
@@ -354,6 +385,8 @@ $(document).on("click", "#update_qc", function () {
 
     let applicationId = $("#qc_application_name").val();
     let id = $("#edit_qc_id").val();
+
+    // alert(id);
     let rowIndex = $("#edit_qc_row_index").val();
     let oldCCNo = $("#edit_qc_old_cc_no").val();
 
@@ -543,21 +576,37 @@ $(document).on("click", "#update_qc", function () {
             // CASE 2: CC NUMBER NOT CHANGED
             // ==============================================
 
-            else {
+          else {
 
-                if (!editingQCRow || !editingQCRow.length) {
+                // Find existing table row using database ID.
+                let $oldRow = $("#staffqc-records tr.staffqc-record").filter(function () {
+
+                    return String($(this).attr("data-id")) === String(id);
+
+                }).first();
+
+                if (!$oldRow.length) {
+
+                    console.log("Editing ID:", id);
+
+                    console.log(
+                        "Available table IDs:",
+                        $("#staffqc-records tr.staffqc-record").map(function () {
+                            return $(this).attr("data-id");
+                        }).get()
+                    );
 
                     Swal.fire({
                         icon: "error",
                         title: "Row Not Found",
-                        text: "Unable to locate the QC staff row.",
+                        text: "Unable to locate the QC staff row. Please check the table row data-id.",
                         width: 450
                     });
 
                     return;
                 }
 
-                let serialNo = editingQCRow
+                let serialNo = $oldRow
                     .children("td:first")
                     .text()
                     .replace(".", "")
@@ -568,7 +617,7 @@ $(document).on("click", "#update_qc", function () {
                     serialNo
                 );
 
-                editingQCRow.replaceWith(updatedRow);
+                $oldRow.replaceWith(updatedRow);
             }
 
             // ==============================================

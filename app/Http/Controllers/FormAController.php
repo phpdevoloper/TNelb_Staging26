@@ -90,160 +90,178 @@ class FormAController extends BaseController
     }
     // QC check------------
 
-    public function checkCCCertificate(Request $request)
-    {
+   public function checkCCCertificate(Request $request)
+{
+    // -------------------------------------------------
+    // NORMALIZE CERTIFICATE DATES
+    // -------------------------------------------------
 
-        //    dd($request->all());exit;
-        // $dateofIssue = Carbon::createFromFormat(
-        //     'd-m-Y',
-        //     $request->dateof_issue
-        // )->format('Y-m-d');
-
-        // $validFrom = Carbon::createFromFormat(
-        //     'd-m-Y',
-        //     $request->valid_from
-        // )->format('Y-m-d');
-
-        // $validTo = Carbon::createFromFormat(
-        //     'd-m-Y',
-        //     $request->valid_to
-        // )->format('Y-m-d');
-
-        $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
-        $validFrom   = $this->normalizeCertificateDate($request->valid_from);
-        $validTo     = $this->normalizeCertificateDate($request->valid_to);
+    $dateofIssue = $this->normalizeCertificateDate($request->dateof_issue);
+    $validFrom   = $this->normalizeCertificateDate($request->valid_from);
+    $validTo     = $this->normalizeCertificateDate($request->valid_to);
 
 
+    // -------------------------------------------------
+    // GET LICENSE NUMBER
+    // -------------------------------------------------
 
-        // dd(['certificate_no' => $request->certificate_no, 'dateof_issue' => $dateofIssue, 'valid_from' => $validFrom, 'valid_to' => $validTo]);exit;
+    $licenseNumber = trim($request->input('license_number', ''));
 
-        // -------------------------------------------------
-        // STEP 1: Check certificate details
-        // -------------------------------------------------
-
-
-        $certificate = DB::query()
-            ->fromSub(
-                DB::table('cc_forms_cert')
-                    ->select(
-                        'certificate_no',
-                        'dateof_issue',
-                        'valid_from',
-                        'valid_to',
-                        'cert_status',
-                        'cc_id'
-
-                    )
-                    ->where('certificate_no', $request->certificate_no)
-                    ->where('dateof_issue', $dateofIssue)
-                    ->where('valid_from', $validFrom)
-                    ->where('valid_to', $validTo)
-                    ->where('cert_status', 'A')
-
-                    ->unionAll(
-
-                        DB::table('cc_form_w_cert')
-                            ->select(
-                                'certificate_no',
-                                'dateof_issue',
-                                'valid_from',
-                                'valid_to',
-                                'cert_status',
-                                'cc_id'
-
-                            )
-                            ->where('certificate_no', $request->certificate_no)
-                            ->where('dateof_issue', $dateofIssue)
-                            ->where('valid_from', $validFrom)
-                            ->where('valid_to', $validTo)
-                            ->where('cert_status', 'A')
-                    ),
-                'certificates'
-            )
-            ->orderBy('cc_id', 'desc')
-            ->first();
+    // if ($licenseNumber === '') {
+    //     return response()->json([
+    //         'status' => false,
+    //         'message' => 'License number is missing. Please try again.'
+    //     ]);
+    // }
 
 
-        if (!$certificate) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Staff Certificate details are not valid.'
-            ]);
-        }        // dd($certificate);exit;
+    // -------------------------------------------------
+    // STEP 1: CHECK CERTIFICATE DETAILS
+    // -------------------------------------------------
+
+    $certificate = DB::query()
+        ->fromSub(
+
+            DB::table('cc_forms_cert')
+                ->select(
+                    'certificate_no',
+                    'dateof_issue',
+                    'valid_from',
+                    'valid_to',
+                    'cert_status',
+                    'cc_id'
+                )
+                ->where('certificate_no', $request->certificate_no)
+                ->where('dateof_issue', $dateofIssue)
+                ->where('valid_from', $validFrom)
+                ->where('valid_to', $validTo)
+                ->where('cert_status', 'A')
+
+                ->unionAll(
+
+                    DB::table('cc_form_w_cert')
+                        ->select(
+                            'certificate_no',
+                            'dateof_issue',
+                            'valid_from',
+                            'valid_to',
+                            'cert_status',
+                            'cc_id'
+                        )
+                        ->where('certificate_no', $request->certificate_no)
+                        ->where('dateof_issue', $dateofIssue)
+                        ->where('valid_from', $validFrom)
+                        ->where('valid_to', $validTo)
+                        ->where('cert_status', 'A')
+                ),
+
+            'certificates'
+        )
+        ->orderBy('cc_id', 'desc')
+        ->first();
 
 
-        if (!$certificate) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Staff Certificate details are not valid.'
-            ]);
-        }
+    if (!$certificate) {
 
-        if (\Carbon\Carbon::parse($certificate->valid_to)->toDateString() < now()->toDateString()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Staff Certificate has already expired.'
-            ]);
-        }
+        return response()->json([
+            'status' => false,
+            'message' => 'Staff Certificate details are not valid.'
+        ]);
+    }
 
 
-        // -------------------------------------------------
-        // STEP 2: Check QC / QSC eligibility
-        // -------------------------------------------------
+    // -------------------------------------------------
+    // CHECK CERTIFICATE EXPIRY
+    // -------------------------------------------------
+
+    if (
+        \Carbon\Carbon::parse($certificate->valid_to)->toDateString()
+        < now()->toDateString()
+    ) {
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Staff Certificate has already expired.'
+        ]);
+    }
 
 
-
-        // -------------------------------------------------
-        // STEP 3: Check certificate already mapped
-        // -------------------------------------------------
+    // -------------------------------------------------
+    // STEP 2: CHECK QC / QSC ELIGIBILITY
+    // YOUR EXISTING LOGIC CAN REMAIN HERE
+    // -------------------------------------------------
 
 
 
+    // -------------------------------------------------
+    // STEP 3: CHECK CERTIFICATE ALREADY MAPPED
+    // -------------------------------------------------
 
 
-        $existingStaffpending = DB::table('cl_staff_tbl')
-            ->where('staff_cc_no', $request->certificate_no)
-            ->where('staff_cc_first_issue', $dateofIssue)
-            ->where('staff_cc_validity_from', $validFrom)
-            ->where('staff_cc_validity_to', $validTo)
-            ->where('staff_status',  'P')
+    // -------------------------------------------------
+    // CHECK PENDING STAFF
+    // -------------------------------------------------
+
+    $existingStaffpending = DB::table('cl_staff_tbl')
+        ->where('staff_cc_no', $request->certificate_no)
+        ->where('staff_cc_first_issue', $dateofIssue)
+        ->where('staff_cc_validity_from', $validFrom)
+        ->where('staff_cc_validity_to', $validTo)
+        ->where('staff_status', 'P')
+        ->exists();
+
+
+    // -------------------------------------------------
+    // CHECK ACTIVE STAFF
+    // -------------------------------------------------
+
+    $existingStaff = DB::table('cl_staff_tbl')
+        ->where('staff_cc_no', $request->certificate_no)
+        ->where('staff_cc_first_issue', $dateofIssue)
+        ->where('staff_cc_validity_from', $validFrom)
+        ->where('staff_cc_validity_to', $validTo)
+        ->where('staff_status', 'A')
+        ->first();
+
+
+    // -------------------------------------------------
+    // CHECK EXISTING LICENCE MAPPING
+    // -------------------------------------------------
+
+    if ($existingStaff) {
+
+        $validLicenceExists = DB::table('cl_forma_lic')
+            ->where('application_id', $existingStaff->application_id)
+            ->whereDate('valid_to', '>=', now()->toDateString())
+
+            // IMPORTANT:
+            // Ignore the licence currently being edited.
+            // Check only other licence numbers.
+            ->where('license_number', '!=', $licenseNumber)
+
             ->exists();
 
 
-        $existingStaff = DB::table('cl_staff_tbl')
-            ->where('staff_cc_no', $request->certificate_no)
-            ->where('staff_cc_first_issue', $dateofIssue)
-            ->where('staff_cc_validity_from', $validFrom)
-            ->where('staff_cc_validity_to', $validTo)
-            // ->whereIn('staff_status', ['A', 'P'])
-            ->where('staff_status', 'A')
-            ->first();
+        if ($validLicenceExists) {
 
+            return response()->json([
+                'status' => false,
+                'message' => 'Certificate is already mapped with another licence.'
+            ]);
 
-        if ($existingStaff) {
-            $validLicenceExists = DB::table('cl_forma_lic')
-                ->where('application_id', $existingStaff->application_id)
-                ->whereDate('valid_to', '>=', now()->toDateString())
-                ->exists();
-
-            if ($validLicenceExists) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Certificate is already mapped with another licence.'
-                ]);
-            }
         }
-
-
-        // -------------------------------------------------
-        // Certificate verified
-        // -------------------------------------------------
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Certificate verified successfully.'
-        ]);
     }
+
+
+    // -------------------------------------------------
+    // CERTIFICATE VERIFIED
+    // -------------------------------------------------
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Certificate verified successfully.'
+    ]);
+}
 
 
     private function normalizeCertificateDate($date)
@@ -3858,7 +3876,7 @@ class FormAController extends BaseController
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
         ]);
         $isDraft = $request->input('form_action') === 'draft';
-         $recordId = trim((string) $request->input('record_id', ''));
+        $recordId = trim((string) $request->input('record_id', ''));
 
         // Format date fields
         $this->formatDatesToDMY([], $request);
@@ -4095,26 +4113,24 @@ class FormAController extends BaseController
 
         if ($applicationId) {
 
-                // Check whether sessionId exists in cl_staff_tbl
-                $staffExists = DB::table('cl_staff_tbl')
+            // Check whether sessionId exists in cl_staff_tbl
+            $staffExists = DB::table('cl_staff_tbl')
+                ->where('application_id', $sessionId)
+                ->where('form_name', $request->form_name)
+                ->where('license_name', $request->license_name)
+                ->where('appl_type', trim($request->appl_type))
+                ->exists();
+
+            if ($staffExists) {
+
+                $datastaffapp['application_id'] = $applicationId;
+
+                // Update all matching staff records
+                DB::table('cl_staff_tbl')
                     ->where('application_id', $sessionId)
-                    ->where('form_name', $request->form_name)
-                    ->where('license_name', $request->license_name)
-                    ->where('appl_type', trim($request->appl_type))
-                    ->exists();
-
-                if ($staffExists) {
-
-                    $datastaffapp['application_id'] = $applicationId;
-
-                    // Update all matching staff records
-                    DB::table('cl_staff_tbl')
-                        ->where('application_id', $sessionId)
-                        ->update($datastaffapp);
-
-                }
-
+                    ->update($datastaffapp);
             }
+        }
 
         if ($request->has('cc_number') || $request->filled('designation')) {
 
@@ -4430,7 +4446,7 @@ class FormAController extends BaseController
 
             $proprietorNames = $request->input('proprietor_name', []);
 
-           if (!is_array($proprietorNames)) {
+            if (!is_array($proprietorNames)) {
                 $proprietorNames = [];
             }
 
@@ -12709,9 +12725,9 @@ class FormAController extends BaseController
 
 
     // ---------------------------exp retrival -----------------------
+
     public function checkCompetencyCertificate(Request $request)
     {
-        // dd($request->all());exit;
         $request->validate([
             'certificate_no' => 'required',
             'dateof_issue'   => 'required|date',
@@ -12719,6 +12735,7 @@ class FormAController extends BaseController
             'valid_to'       => 'required|date',
         ]);
 
+        // 1. Verify certificate
         $certificate = DB::table('cc_forms_cert')
             ->where('certificate_no', $request->certificate_no)
             ->whereDate('dateof_issue', $request->dateof_issue)
@@ -12726,47 +12743,65 @@ class FormAController extends BaseController
             ->whereDate('valid_to', $request->valid_to)
             ->first();
 
-        // dd($certificate);exit;
-
         if (!$certificate) {
-
             return response()->json([
-                'status' => false,
+                'status'  => false,
                 'message' => 'Certificate details not found - Enter valid details.'
             ]);
         }
 
-
-
         $application_id = $certificate->application_id;
 
-
-
+        // 2. Get latest experience record
         $cc_exp = DB::table('cc_exp')
             ->where('application_id', $application_id)
             ->orderBy('exp_id', 'DESC')
             ->first();
 
-        // dd($cc_exp);exit;
-
         if (!$cc_exp) {
-
             return response()->json([
-                'status' => true,
-                'message' => 'Certificate found, but no experience data found.',
+                'status'          => true,
+                'message'         => 'Certificate found, but no experience data found.',
                 'application_id' => $application_id,
-                'data' => null
+                'data'            => null
             ]);
         }
 
-        // Step 4:
-        // Return latest cc_exp row
+        // 3. Format dates and calculate experience
+        $fromDate = null;
+        $toDate = null;
+        $totalExperience = '-';
 
+        if (!empty($cc_exp->from_date) && !empty($cc_exp->to_date)) {
+
+            $fromDate = Carbon::parse($cc_exp->from_date);
+            $toDate = Carbon::parse($cc_exp->to_date);
+
+            // Calculate difference between From Date and To Date
+            $difference = $fromDate->diff($toDate);
+
+            $years = $difference->y;
+            $months = $difference->m;
+            $days = $difference->d;
+
+            $totalExperience = $years . ' Years '
+                . $months . ' Months '
+                . $days . ' Days';
+
+            // Format dates as DD/MM/YYYY
+            $cc_exp->from_date = $fromDate->format('d-m-Y');
+            $cc_exp->to_date = $toDate->format('d-m-Y');
+        }
+
+        // 4. Override total experience
+        $cc_exp->total_exp = $totalExperience;
+
+        // 5. Return response
         return response()->json([
-            'status' => true,
-            'message' => 'Certificate and experience data found.',
-            'application_id' => $application_id,
-            'data' => $cc_exp
+            'status'          => true,
+            'message'         => 'Certificate and experience data found.',
+            'application_id'  => $application_id,
+            'data'            => $cc_exp
         ]);
     }
 }

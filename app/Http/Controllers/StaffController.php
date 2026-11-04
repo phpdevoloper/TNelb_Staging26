@@ -184,6 +184,152 @@ class StaffController extends Controller
     }
 
 
+
+    // Alter QC Staff------------------------
+     public function saveQCStaffAlter(Request $request)
+    {
+
+        // dd($request->all()); exit;
+        $validator = Validator::make($request->all(), [
+            // 'application_id' => 'required|integer',
+            'staff_name'     => 'required|string|max:255',
+            'staff_cc_no'    => 'required|string|max:100',
+            'first_issue'    => 'required|string',
+            'validity_from'  => 'required|string',
+            'validity_to'    => 'required|string',
+            'app_doc'        => 'required|string',
+            'cons_doc'       => 'required|string',
+        ]);
+
+
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()->toArray()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            $applicationId = $request->input('application_id');
+
+            if (empty($applicationId)) {
+                $applicationId = session()->getId();
+            }
+
+            // $applicationId = $request->application_id;
+            $ccNo = trim($request->staff_cc_no);
+
+            // Find existing QC staff using CC number
+            $existingStaff = DB::table('cl_staff_tbl')
+                ->where('application_id', $applicationId)
+                ->where('staff_category', 'QC')
+                ->where('staff_cc_no', $ccNo)
+                ->where('staff_flag', 1)
+                ->lockForUpdate()
+                ->first();
+
+            // Convert frontend date d-m-Y to database Y-m-d
+            $firstIssue = $this->formatDate($request->first_issue);
+            $validityFrom = $this->formatDate($request->validity_from);
+            $validityTo = $this->formatDate($request->validity_to);
+
+            $data = [
+                'staff_name'              => $request->staff_name,
+                'staff_cc_no'             => $ccNo,
+
+                // Actual database column names
+                'staff_cc_first_issue'    => $firstIssue,
+                'staff_cc_validity_from'  => $validityFrom,
+                'staff_cc_validity_to'    => $validityTo,
+
+                'app_doc'                 => $request->app_doc,
+                'cons_doc'                => $request->cons_doc,
+
+                'form_name'               => $request->form_name,
+                'license_name'            => $request->license_name,
+                'appl_type'               => $request->appl_type,
+
+                'staff_category'          => 'QC',
+                'updated_at'              => now(),
+            ];
+
+            if ($existingStaff) {
+
+                // UPDATE existing CC number
+                DB::table('cl_staff_tbl')
+                    ->where('id', $existingStaff->id)
+                    ->update($data);
+
+                $staffId = $existingStaff->id;
+                $rowIndex = $existingStaff->row_index;
+                $operation = 'updated';
+            } else {
+
+                // INSERT new QC staff
+                $rowIndex = (DB::table('cl_staff_tbl')
+                    ->where('application_id', $applicationId)
+                    ->where('staff_category', 'QC')
+                    ->max('row_index') ?? 0) + 1;
+
+                $data['login_id'] = auth()->id();
+                $data['application_id'] = $applicationId;
+                $data['staff_category'] = 'QC';
+                $data['row_index'] = $rowIndex;
+                $data['staff_status'] = 'N';
+                $data['staff_flag'] = 1;
+                $data['created_at'] = now();
+
+                // Add any required login/user ID field here,
+                // using your existing server-side session logic.
+
+                $staffId = DB::table('cl_staff_tbl')
+                    ->insertGetId($data);
+
+                $operation = 'inserted';
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'QC staff ' . $operation . ' successfully.',
+
+                'staff_id' => $staffId,
+                'row_index' => $rowIndex,
+                'operation' => $operation,
+
+                'staff_name' => $request->staff_name,
+                'staff_cc_no' => $ccNo,
+
+                'first_issue' => $firstIssue,
+                'validity_from' => $validityFrom,
+                'validity_to' => $validityTo,
+
+                'app_doc' => $request->app_doc,
+                'cons_doc' => $request->cons_doc,
+
+                'fee' => $request->fee ?? 0
+            ]);
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            \Log::error('QC Staff Save Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     /*
     |--------------------------------------------------------------------------
     | REMOVE QC STAFF
@@ -192,6 +338,8 @@ class StaffController extends Controller
     public function removeQCStaff(Request $request)
     {
 
+
+    // dd($request->all()); exit;
         // dd($request->all()); exit;
         $request->validate([
             'staff_id' => 'required',

@@ -318,6 +318,10 @@ Route::middleware(['auth'])->group(function () {
    Route::post('/save-qc-staff', [StaffController::class, 'saveQCStaff'])
     ->name('save.qc.staff');
 
+
+      Route::post('/save-qc-staff_alter', [StaffController::class, 'saveQCStaffAlter'])
+    ->name('save.qc.staff_alter');
+
     Route::post('/remove-qc-staff', [StaffController::class, 'removeQCStaff'])
     ->name('remove.qc.staff');
 

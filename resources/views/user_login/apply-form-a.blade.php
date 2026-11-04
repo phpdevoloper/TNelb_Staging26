@@ -363,9 +363,6 @@ exit; -->
                     @endif
 
 
-
-
-
                     <div class="row align-items-center head_label mt-2">
                         <div class="col-12 col-md-12 title_bar">
                             <label>3) Ownership Type - Proprietor / Partners / Directors Details<span
@@ -618,8 +615,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -1144,8 +1141,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -1711,8 +1708,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -2573,23 +2570,8 @@ exit; -->
                                             @endfor
 
 
-                                            {{-- IMPORTANT:
-                     DO NOT PUT FEE ROW HERE.
-                     JavaScript will create it as the LAST row.
-                --}}
-
                                         </tbody>
-                                          {{-- <tfoot>
-        <tr>
-            <td colspan="2" class="text-end">
-                <strong>Total Fee</strong>
-            </td>
-
-            <td>
-                <strong id="qc-total-fee">0</strong>
-            </td>
-        </tr>
-    </tfoot> --}}
+      
 
                                     @endif
 
@@ -6079,6 +6061,17 @@ function toggleCompetencyFields(type, show) {
                     return;
                 }
 
+                // Get the latest row index from the table
+                let lastRowIndex = 0;
+
+                $("#proprietor-section .pr_table_count table tbody tr").each(function () {
+                    let index = parseInt($(this).attr("data-row-index"), 10) || 0;
+
+                    if (index > lastRowIndex) {
+                        lastRowIndex = index;
+                    }
+                });
+
                 let nextRowIndex = lastRowIndex + 1;
 
                 resetproprietor(false);
@@ -6099,6 +6092,7 @@ function toggleCompetencyFields(type, show) {
                 $section.find(".file-link, .age-file-link").html("");
 
                 $("#save_proprietor").text("Save");
+
                 $section.slideDown();
             });
 
@@ -6904,15 +6898,17 @@ function toggleCompetencyFields(type, show) {
             }
 
             let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
+            let validityFromYMD = convertDDMMYYYYtoYMD(ccValidityFrom);
+            let validityToYMD = convertDDMMYYYYtoYMD(ccValidityTo);
 
-            $section.find("input[name='competency_certificate_first_issue[]']")
+           $section.find("input[name='competency_certificate_first_issue[]']")
                 .val(firstIssueYMD);
 
             $section.find("input[name='competency_certificate_validity_from[]']")
-                .val(ccValidityFrom);
+                .val(validityFromYMD);
 
             $section.find("input[name='competency_certificate_validity_to[]']")
-                .val(ccValidityTo);
+                .val(validityToYMD);
 
             console.log("CC First Issue from table:", ccFirstIssue);
             console.log("CC First Issue for date input:", firstIssueYMD);

@@ -2,747 +2,655 @@ $(document).ready(function () {
 
     var cfg = window.COMPETENCY_FORM_CONFIG || {};
 
+function updateDocumentLink($container, fileUrl) {
 
-    $(document).on("click", ".upload-btn", function () {
+    if (!$container || !$container.length || !fileUrl) {
+        return;
+    }
 
-        let btn = $(this);
-        let row = btn.closest(".row");
+    let $fileLink;
 
-        // Get document category
-        let documentCategory = btn.data("document_category");
+    // If the supplied element is already the file-link container
+    if ($container.hasClass("file-link")) {
+        $fileLink = $container;
+    } else {
+        $fileLink = $container.find(".file-link").first();
+    }
+
+    // Create container if it does not exist
+    if (!$fileLink.length) {
+        $fileLink = $('<div class="file-link mt-2"></div>');
+        $container.append($fileLink);
+    }
+
+    // Replace old document link with new document link
+    $fileLink
+        .removeClass("d-none")
+        .html(`
+            <a href="${fileUrl}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="text-primary fw-bold">
+
+                <i class="fa fa-file-pdf-o text-danger"></i>
+                View Document
+
+            </a>
+        `)
+        .show();
+}
+    
+// --------------------------------------------------
+// COMMON FUNCTION: UPDATE EXISTING DOCUMENT LINK
+// --------------------------------------------------
+
+function updateDocumentLink($container, fileUrl) {
+
+    if (!$container || !$container.length || !fileUrl) {
+        return;
+    }
+
+    let $fileLink;
+
+    // If the supplied element is already the file-link container
+    if ($container.hasClass("file-link")) {
+        $fileLink = $container;
+    } else {
+        $fileLink = $container.find(".file-link").first();
+    }
+
+    // Create container if it does not exist
+    if (!$fileLink.length) {
+        $fileLink = $('<div class="file-link mt-2"></div>');
+        $container.append($fileLink);
+    }
+
+    // Replace old document link with new document link
+    $fileLink
+        .removeClass("d-none")
+        .html(`
+            <a href="${fileUrl}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="text-primary fw-bold">
+
+                <i class="fa fa-file-pdf-o text-danger"></i>
+                View Document
+
+            </a>
+        `)
+        .show();
+}
 
 
-        let fileInput;
+// --------------------------------------------------
+// DOCUMENT UPLOAD CLICK
+// --------------------------------------------------
 
-        if (documentCategory === "app_doc") {
+$(document).on("click", ".upload-btn", function () {
 
-            fileInput = row.find(".app-doc-file")[0];
+    let btn = $(this);
+    let row = btn.closest(".row");
 
-        } else if (documentCategory === "cons_doc") {
+    // --------------------------------------------------
+    // DOCUMENT CATEGORY
+    // --------------------------------------------------
 
-            fileInput = row.find(".cons-doc-file")[0];
+    let documentCategory = btn.data("document_category");
 
-        } else {
+    let fileInput;
 
-            fileInput = btn
-                .closest(".row, td")
-                .find("input[type='file']")[0];
-        }
+    if (documentCategory === "app_doc") {
 
+        fileInput = row.find(".app-doc-file")[0];
 
-        // --------------------------------------------------
-        // GET ERROR BOX ONLY FOR CLICKED DOCUMENT
-        // --------------------------------------------------
+    } else if (documentCategory === "cons_doc") {
 
-        let errorBox;
+        fileInput = row.find(".cons-doc-file")[0];
 
-        if (documentCategory === "app_doc") {
+    } else {
 
-            errorBox = row.find(".app_doc_upload_error");
-
-        } else if (documentCategory === "cons_doc") {
-
-            errorBox = row.find(".cons_doc_upload_error");
-
-        } else {
-
-            errorBox = btn
-                .closest(".row, td")
-                .find(".Doc_upload_error");
-        }
+        fileInput = btn
+            .closest(".row, td")
+            .find("input[type='file']")[0];
+    }
 
 
-        errorBox.text("");
+    // --------------------------------------------------
+    // ERROR BOX
+    // --------------------------------------------------
+
+    let errorBox;
+
+    if (documentCategory === "app_doc") {
+
+        errorBox = row.find(".app_doc_upload_error");
+
+    } else if (documentCategory === "cons_doc") {
+
+        errorBox = row.find(".cons_doc_upload_error");
+
+    } else {
+
+        errorBox = btn
+            .closest(".row, td")
+            .find(".Doc_upload_error");
+    }
+
+    errorBox.text("").hide();
 
 
-        // -----------------------------
-        // FILE VALIDATION
-        // -----------------------------
+    // --------------------------------------------------
+    // FILE VALIDATION
+    // --------------------------------------------------
 
-        if (!fileInput || !fileInput.files.length) {
+    if (!fileInput || !fileInput.files.length) {
 
-            errorBox.text("Please select a file");
+        errorBox.text("Please select a file").show();
+
+        return;
+    }
+
+    let file = fileInput.files[0];
+
+    // PDF validation
+    if (file.type !== "application/pdf" &&
+        !file.name.toLowerCase().endsWith(".pdf")) {
+
+        errorBox.text("Please upload a PDF file").show();
+
+        return;
+    }
+
+    // Maximum 250 KB
+    if (file.size > 250 * 1024) {
+
+        errorBox.text("File size must be less than 250 KB").show();
+
+        fileInput.value = "";
+
+        return;
+    }
+
+
+    // --------------------------------------------------
+    // EXISTING FILE LINK
+    // --------------------------------------------------
+
+    let fileLink;
+
+    if (documentCategory === "app_doc") {
+
+        fileLink = row
+            .find(".app-doc-file")
+            .siblings(".file-link");
+
+    } else if (documentCategory === "cons_doc") {
+
+        fileLink = row
+            .find(".cons-doc-file")
+            .siblings(".file-link");
+
+    } else {
+
+        fileLink = row.find(".file-link");
+    }
+
+
+    // --------------------------------------------------
+    // FORM DATA
+    // --------------------------------------------------
+
+    let formData = new FormData();
+
+    formData.append(
+        fileInput.name,
+        fileInput.files[0]
+    );
+
+
+    // --------------------------------------------------
+    // QC CODE
+    // --------------------------------------------------
+
+    let staffRow = btn
+        .closest("tr.qc-upload-row")
+        .prev("tr.staffqc-fields");
+
+    let qcCode = btn.attr("data-qc_code");
+
+    formData.append("qc_code", qcCode || "");
+
+
+    // --------------------------------------------------
+    // LOGIN ID
+    // --------------------------------------------------
+
+    formData.append(
+        "login_id",
+        btn.data("login_id")
+    );
+
+
+    // --------------------------------------------------
+    // RECORD ID
+    // --------------------------------------------------
+
+    formData.append(
+        "record_id",
+        $("input[name='record_id']").val()
+    );
+
+
+    // --------------------------------------------------
+    // OTHER DATA
+    // --------------------------------------------------
+
+    formData.append(
+        "module",
+        btn.data("module")
+    );
+
+    formData.append(
+        "equip_code",
+        btn.data("equip_code") || ""
+    );
+
+    formData.append(
+        "ownership_type",
+        btn.data("ownership_type") || ""
+    );
+
+    formData.append(
+        "document_category",
+        documentCategory
+    );
+
+    formData.append(
+        "document_sub_category",
+        btn.data("document_sub_category")
+    );
+
+    formData.append(
+        "form_code",
+        btn.data("form_code")
+    );
+
+
+    // --------------------------------------------------
+    // ROW INDEX
+    // --------------------------------------------------
+
+    let rowIndex = btn.attr("data-row-index");
+
+    // QC/QSC appointment and consent documents
+    if (
+        documentCategory === "app_doc" ||
+        documentCategory === "cons_doc"
+    ) {
+
+        let $section = $("#staffqc_datasection");
+
+        rowIndex = rowIndex ||
+            $section.attr("data-edit-row-index") ||
+            "";
+
+        if (!rowIndex || !/^\d+$/.test(String(rowIndex))) {
+
+            $section.find(".staff-verify-error").text(
+                "Staff row index is missing. Please edit the staff row again."
+            );
+
             return;
         }
+    }
+
+    // Append row index only once
+    if (
+        rowIndex !== undefined &&
+        rowIndex !== null &&
+        rowIndex !== ""
+    ) {
+
+        formData.append("row_index", rowIndex);
+    }
 
 
-        let file = fileInput.files[0];
+    // --------------------------------------------------
+    // STATIC VALUES
+    // --------------------------------------------------
+
+    let applType = $("#appl_type").val()?.trim() || "";
+
+    formData.append("form_name", "A");
+
+    formData.append("license_name", "EA");
+
+    formData.append("appl_type", applType);
 
 
-        // 250 KB = 250 * 1024 bytes
-        if (file.size > 250 * 1024) {
+    // --------------------------------------------------
+    // AJAX UPLOAD
+    // --------------------------------------------------
 
-            errorBox.text("File size must be less than 250 KB");
+    $.ajax({
 
-            fileInput.value = "";
+        url: BASE_URL + "/uploadownershipdeed",
 
-            return;
-        }
+        type: "POST",
 
+        data: formData,
 
-        // --------------------------------------------------
-        // Find ONLY current document's file-link
-        // --------------------------------------------------
+        processData: false,
 
-        let fileLink;
+        contentType: false,
 
-        if (documentCategory === "app_doc") {
-
-            fileLink = row
-                .find(".app-doc-file")
-                .siblings(".file-link");
-
-        } else if (documentCategory === "cons_doc") {
-
-            fileLink = row
-                .find(".cons-doc-file")
-                .siblings(".file-link");
-
-        } else {
-
-            fileLink = row.find(".file-link");
-        }
-
-
-        // --------------------------------------------------
-        // FORM DATA
-        // --------------------------------------------------
-
-        let formData = new FormData();
-
-        formData.append(
-            fileInput.name,
-            fileInput.files[0]
-        );
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+        },
 
 
         // --------------------------------------------------
-        // QC CODE
+        // SUCCESS
         // --------------------------------------------------
 
-        let staffRow = btn
-            .closest('tr.qc-upload-row')
-            .prev('tr.staffqc-fields');
+        success: function (res) {
 
-        let qcCode = btn.attr('data-qc_code');
+            if (
+                res.status !== "success" ||
+                !res.files ||
+                !res.files.length
+            ) {
 
-        formData.append("qc_code", qcCode);
-
-
-        // --------------------------------------------------
-        // LOGIN ID
-        // --------------------------------------------------
-
-        formData.append(
-            "login_id",
-            btn.data("login_id")
-        );
-
-
-        // --------------------------------------------------
-        // RECORD ID
-        // --------------------------------------------------
-
-        formData.append(
-            "record_id",
-            $("input[name='record_id']").val()
-        );
-
-
-        // --------------------------------------------------
-        // OTHER DATA
-        // --------------------------------------------------
-
-        formData.append(
-            "module",
-            btn.data("module")
-        );
-
-        formData.append(
-            "equip_code",
-            btn.data("equip_code")
-        );
-
-        formData.append(
-            "ownership_type",
-            btn.data("ownership_type")
-        );
-
-        formData.append(
-            "document_category",
-            documentCategory
-        );
-
-        formData.append(
-            "document_sub_category",
-            btn.data("document_sub_category")
-        );
-
-        formData.append(
-            "form_code",
-            btn.data("form_code")
-        );
-
-
-        // --------------------------------------------------
-        // ROW INDEX
-        // --------------------------------------------------
-        // Existing document types continue using
-        // data-row-index.
-        //
-        // QC/QSC:
-        // Appointment Letter = 1
-        // Consent Letter     = 2
-        // --------------------------------------------------
-
-        // let rowIndex = btn.attr("data-row-index");
-
-        // --------------------------------------------------
-        // ROW INDEX — PRESERVE OTHER DOCUMENT UPLOADS
-        // --------------------------------------------------
-
-        let rowIndex = btn.attr("data-row-index");
-
-        // Only QC/QSC appointment and consent documents use
-        // the selected staff row's index from the edit form.
-        if (documentCategory === "app_doc" ||
-            documentCategory === "cons_doc") {
-
-            let $section = $("#staffqc_datasection");
-
-            rowIndex = rowIndex ||
-                $section.attr("data-edit-row-index") ||
-                "";
-
-            if (!rowIndex || !/^\d+$/.test(String(rowIndex))) {
-
-                $section.find(".staff-verify-error").text(
-                    "Staff row index is missing. Please edit the staff row again."
-                );
+                errorBox.text("Upload failed").show();
 
                 return;
             }
-        }
 
-        // Preserve the existing row-index behavior for other uploads.
-        if (rowIndex !== undefined && rowIndex !== null && rowIndex !== "") {
-            formData.append("row_index", rowIndex);
-        }
+            let uploadedFile = res.files[0];
 
-        formData.append(
-            "row_index",
-            rowIndex
-        );
+            let fileUrl = uploadedFile.file_url;
+
+            let subCategory = btn.data("document_sub_category");
 
 
-        // --------------------------------------------------
-        // STATIC VALUES
-        // --------------------------------------------------
+            if (!fileUrl) {
 
-        let applType = $("#appl_type").val()?.trim() || "";
+                errorBox.text("Uploaded file URL is missing").show();
 
-        //   alert(applType);
-
-        formData.append(
-            "form_name",
-            "A"
-        );
-
-        formData.append(
-            "license_name",
-            "EA"
-        );
-
-        formData.append("appl_type", applType);
-        // --------------------------------------------------
-        // AJAX UPLOAD
-        // --------------------------------------------------
-
-        $.ajax({
-
-            url: BASE_URL + "/uploadownershipdeed",
-
-            type: "POST",
-
-            data: formData,
-
-            processData: false,
-
-            contentType: false,
-
-            headers: {
-                "X-CSRF-TOKEN":
-                    $('meta[name="csrf-token"]').attr("content"),
-            },
+                return;
+            }
 
 
             // --------------------------------------------------
-            // SUCCESS
+            // EXISTING EQUIPMENT DOCUMENT
             // --------------------------------------------------
 
-            success: function (res) {
+            if (btn.closest("td").length) {
 
-                if (res.status !== "success") {
+                let $cell = btn.closest("td");
 
-                    errorBox.text("Upload failed");
+                // Replace only the document link in this cell
+                let $container = $cell.find(".row").first();
 
-                    return;
+                if (!$container.length) {
+                    $container = $cell;
                 }
 
+                $container.find(".file-link, .uploaded-file").remove();
 
-                let file = res.files[0];
+                updateDocumentLink($container, fileUrl);
 
-                let subCategory =
-                    btn.data("document_sub_category");
-
-
-                // --------------------------------------------------
-                // EXISTING EQUIPMENT LOGIC
-                // --------------------------------------------------
-
-                if (btn.closest("td").length) {
-
-                    let cell = btn.closest("td");
-
-                    cell.find(
-                        ".file-link, .uploaded-file"
-                    ).remove();
+                $cell.find(".Doc_upload_error").text("").hide();
+            }
 
 
-                    let container = cell.find(".row");
+            // --------------------------------------------------
+            // QUALIFICATION PROOF (OED)
+            // --------------------------------------------------
 
-                    if (!container.length) {
+            else if (subCategory === "OED") {
 
-                        container = cell;
-                    }
+                let $section = btn.closest(
+                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
+                );
 
+                let $parent = btn
+                    .closest(".col-md-7")
+                    .parent();
 
-                    container.append(`
-                    <div class="file-link mt-2">
+                let $container = $parent.find(".file-link").first();
 
-                        <a href="${file.file_url}"
-                           target="_blank"
-                           class="text-primary fw-bold">
-
-                            <i class="fa fa-file-pdf-o text-danger"></i>
-                            View Document
-
-                        </a>
-
-                    </div>
-                `);
-
-
-                    let subCategory =
-                        btn.data("document_sub_category");
-
-
-                    row.find(
-                        `.${subCategory}_error`
-                    ).text("");
+                if (!$container.length) {
+                    $container = $parent;
                 }
 
+                updateDocumentLink($container, fileUrl);
 
-                // --------------------------------------------------
-                // QUALIFICATION PROOF
-                // --------------------------------------------------
+                $section.attr("data-existing-file", fileUrl);
 
-                else if (subCategory === "OED") {
-
-                    let $section = btn.closest(
-                        "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
-                    );
+                window.uploadedFilePath = fileUrl;
+            }
 
 
-                    let container = btn
-                        .closest(".col-md-7")
-                        .parent()
-                        .find(".file-link");
+            // --------------------------------------------------
+            // AGE PROOF (AP)
+            // --------------------------------------------------
 
+            else if (subCategory === "AP") {
 
-                    container
-                        .removeClass("d-none")
-                        .html(`
-                        <a href="${file.file_url}"
-                           target="_blank"
-                           class="text-primary fw-bold">
+                let $section = btn.closest(
+                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
+                );
 
-                            <i class="fa fa-file-pdf-o"
-                               style="color:red;"></i>
+                let $parent = btn
+                    .closest(".col-md-7")
+                    .parent();
 
-                            View Document
+                let $container = $parent.find(".age-file-link").first();
 
-                        </a>
-                    `);
+                if (!$container.length) {
 
+                    $container = $('<div class="age-file-link mt-2"></div>');
 
-                    $section.attr(
-                        "data-existing-file",
-                        file.file_url
-                    );
-
-
-                    window.uploadedFilePath =
-                        file.file_url;
+                    $parent.append($container);
                 }
 
+                // Replace old age proof link
+                updateDocumentLink($container, fileUrl);
 
-                // --------------------------------------------------
-                // AGE PROOF
-                // --------------------------------------------------
+                $section.find(".age_proof_error").text("").hide();
 
-                else if (subCategory === "AP") {
+                $section.attr("data-existing-age-file", fileUrl);
 
-                    let $section = btn.closest(
-                        "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
-                    );
-
-
-                    let container = btn
-                        .closest(".col-md-7")
-                        .parent()
-                        .find(".age-file-link");
+                window.uploadedAgeFilePath = fileUrl;
+            }
 
 
-                    container
-                        .removeClass("d-none")
-                        .html(`
-                        <a href="${file.file_url}"
-                           target="_blank"
-                           class="text-primary fw-bold">
+            // --------------------------------------------------
+            // OWNERSHIP DOCUMENT (OD)
+            // --------------------------------------------------
 
-                            <i class="fa fa-file-pdf-o"
-                               style="color:red;"></i>
+            else if (subCategory === "OD") {
 
-                            View Document
+                let $container = btn
+                    .closest(".row")
+                    .parent()
+                    .parent();
 
-                        </a>
-                    `);
-
-
-                    $section
-                        .find(".age_proof_error")
-                        .text("");
+                updateDocumentLink($container, fileUrl);
+            }
 
 
-                    $section.attr(
-                        "data-existing-age-file",
-                        file.file_url
-                    );
+            // --------------------------------------------------
+            // BSD / APD
+            // --------------------------------------------------
+
+            else if (
+                subCategory === "BSD" ||
+                subCategory === "APD"
+            ) {
+
+                let $container = btn
+                    .closest(".row")
+                    .parent();
+
+                updateDocumentLink($container, fileUrl);
+            }
 
 
-                    window.uploadedAgeFilePath =
-                        file.file_url;
+            // --------------------------------------------------
+            // OTHER DOCUMENT (OHD)
+            // --------------------------------------------------
+
+            else if (subCategory === "OHD") {
+
+                let $container = btn.closest(".file_upload");
+
+                if (!$container.length) {
+                    $container = btn.closest(".row");
                 }
 
-
-                // --------------------------------------------------
-                // OWNERSHIP
-                // --------------------------------------------------
-
-                else if (subCategory === "OD") {
-
-                    let container = btn
-                        .closest(".row")
-                        .parent()
-                        .parent()
-                        .find(".file-link");
+                updateDocumentLink($container, fileUrl);
+            }
 
 
-                    container
-                        .removeClass("d-none")
-                        .html(`
-                        <a href="${file.file_url}"
-                           target="_blank"
-                           class="text-primary fw-bold">
+            // --------------------------------------------------
+            // SPECIMEN SIGNATURE (SS)
+            // --------------------------------------------------
 
-                            <i class="fa fa-file-pdf-o"
-                               style="color:red;"></i>
-
-                            View Document
-
-                        </a>
-                    `);
-                }
-
-
-                // --------------------------------------------------
-                // BSD / APD
-                // --------------------------------------------------
-
-                else if (
-                    subCategory === "BSD" ||
-                    subCategory === "APD"
-                ) {
-
-                    let container = btn
-                        .closest(".row")
-                        .parent()
-                        .find(".file-link");
-
-
-                    if (!container.length) {
-
-                        btn.closest(".row")
-                            .parent()
-                            .append(
-                                `<div class="file-link mt-2"></div>`
-                            );
-
-
-                        container = btn
-                            .closest(".row")
-                            .parent()
-                            .find(".file-link");
-                    }
-
-
-                    container
-                        .removeClass("d-none")
-                        .html(`
-                        <a href="${file.file_url}"
-                           target="_blank"
-                           class="text-primary fw-bold">
-
-                            <i class="fa fa-file-pdf-o text-danger"></i>
-
-                            View Document
-
-                        </a>
-                    `);
-                }
-
-                                // --------------------------------------------------
-                // OTHER DOCUMENT (OHD)
-                // --------------------------------------------------
-                else if (subCategory === "OHD") {
-
-                    let $container = btn.closest(".file_upload").find(".file-link").first();
-
-                    // Create the container if it doesn't exist
-                    if (!$container.length) {
-                        $container = $('<div class="file-link mt-2"></div>');
-                        btn.closest(".row").append($container);
-                    }
-
-                    // Display the uploaded PDF link
-                    $container.html(`
-                        <a href="${file.file_url}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-primary fw-bold">
-                            <i class="fa fa-file-pdf-o text-danger"></i>
-                            View Document
-                        </a>
-                    `).show();
-                }
-
-
-                        
             else if (subCategory === "SS") {
 
                 let $row = btn.closest("tr");
 
-                // Find or create the file-link container in this row
-                let $container = $row.find(".file-link").last();
+                let $container = $row
+                    .find("td")
+                    .eq(4)
+                    .find(".row");
 
                 if (!$container.length) {
-
-                    $container = $(
-                        '<div class="col-md-12 mt-1 col-12 file-link"></div>'
-                    );
-
-                    $row.find("td").eq(4).find(".row").append($container);
+                    $container = $row.find("td").eq(4);
                 }
 
-                if (file.file_url && file.file_url.trim() !== "") {
+                updateDocumentLink($container, fileUrl);
 
-                    $container.html(`
-                        <a href="${file.file_url}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-primary fw-bold">
+                $row.find(".Doc_upload_error")
+                    .text("")
+                    .hide();
 
-                            <i class="fa fa-file-pdf-o text-danger"></i>
-                            View Document
-
-                        </a>
-                    `).show();
-
-                    // Clear error only after a URL is available
-                    $row.find(".Doc_upload_error")
-                        .text("")
-                        .hide();
-
-                    $row.find('input[name="specimen_sign[]"]')
-                        .removeClass("is-invalid");
-
-                } else {
-
-                    $container.empty();
-
-                    $row.find(".Doc_upload_error")
-                        .text("Upload failed. Please upload the specimen signature again.")
-                        .show();
-                }
+                $row.find('input[name="specimen_sign[]"]')
+                    .removeClass("is-invalid");
             }
 
 
+            // --------------------------------------------------
+            // QC / QSC APPOINTMENT & CONSENT DOCUMENTS
+            // --------------------------------------------------
 
-                // --------------------------------------------------
-                // QC / QSC APPOINTMENT & CONSENT
-                // --------------------------------------------------
+            else {
 
-                else {
+                errorBox.text("").hide();
 
-                    errorBox.text("");
+                if (documentCategory === "app_doc") {
 
+                    let $input = row.find(".app-doc-file");
 
-                    // IMPORTANT:
-                    // Find only current document's file-link
+                    let $container = $input.siblings(".file-link").first();
 
-                    if (!fileLink.length) {
+                    if (!$container.length) {
 
-                        if (documentCategory === "app_doc") {
+                        $container = $('<div class="file-link mt-2"></div>');
 
-                            row.find(".app-doc-file")
-                                .parent()
-                                .append(
-                                    `<div class="file-link mt-2"></div>`
-                                );
-
-
-                            fileLink = row
-                                .find(".app-doc-file")
-                                .siblings(".file-link");
-
-
-                        } else if (
-                            documentCategory === "cons_doc"
-                        ) {
-
-                            row.find(".cons-doc-file")
-                                .parent()
-                                .append(
-                                    `<div class="file-link mt-2"></div>`
-                                );
-
-
-                            fileLink = row
-                                .find(".cons-doc-file")
-                                .siblings(".file-link");
-                        }
+                        $input.parent().append($container);
                     }
 
+                    updateDocumentLink($container, fileUrl);
 
-                    fileLink
-                        .removeClass("d-none")
-                        .html(`
-                        <div>
+                } else if (documentCategory === "cons_doc") {
 
-                            <a href="${file.file_url}"
-                               target="_blank"
-                               class="text-primary fw-bold">
+                    let $input = row.find(".cons-doc-file");
 
-                                <i class="fa fa-file-pdf-o"
-                                   style="color:red;"></i>
+                    let $container = $input.siblings(".file-link").first();
 
-                                View Document
+                    if (!$container.length) {
 
-                            </a>
+                        $container = $('<div class="file-link mt-2"></div>');
 
-                        </div>
-                    `);
+                        $input.parent().append($container);
+                    }
+
+                    updateDocumentLink($container, fileUrl);
                 }
-
-
-                // --------------------------------------------------
-                // CLEAR FILE INPUT
-                // --------------------------------------------------
-
-                fileInput.value = "";
-
-
-                // --------------------------------------------------
-                // SAVE UPLOADED PATH
-                // --------------------------------------------------
-
-                if (documentCategory === "app_doc") {
-
-                    row.find("input.app_doc")
-                        .val(file.file_url);
-                }
-
-
-                if (documentCategory === "cons_doc") {
-
-                    row.find("input.cons_doc")
-                        .val(file.file_url);
-                }
-
-            },
-
-
-            // --------------------------------------------------
-            // ERROR
-            // --------------------------------------------------
-
-            error: function (xhr) {
-
-                let container = btn.closest("td").length
-                    ? btn.closest("td")
-                    : btn.closest(".row");
-
-
-                let errorBox = container.find(
-                    ".Doc_upload_error"
-                );
-
-
-                // QC/QSC Appointment
-                if (documentCategory === "app_doc") {
-
-                    errorBox = row
-                        .find(".app_doc_upload_error");
-                }
-
-
-                // QC/QSC Consent
-                if (documentCategory === "cons_doc") {
-
-                    errorBox = row
-                        .find(".cons_doc_upload_error");
-                }
-
-
-                let msg = "Upload failed";
-
-
-                if (xhr.status === 413) {
-
-                    msg =
-                        "File size must be less than 250 KB";
-
-                } else if (xhr.responseJSON?.errors) {
-
-                    msg =
-                        Object.values(
-                            xhr.responseJSON.errors
-                        )[0][0];
-
-                } else if (xhr.responseJSON?.message) {
-
-                    msg =
-                        xhr.responseJSON.message;
-                }
-
-
-                errorBox.text(msg);
             }
 
-        });
+
+            // --------------------------------------------------
+            // CLEAR FILE INPUT
+            // --------------------------------------------------
+
+            fileInput.value = "";
+
+
+            // --------------------------------------------------
+            // SAVE UPLOADED PATH
+            // --------------------------------------------------
+
+            if (documentCategory === "app_doc") {
+
+                row.find("input.app_doc").val(fileUrl);
+            }
+
+            if (documentCategory === "cons_doc") {
+
+                row.find("input.cons_doc").val(fileUrl);
+            }
+
+        },
+
+
+        // --------------------------------------------------
+        // AJAX ERROR
+        // --------------------------------------------------
+
+        error: function (xhr) {
+
+            let container = btn.closest("td").length
+                ? btn.closest("td")
+                : btn.closest(".row");
+
+            let currentErrorBox = container.find(".Doc_upload_error");
+
+            if (documentCategory === "app_doc") {
+
+                currentErrorBox = row.find(".app_doc_upload_error");
+
+            } else if (documentCategory === "cons_doc") {
+
+                currentErrorBox = row.find(".cons_doc_upload_error");
+            }
+
+            let msg = "Upload failed";
+
+            if (xhr.status === 413) {
+
+                msg = "File size must be less than 250 KB";
+
+            } else if (xhr.responseJSON?.errors) {
+
+                msg = Object.values(xhr.responseJSON.errors)[0][0];
+
+            } else if (xhr.responseJSON?.message) {
+
+                msg = xhr.responseJSON.message;
+            }
+
+            currentErrorBox.text(msg).show();
+        }
 
     });
+
+});
+
 
     // ------------------------Submit form---------------------------------------
 
@@ -820,6 +728,9 @@ $(document).ready(function () {
 
         let applicantName = $("#applicant_name").val().trim();
         let businessAddress = $("textarea[name='business_address']").val().trim();
+
+         let license_number =
+            $("input[name='license_number']").val()?.trim() || "";
 
         formData.append("module", $("input[name='module']").val());
         formData.append("appl_type", $("input[name='appl_type']").val());
@@ -3628,7 +3539,8 @@ partners.forEach((p, index) => {
         certificateNo,
         firstIssue,
         validityFrom,
-        validityTo
+        validityTo,
+        license_number
     ) {
 
         return $.ajax({
@@ -3651,7 +3563,9 @@ partners.forEach((p, index) => {
 
                 valid_from: validityFrom,
 
-                valid_to: validityTo
+                valid_to: validityTo,
+
+                license_number: license_number
 
             }
 
@@ -5005,6 +4919,9 @@ partners.forEach((p, index) => {
 
         let applicantName = $("#applicant_name").val().trim();
         let businessAddress = $("textarea[name='business_address']").val().trim();
+
+         let license_number =
+            $("input[name='license_number']").val()?.trim() || "";
 
         formData.append("module", $("input[name='module']").val());
         formData.append("appl_type", $("input[name='appl_type']").val());
@@ -6979,7 +6896,8 @@ partners.forEach((p, index) => {
 
                 validityFrom,
 
-                validityTo
+                validityTo,
+                 license_number
 
             ).then(function (response) {
 
@@ -8973,6 +8891,8 @@ $(document).on("click", "#verify_qc_staff", function () {
     // =====================================================
 
     $("#certificate-holder-name").text("");
+
+    
     $(".staff-verify-error").text("");
 
     $section.attr("data-qc-verified", "0");
@@ -9057,6 +8977,10 @@ $(document).on("click", "#verify_qc_staff", function () {
 
                 $section.attr("data-qc-verified", "1");
 
+
+            // Remove warning after successful verification.
+            $section.find(".staff-reverify-message").remove();
+
                 // Show upload section.
                 $("#qc_upload_section").slideDown();
 
@@ -9093,7 +9017,7 @@ $(document).on("click", "#verify_qc_staff", function () {
                 // =================================================
 
                 $("#certificate-holder-name").text("");
-
+                $section.find(".staff-reverify-message").remove();
                 $section.attr("data-qc-verified", "0");
 
                 $("#qc_upload_section").hide();
@@ -10101,10 +10025,12 @@ function updateQCStaffSerialNumbers() {
                                 <span class="competency-label">From Date</span>
                                 <span class="competency-value">${data.from_date ?? '-'}</span>
                             </div>
+
                             <div class="col-md-3 competency-item">
                                 <span class="competency-label">To Date</span>
                                 <span class="competency-value">${data.to_date ?? '-'}</span>
                             </div>
+
                             <div class="col-md-4 competency-item">
                                 <div class="competency-experience">
                                     <span class="competency-label">Total Experience</span>

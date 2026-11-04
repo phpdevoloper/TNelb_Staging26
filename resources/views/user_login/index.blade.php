@@ -1089,9 +1089,9 @@
                                            </td>
 
                                            <!-- Application Status -->
-                                           
+                                        
                                             <td>
-                                               @if ($workflow->payment_status == 'draft')
+                                               @if ($workflow->payment_status !== 'paid')
                                                     @if (strtoupper(trim($workflow->appl_type)) === 'N')
                                                     @if($workflow->form_name == 'A')
                                                     <a href="{{ route('apply-form-a_draft', ['application_id' => $workflow->application_id]) }}">
@@ -1118,6 +1118,7 @@
                                                         </button>
                                                     </a>
                                                     @endif
+                                                    
                                                 @elseif(strtoupper(trim($workflow->appl_type)) === 'D')
                                                      @if($workflow->form_name == 'A')
                                                     <a href="{{ route('apply-form-a_d_draft', ['application_id' => $workflow->application_id]) }}">

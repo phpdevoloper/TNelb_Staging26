@@ -943,6 +943,9 @@
             <div class="row layout-top-spacing">
                 <div class="col-lg-12 layout-spacing">
                     <div class="statbox widget ">
+                        {{-- @php
+                            var_dump($applicant->appl_type); exit;
+                        @endphp --}}
                         <div class="widget-header applicant_details {{ trim($applicant->appl_type) == 'D' ? 'digitization-header' : '' }}"">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
@@ -1260,7 +1263,7 @@
                                                             <p>{{ strtoupper($applicant->previous_contractor_license) }}
                                                                 @if($applicant->previous_contractor_license === 'yes')
                                                                  - {{$applicant->previous_application_number}},
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_application_validity)->format('d-m-Y') }},
+                                                                    {{ \Carbon\Carbon::parse($applicant->previous_validity_first_issue)->format('d-m-Y') }},
                                                                 {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }} , 
                                                                  {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }}
 
@@ -1752,25 +1755,38 @@
 
 
                                         <div class="col-lg-8">
-                                            <p><strong>7. Has the applicant or any of his/her staff referred to under item 6, been
+                                            <p>
+                                                <strong>
+                                                    7. Has the applicant or any of his/her staff referred to under item 6, been
                                                     at any time convicted in any court of law or punished by any other
-                                                    authority for criminal offences</strong></p>
+                                                    authority for criminal offences
+                                                </strong>
+                                            </p>
                                         </div>
+
                                         <div class="col-lg-2">
-                                            <p>{{ strtoupper($applicant->criminal_offence) }}</p>
+                                            <p>{{ strtoupper($applicant->criminal_offence ?? '') }}</p>
                                         </div>
 
+                                        @if(strtoupper(trim($applicant->criminal_offence ?? '')) == 'YES')
+                                            @php
+                                                $criminaloffence = $attachments_cl
+                                                    ->where('type', 'criminaloffence')
+                                                    ->first();
+                                            @endphp
 
-
-                                                 @php
-                                                    $criminaloffence = $attachments_cl->where('type', 'criminaloffence')->first();
-                                                @endphp
-
+                                            <div class="col-lg-2">
                                                 @if($criminaloffence)
-                                                    <div class="col-lg-2">
-                                                        <a href="{{asset($criminaloffence->file_doc)}}" class="file_view fw-bold" target="_blank"><i class="fa fa-file-pdf-o"></i> View</a>
-                                                    </div>
+                                                    <a href="{{ asset($criminaloffence->file_doc) }}"
+                                                    class="file_view fw-bold"
+                                                    target="_blank">
+                                                        <i class="fa fa-file-pdf-o"></i> View Document
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted">Document not uploaded</span>
                                                 @endif
+                                            </div>
+                                        @endif
 
 
                                     </div>
@@ -1853,7 +1869,7 @@
 
                                             <div class="row ">
                                                 <div class="col-lg-12">
-                                                    <p class="text-info"><strong>12. Address Proof  </strong></p>
+                                                    <p class="text-info"><strong>9. Address Proof  </strong></p>
                                                 </div>
                                             </div>
 
@@ -1995,9 +2011,19 @@
                                                     <div class="col-lg-6">
                                                         <p><strong>Application Type</strong></p>
                                                     </div>
-                                                    <div class="col-lg-6">
-                                                        <p><strong>{{ $applicant->appl_type ?? 'NA' }}</strong></p>
-                                                    </div>
+                                           <div class="col-lg-6">
+                                                    <p>
+                                                        <strong>
+                                                            {{ match (trim($applicant->appl_type ?? '')) {
+                                                                'N' => 'New',
+                                                                'R' => 'Renewal',
+                                                                'D' => 'Digitisation',
+                                                                'A' => 'Alteration',
+                                                                default => $applicant->appl_type ?? 'NA',
+                                                            } }}
+                                                        </strong>
+                                                    </p>
+                                                </div>
 
 
                                                     <div class="col-lg-6">
@@ -2213,7 +2239,7 @@
                                         </button>
 
 
-                                       @if(trim($applicant->appl_type) != 'D' && trim($applicant->appl_type) != 'A')
+                                       @if(trim($applicant->appl_type) != 'D')
 
 
                                     {{-- <button id="confirmReturnBtn" class="btn btn-warning">
@@ -4895,11 +4921,7 @@ $(document).on("click", ".verify-staff", function () {
 
 
                                 <td>
-                                    ${
-                                        data.emp_type === 'emp_cate'
-                                            ? (data.emp_cate ?? '-')
-                                            : '-'
-                                    }
+                                    ${data.emp_cate ?? '-'}
                                 </td>
 
 

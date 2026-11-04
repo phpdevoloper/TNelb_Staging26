@@ -472,8 +472,6 @@ class LoginController extends Controller
 
                     if ($staff->role_id == '1') {
 
-
-
                         // recent modify for count form A
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
@@ -624,6 +622,7 @@ class LoginController extends Controller
             })
             ->values()
             ->all();
+            
 
         $formColors = [
             'C'   => 'bg-yellow',
@@ -2591,14 +2590,16 @@ class LoginController extends Controller
                 ->get();
 
                 // dd($authoritysignatory); exit;
+
+                // dd($applicant); exit;
         
-        $applicant->appl_type = match(trim($applicant->appl_type)) {
-            'N' => 'New',
-            'R' => 'Renewal',
-            'D' => 'Digitisation',
-            'A' => 'Alteration',
-            default => $applicant->appl_type,
-        };
+        // $applicant->appl_type = match(trim($applicant->appl_type)) {
+        //     'N' => 'New',
+        //     'R' => 'Renewal',
+        //     'D' => 'Digitisation',
+        //     'A' => 'Alteration',
+        //     default => $applicant->appl_type,
+        // };
         
 
         return view($view, compact(
