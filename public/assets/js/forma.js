@@ -5111,6 +5111,18 @@ partners.forEach((p, index) => {
 
             formData.append(`row_index[${index}]`, p.row_index);
 
+            formData.append(
+                `partner_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `partner_qual_proof[${index}]`,
+                p.qual_proof
+            );
+
+            formData.append(`partner_row_index[${index}]`, p.row_index);
+
         });
 
         // partner push-----------------
@@ -5326,6 +5338,9 @@ partners.forEach((p, index) => {
                 qualification:
                     $tds.eq(4).attr("data-qualification") || "",
 
+                     age_proof: $tds.eq(2).attr("data-age_proof") || "",
+    qual_proof: $tds.eq(4).attr("data-qual_proof") || "",
+
                 qualification_text:
                     $tds.eq(4).attr("data-qual_text") || "",
 
@@ -5446,6 +5461,16 @@ partners.forEach((p, index) => {
             formData.append(
                 `director_ccvalidityto[${index}]`,
                 p.ccvalidityto
+            );
+
+               formData.append(
+                `director_age_proof[${index}]`,
+                p.age_proof
+            );
+
+            formData.append(
+                `director_qual_proof[${index}]`,
+                p.qual_proof
             );
 
             formData.append(

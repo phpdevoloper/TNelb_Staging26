@@ -8473,37 +8473,35 @@ if (qual_proof) {
 
              // ================= QUALIFICATION PROOF =================
 
-            let isEditMode = $section.attr("data-edit-id") ? true : false;
+            let existingFileUrl = $.trim(
+                $section.attr("data-existing-file") || ""
+            );
 
-            let existingFileUrl =
-                $section.attr("data-existing-file") || "";
+            let presentFile = $.trim(
+                $section.attr("data-present-file") || ""
+            );
 
-            let presentFile =
-                $section.attr("data-present-file") || "";
+            let fileInput = $section.find("input[name='qual_proof[]']")[0];
 
-            let fileInput =
-                $section.find("input[name='qual_proof[]']")[0];
-
-            let hasNewFile =
+            let hasNewFile = !!(
                 fileInput &&
                 fileInput.files &&
-                fileInput.files.length > 0;
+                fileInput.files.length > 0
+            );
 
-            let hasExistingFile =
-                existingFileUrl !== "";
+            let finalFileUrl = "";
 
-            let hasPresentFile =
-                presentFile !== "";
+            if (hasNewFile) {
+                finalFileUrl = $.trim(window.uploadedFilePath || "");
 
 
             if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
 
+            if (!finalFileUrl) {
                 setError(
                     $section.find("input[name='qual_proof[]']"),
                     "Please upload Qualification proof"
                 );
-
-                isValid = false;
             }
 
 
@@ -8528,25 +8526,26 @@ if (qual_proof) {
 
             // ================= AGE PROOF =================
 
-            let existingAgeFile =
-                $section.attr("data-existing-age-file") || "";
+            let existingAgeFile = $.trim(
+                $section.attr("data-existing-age-file") || ""
+            );
 
-            let presentAgeFile =
-                $section.attr("data-present-age-file") || "";
+            let presentAgeFile = $.trim(
+                $section.attr("data-present-age-file") || ""
+            );
 
-            let ageFileInput =
-                $section.find("input[name='age_proof[]']")[0];
+            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
 
-            let hasNewAgeFile =
+            let hasNewAgeFile = !!(
                 ageFileInput &&
                 ageFileInput.files &&
-                ageFileInput.files.length > 0;
+                ageFileInput.files.length > 0
+            );
 
-            let hasExistingAgeFile =
-                existingAgeFile !== "";
+            let finalAgeFileUrl = "";
 
-            let hasPresentAgeFile =
-                presentAgeFile !== "";
+            if (hasNewAgeFile) {
+                finalAgeFileUrl = $.trim(window.uploadedAgeFilePath || "");
 
 
             if (
@@ -8555,6 +8554,7 @@ if (qual_proof) {
                 !hasNewAgeFile
             ) {
 
+            if (!finalAgeFileUrl) {
                 setError(
                     $section.find("input[name='age_proof[]']"),
                     "Please upload Age proof"
