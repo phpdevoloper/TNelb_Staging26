@@ -1104,10 +1104,6 @@
                                 <span class="apd-badge apd-badge-success">{{ Str::upper($applicant_data->criminal_offence) }}</span>
                             </dt>
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 7d8ee5c1ab26bcf14ecbab75915fce1f1338f9cb
                             @if (!empty($attachmentByType['criminaloffence']->file_doc_url))
                                 <dd>
                                     <span>:</span>
