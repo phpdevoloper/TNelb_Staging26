@@ -161,7 +161,7 @@
                                             @foreach ($licence as $lic)
                                                 <option value="{{ $lic->license_number }}"
                                                     data-valid-to="{{ $lic->valid_to }}">
-                                                    {{ $lic->license_number }}
+                                                    {{ $lic->license_number }} || {{ $lic->application_id }} 
                                                 </option>
                                             @endforeach
                                         </select>

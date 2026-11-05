@@ -2,48 +2,10 @@ $(document).ready(function () {
 
     var cfg = window.COMPETENCY_FORM_CONFIG || {};
 
-function updateDocumentLink($container, fileUrl) {
-
-    if (!$container || !$container.length || !fileUrl) {
-        return;
-    }
-
-    let $fileLink;
-
-    // If the supplied element is already the file-link container
-    if ($container.hasClass("file-link")) {
-        $fileLink = $container;
-    } else {
-        $fileLink = $container.find(".file-link").first();
-    }
-
-    // Create container if it does not exist
-    if (!$fileLink.length) {
-        $fileLink = $('<div class="file-link mt-2"></div>');
-        $container.append($fileLink);
-    }
-
-    // Replace old document link with new document link
-    $fileLink
-        .removeClass("d-none")
-        .html(`
-            <a href="${fileUrl}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="text-primary fw-bold">
-
-                <i class="fa fa-file-pdf-o text-danger"></i>
-                View Document
-
-            </a>
-        `)
-        .show();
-}
     
 // --------------------------------------------------
 // COMMON FUNCTION: UPDATE EXISTING DOCUMENT LINK
 // --------------------------------------------------
-
 function updateDocumentLink($container, fileUrl) {
 
     if (!$container || !$container.length || !fileUrl) {
@@ -52,8 +14,11 @@ function updateDocumentLink($container, fileUrl) {
 
     let $fileLink;
 
-    // If the supplied element is already the file-link container
-    if ($container.hasClass("file-link")) {
+    // Use the container itself for age proof and file-link containers
+    if (
+        $container.hasClass("file-link") ||
+        $container.hasClass("age-file-link")
+    ) {
         $fileLink = $container;
     } else {
         $fileLink = $container.find(".file-link").first();
@@ -65,7 +30,7 @@ function updateDocumentLink($container, fileUrl) {
         $container.append($fileLink);
     }
 
-    // Replace old document link with new document link
+    // Replace all existing content with only the latest document link
     $fileLink
         .removeClass("d-none")
         .html(`
@@ -81,7 +46,6 @@ function updateDocumentLink($container, fileUrl) {
         `)
         .show();
 }
-
 
 // --------------------------------------------------
 // DOCUMENT UPLOAD CLICK
@@ -439,33 +403,27 @@ $(document).on("click", ".upload-btn", function () {
 
             else if (subCategory === "AP") {
 
-                let $section = btn.closest(
-                    "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
-                );
+    let $section = btn.closest(
+        "#proprietor-sectionfresh, #partnersfill-section, #directorfill-section"
+    );
 
-                let $parent = btn
-                    .closest(".col-md-7")
-                    .parent();
+    let $parent = btn.closest(".col-md-7").parent();
 
-                let $container = $parent.find(".age-file-link").first();
+    let $container = $parent.find(".age-file-link").first();
 
-                if (!$container.length) {
+    if (!$container.length) {
+        $container = $('<div class="col-md-12 col-12 age-file-link"></div>');
+        $parent.append($container);
+    }
 
-                    $container = $('<div class="age-file-link mt-2"></div>');
+    updateDocumentLink($container, fileUrl);
 
-                    $parent.append($container);
-                }
+    $section.find(".age_proof_error").text("").hide();
 
-                // Replace old age proof link
-                updateDocumentLink($container, fileUrl);
+    $section.attr("data-existing-age-file", fileUrl);
 
-                $section.find(".age_proof_error").text("").hide();
-
-                $section.attr("data-existing-age-file", fileUrl);
-
-                window.uploadedAgeFilePath = fileUrl;
-            }
-
+    window.uploadedAgeFilePath = fileUrl;
+}
 
             // --------------------------------------------------
             // OWNERSHIP DOCUMENT (OD)
@@ -731,6 +689,12 @@ $(document).on("click", ".upload-btn", function () {
 
          let license_number =
             $("input[name='license_number']").val()?.trim() || "";
+
+        let appl_type =
+            $("input[name='appl_type']").val()?.trim() || "";
+
+
+            // alert(appl_type);
 
         formData.append("module", $("input[name='module']").val());
         formData.append("appl_type", $("input[name='appl_type']").val());
@@ -2705,7 +2669,9 @@ partners.forEach((p, index) => {
 
                 validityFrom,
 
-                validityTo
+                validityTo,
+                license_number,
+                 appl_type
 
             ).then(function (response) {
 
@@ -3540,7 +3506,8 @@ partners.forEach((p, index) => {
         firstIssue,
         validityFrom,
         validityTo,
-        license_number
+        license_number,
+        appl_type
     ) {
 
         return $.ajax({
@@ -3565,7 +3532,11 @@ partners.forEach((p, index) => {
 
                 valid_to: validityTo,
 
-                license_number: license_number
+                license_number: license_number,
+
+                appl_type: appl_type,
+
+
 
             }
 
@@ -4922,6 +4893,9 @@ partners.forEach((p, index) => {
 
          let license_number =
             $("input[name='license_number']").val()?.trim() || "";
+
+         let appl_type =
+            $("input[name='appl_type']").val()?.trim() || "";
 
         formData.append("module", $("input[name='module']").val());
         formData.append("appl_type", $("input[name='appl_type']").val());
@@ -6922,7 +6896,8 @@ partners.forEach((p, index) => {
                 validityFrom,
 
                 validityTo,
-                 license_number
+                 license_number,
+                 appl_type
 
             ).then(function (response) {
 
@@ -7774,7 +7749,9 @@ partners.forEach((p, index) => {
         certificateNo,
         firstIssue,
         validityFrom,
-        validityTo
+        validityTo,
+         license_number,
+         appl_type
     ) {
 
         return $.ajax({
@@ -7797,7 +7774,10 @@ partners.forEach((p, index) => {
 
                 valid_from: validityFrom,
 
-                valid_to: validityTo
+                valid_to: validityTo,
+                license_number: license_number,
+
+                appl_type: appl_type
             },
 
             success: function (response) {
@@ -7925,10 +7905,10 @@ partners.forEach((p, index) => {
         // formData.append("form_action", actionType);
 
         let applType = $("#appl_type").val()?.trim();
-        let postUrl =
-            applType === "R"
-                ? BASE_URL + "/forma/storerenewalreturn"
-                : BASE_URL + "/forma/storereturn";
+        let postUrl = BASE_URL + "/forma/storereturn";
+            // applType === "R"
+            //     ? BASE_URL + "/forma/storerenewalreturn"
+            //     : BASE_URL + "/forma/storereturn";
         //  let amount = formData.get("fees") || 0;
 
         // let amount = formData.get("total_fees") || 0;
@@ -8887,6 +8867,14 @@ $(document).on("click", "#verify_qc_staff", function () {
 
     let $section = $("#staffqc_datasection");
 
+    let license_number =
+            $("input[name='license_number']").val()?.trim() || "";
+
+    let appl_type =
+            $("input[name='appl_type']").val()?.trim() || "";
+
+            // alert(license_number);
+
     // =====================================================
     // 1. DETECT ADD / EDIT MODE
     // =====================================================
@@ -8971,14 +8959,17 @@ $(document).on("click", "#verify_qc_staff", function () {
 
         url: BASE_URL + "/check-qc-certificate",
         type: "POST",
-
+ 
         data: {
             _token: $('meta[name="csrf-token"]').attr("content"),
             staffcategory: "QC",
             certificate_no: certificateNo,
             dateof_issue: firstIssue,
             valid_from: validityFrom,
-            valid_to: validityTo
+            valid_to: validityTo,
+            license_number: license_number,
+            appl_type: appl_type
+
         },
 
         beforeSend: function () {
@@ -10444,7 +10435,27 @@ function updateQCStaffSerialNumbers() {
 }
 
 
+$(document).on("keydown", "#bank_amount", function (e) {
 
+    // Allow control keys
+    if (
+        ["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key) ||
+        e.ctrlKey || e.metaKey
+    ) {
+        return;
+    }
+
+    // Allow only digits
+    if (!/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        return;
+    }
+
+    // Maximum 5 digits
+    if (this.value.length >= 5 && this.selectionStart === this.selectionEnd) {
+        e.preventDefault();
+    }
+});
 // ----------------------date function for all-----------
 // ========================================================
 // DATE VALIDATION - MINIMUM 01-01-1952

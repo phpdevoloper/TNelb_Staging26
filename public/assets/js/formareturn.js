@@ -72,7 +72,7 @@ $(document).on(
                 .closest("p")
                 .after(`
                     <p class="text-danger staff-reverify-message mt-1">
-                        Verify the staff details then only Update will enable.
+                        Verify the staff details then only Update/Save will enable.
                     </p>
                 `);
         }

@@ -9,7 +9,9 @@
                 <div class="breadcrumbs-container" data-page-heading="Analytics">
                     <header class="header navbar navbar-expand-sm">
                         <a href="javascript:void(0);" class="btn-toggle sidebarCollapse" data-placement="bottom">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round" class="feather feather-menu">
                                 <line x1="3" y1="12" x2="21" y2="12"></line>
                                 <line x1="3" y1="6" x2="21" y2="6"></line>
                                 <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -32,26 +34,28 @@
             <div class="row layout-top-spacing">
                 @include('admin.dashboard.partials.applicants_detail_forma_body')
 
+            </div>
+
 
         </div>
 
         <!-- -------------------------------------------- -->
-         <div class="row ">
-             <div class="statbox widget officers_section mb-2">
+        <div class="row ">
+            <div class="statbox widget officers_section mb-2">
                 <div class="col-lg-12 col-12 text-center">
                     <h6>Officers Handling Functions </h6>
                 </div>
-                                            </div>
+            </div>
 
 
-         </div>
+        </div>
         <div class="row">
             <div id="tabsSimple" class="col-xl-6 col-12 layout-spacing">
 
                 <div class="row align-items-center">
 
                     <div class="col-lg-12">
-                       <div class="statbox widget box box-shadow mb-2">
+                        <div class="statbox widget box box-shadow mb-2">
                             <div class="row align-items-center">
 
                                 <div class="col-lg-12">
@@ -60,11 +64,14 @@
                                         <input class="form-check-input" type="checkbox" role="switch" id="Queryswitch">
                                     </div> --}}
                                     <div class="switch-wrapper d-flex justify-content-between align-items-center">
-                                        <label class="switch-label mb-0 fw-bold text-end" for="Queryswitch">If you have any queries</label>
-                                        <div class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
+                                        <label class="switch-label mb-0 fw-bold text-end" for="Queryswitch">If you
+                                            have any queries</label>
+                                        <div
+                                            class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
                                             <div class="input-checkbox">
                                                 <span class="switch-chk-label label-left">Yes</span>
-                                                <input class="switch-input" type="checkbox" id="Queryswitch" role="switch">
+                                                <input class="switch-input" type="checkbox" id="Queryswitch"
+                                                    role="switch">
                                                 <span class="switch-chk-label label-right">No</span>
                                             </div>
                                         </div>
@@ -74,7 +81,7 @@
                             <div class="box box-shadow" id="queryOptions" style="display: none;">
                                 <div class="row mt-2">
                                     <div class="col-lg-12">
-                                       <div class="form-group">
+                                        <div class="form-group">
 
                                             {{-- <label class="fw-bold">Select Query Type:</label> --}}
                                             <select class="form-control" id="queryType" name="queryType[]" multiple>
@@ -93,81 +100,73 @@
                 </div>
 
                 <div class="row">
-                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                    <div class="statbox widget box box-shadow">
+                    <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                        <div class="statbox widget box box-shadow">
 
-                        <div class="widget-header">
-                            <h4>Remarks</h4>
+                            <div class="widget-header">
+                                <h4>Remarks</h4>
 
 
 
-                            <textarea class="form-control placement-top" id="remarks" name="remarks" rows="4"
-                                        cols="50" maxlength="250"></textarea>
+                                <textarea class="form-control placement-top" id="remarks" name="remarks" rows="4" cols="50"
+                                    maxlength="250"></textarea>
 
-                             <span id="remarks_error" class="text-danger small"></span>
-                        </div>
-                         <div class="modal-footer mt-2" style="justify-content: center;">
+                                <span id="remarks_error" class="text-danger small"></span>
+                            </div>
+                            <div class="modal-footer mt-2" style="justify-content: center;">
 
                                 @php
-                                $role = Auth::user()->name; // Current role name
-                                 $workflow = [
-                                'Supervisor' => 'Assistant Secretary',
-                                'Supervisor2' => 'Assistant Secretary',
-                                'Assistant Secretary' => 'Secretary',
-                                'Secretary'  => 'President',
-                                'President'  => null,
-                            ];
+                                    $role = Auth::user()->name; // Current role name
+                                    $workflow = [
+                                        'Supervisor' => 'Assistant Secretary',
+                                        'Supervisor2' => 'Assistant Secretary',
+                                        'Assistant Secretary' => 'Secretary',
+                                        'Secretary' => 'President',
+                                        'President' => null,
+                                    ];
 
                                 @endphp
 
                                 @if ($role == 'Supervisor' || $role == 'Supervisor2')
 
-                                {{-- Forward to Assistant Secretary --}}
+                                    {{-- Forward to Assistant Secretary --}}
 
-                                <button class="btn btn-success" id="forwardbtn"  >
+                                    <button class="btn btn-success" id="forwardbtn">
                                         Forward to {{ $workflow[$role] }}
-                                </button>
-
-
+                                    </button>
                                 @elseif ($role == 'Assistant Secretary')
-                                <div class="row justify-content-center">
-                                    <div class="col-12">
-                                        <div class="d-flex flex-wrap justify-content-center align-items-center gap-2">
-                                            {{-- Forward to Secretary --}}
-                                            <button class="btn btn-success" id="forwardbtn" data-bs-toggle="modal" data-bs-target="#declarationModal">
-                                                Forward to {{ $workflow[$role] }}
-                                            </button>
+                                    <div class="row justify-content-center">
+                                        <div class="col-12">
+                                            <div
+                                                class="d-flex flex-wrap justify-content-center align-items-center gap-2">
+                                                {{-- Forward to Secretary --}}
+                                                <button class="btn btn-success" id="forwardbtn"
+                                                    data-bs-toggle="modal" data-bs-target="#declarationModal">
+                                                    Forward to {{ $workflow[$role] }}
+                                                </button>
 
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-
                                 @elseif ($role == 'Secretary')
+                                    <button class="btn btn-success" id="confirmForwardPres">
+                                        Forward to {{ $workflow[$role] }}
+                                    </button>
 
 
-
-
-                                        <button class="btn btn-success" id="confirmForwardPres">
-                                            Forward to {{ $workflow[$role] }}
-                                        </button>
-
-
-                                       @if(trim($applicant->appl_type) != 'D')
-
-
-                                    {{-- <button id="confirmReturnBtn" class="btn btn-warning">
+                                    @if (trim($applicant->appl_type) != 'D')
+                                        {{-- <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Supervisor
                                     </button> --}}
 
-                                     <button class="btn btn-info" id="returntoapplicant">
+                                        <button class="btn btn-info" id="returntoapplicant">
                                             Return to Applicant
-                                    </button>
+                                        </button>
                                     @endif
                                     <button class="btn btn-danger">Reject</button>
-
                                 @elseif ($role == 'President')
                                     <button class="btn btn-success" id="confirmApprovalBtn">
-                                       Approve
+                                        Approve
                                     </button>
                                     <button id="confirmReturnBtn" class="btn btn-warning">
                                         Return to Secretary
@@ -180,209 +179,214 @@
                                 @endif
 
                             </div>
-                        <!-- <div class="modal-footer mt-2" style="justify-content: center;">
-                            <button class="btn btn-success" id="forwardbtn" style="margin-right: 20px;" data-bs-toggle="modal" data-bs-target="#declarationModal" disabled>Forward To {{ $applicant->application_status == 'RE' ? 'Secretary': 'Assistant Secretary'}}</button>
+                            <!-- <div class="modal-footer mt-2" style="justify-content: center;">
+                            <button class="btn btn-success" id="forwardbtn" style="margin-right: 20px;" data-bs-toggle="modal" data-bs-target="#declarationModal" disabled>Forward To {{ $applicant->application_status == 'RE' ? 'Secretary' : 'Assistant Secretary' }}</button>
                             <button class="btn btn-warning " style="margin-right: 20px;" data-bs-dismiss="modal">On Hold</button>
                             {{-- <button type="button" class="btn btn-danger">Reject</button> --}}
                         </div> -->
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-         <!-- ------------------------------------ -->
-           @if ($role == 'Secretary' || $role == 'President')
-            <div class="col-lg-6 layout-spacing" id="return_section" style="display:none;" >
+            <!-- ------------------------------------ -->
+            @if ($role == 'Secretary' || $role == 'President')
+                <div class="col-lg-6 layout-spacing" id="return_section" style="display:none;">
+                    <div class="statbox widget box box-shadow">
+                        <div class="widget-header">
+                            <div class="row">
+                                <div class="col-xl-12 officers_section col-md-12 col-sm-12 col-12">
+                                    <h4 class=" text-white">Reason for Return Application to Applicant</h4>
+                                </div>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" id="basic_details" name="return_reasons[]"
+                                    value="basic_details" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="basic_details"> 1 & 2) Applicant Basic Detail
+                                    (Name & Address)</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="ownership_details" name="return_reasons[]"
+                                    value="ownership_details" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="ownership_details">3) Applicant Ownership Details
+                                </label>
+                            </div>
+
+
+
+
+                            <div class="form-check">
+                                <input type="checkbox" id="qc_staff" name="return_reasons[]" value="qc_staff"
+                                    class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="qc_staff">4) QC Staff Issue </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="staff_details" name="return_reasons[]"
+                                    value="staff_details" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="staff_details">5) Other Staff Issue</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" id="bank_solvency" name="return_reasons[]"
+                                    value="bank_solvency" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="bank_solvency">6) Bank Solvency </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="atachment_points" name="return_reasons[]"
+                                    value="atachment_points" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="bank_solvency">7 and 8) Attachments Points
+                                </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="address_proof" name="return_reasons[]"
+                                    value="address_proof" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="address_proof">9) Address Proof </label>
+                            </div>
+
+                            <div class="form-check">
+                                <input type="checkbox" id="equipments_details" name="return_reasons[]"
+                                    value="equipments_details" class="form-check-input return-checkbox">
+                                <label class="form-check-label" for="equipments_details">10) Equipments Details
+                                </label>
+                            </div>
+
+                            <div id="checkbox_error" class="text-danger mt-2 fw-bold" style="display:none;"></div>
+
+                            <div class="">
+                                <h4>Remarks For Return (Optional)</h4>
+
+
+
+                                <textarea class="form-control" name="remarks_return" id="remarks_return" rows="4" cols="50"
+                                    maxlength="300"></textarea>
+                            </div>
+
+
+
+                            <button class="btn btn-success mt-2" id="process_return">
+                                Submit Return
+                            </button>
+
+                            <button class="btn btn-info mt-2" id="exit_return">
+                                Exit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+            <!-- ------------------------------------- -->
+            <div id="timelineMinimal" class="col-lg-12 layout-spacing">
                 <div class="statbox widget box box-shadow">
-                    <div class="widget-header" >
+                    <div class="widget-header">
                         <div class="row">
-                            <div class="col-xl-12 officers_section col-md-12 col-sm-12 col-12">
-                                <h4 class=" text-white">Reason for Return Application to Applicant</h4>
+                            <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                <h4>Application Process Flow</h4>
                             </div>
                         </div>
-                        <div class="form-check mt-2">
-                            <input type="checkbox" id="basic_details" name="return_reasons[]" value="basic_details" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="basic_details"> 1 & 2) Applicant Basic Detail (Name & Address)</label>
-                        </div>
-                         <div class="form-check">
-                          <input type="checkbox" id="ownership_details" name="return_reasons[]" value="ownership_details" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="ownership_details">3) Applicant Ownership Details </label>
-                        </div>
-
-
-
-
-                             <div class="form-check">
-                          <input type="checkbox" id="qc_staff" name="return_reasons[]" value="qc_staff" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="qc_staff">4) QC Staff Issue </label>
-                        </div>
-
-                         <div class="form-check">
-                           <input type="checkbox" id="staff_details" name="return_reasons[]" value="staff_details" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="staff_details">5) Other Staff Issue</label>
-                        </div>
-                         <div class="form-check">
-                           <input type="checkbox" id="bank_solvency" name="return_reasons[]" value="bank_solvency" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="bank_solvency">6) Bank Solvency </label>
-                        </div>
-
-                         <div class="form-check">
-                           <input type="checkbox" id="atachment_points" name="return_reasons[]" value="atachment_points" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="bank_solvency">7 and 8)  Attachments Points </label>
-                        </div>
-
-                        <div class="form-check">
-                           <input type="checkbox" id="address_proof" name="return_reasons[]" value="address_proof" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="address_proof">9)  Address Proof </label>
-                        </div>
-
-                        <div class="form-check">
-                           <input type="checkbox" id="equipments_details" name="return_reasons[]" value="equipments_details" class="form-check-input return-checkbox">
-                            <label class="form-check-label" for="equipments_details">10)  Equipments Details </label>
-                        </div>
-
-                        <div id="checkbox_error" class="text-danger mt-2 fw-bold" style="display:none;"></div>
-
-                        <div class="">
-                            <h4>Remarks For Return (Optional)</h4>
-
-
-
-                            <textarea class="form-control" name="remarks_return" id="remarks_return" rows="4" cols="50"  maxlength="300"></textarea>
-                        </div>
-
-
-
-                        <button class="btn btn-success mt-2" id="process_return">
-                            Submit Return
-                        </button>
-
-                         <button class="btn btn-info mt-2" id="exit_return">
-                            Exit
-                        </button>
                     </div>
-                </div>
-            </div>
-            @endif
-                <!-- ------------------------------------- -->
-         <div id="timelineMinimal" class="col-lg-12 layout-spacing">
-            <div class="statbox widget box box-shadow">
-                <div class="widget-header">
-                    <div class="row">
-                        <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                             <h4>Application Process Flow</h4>
-                        </div>
-                    </div>
-                </div>
-                <div class="widget-content widget-content-area pb-1">
-                    <div class="mt-container mx-auto">
-                         <div class="timeline-line">
-                                    @foreach ($workflows as $row)
+                    <div class="widget-content widget-content-area pb-1">
+                        <div class="mt-container mx-auto">
+                            <div class="timeline-line">
+                                @foreach ($workflows as $row)
 
                                     <div class="item-timeline">
                                         <p class="t-time">{{ format_date_other($row->created_at) }}</p>
 
-                                        <div class="t-dot
+                                        <div
+                                            class="t-dot
                                                     {{ $row->appl_status == 'RE' ? 't-dot-danger' : ($row->appl_status == 'A' ? 't-dot-success' : 't-dot-info') }}">
                                         </div>
                                         <div class="t-text">
                                             @php
-                                            // Normalize name if it's "auditor" (any case)
-                                            $displayName = $row->name;
-                                            if ($displayName && strcasecmp($displayName, 'auditor') === 0) {
-                                            $displayName = 'Assistant Secretary';
-                                            }
+                                                // Normalize name if it's "auditor" (any case)
+                                                $displayName = $row->name;
+                                                if ($displayName && strcasecmp($displayName, 'auditor') === 0) {
+                                                    $displayName = 'Assistant Secretary';
+                                                }
                                             @endphp
 
 
 
                                             @if ($row->appl_status == 'RE')
-
-                                            @if($row->processed_by == 'AP')
-                                            <p>Resubmitted by Applicant </p>
-                                            @else
-
-                                            <p>Returned by {{ $row->processed_by }}</p>
-                                            @endif
+                                                @if ($row->processed_by == 'AP')
+                                                    <p>Resubmitted by Applicant </p>
+                                                @else
+                                                    <p>Returned by {{ $row->processed_by }}</p>
+                                                @endif
                                             @elseif ($row->appl_status == 'RET')
-                                            <p>Returned by {{ $row->processed_by }}</p>
+                                                <p>Returned by {{ $row->processed_by }}</p>
                                             @elseif ($row->appl_status == 'A')
-                                            <p>Approved by {{ $row->processed_by }}</p>
+                                                <p>Approved by {{ $row->processed_by }}</p>
                                             @else
-                                            <p>Processed by {{ $row->processed_by }}</p>
+                                                <p>Processed by {{ $row->processed_by }}</p>
                                             @endif
 
-                                             @if ($row->processed_by !== 'Assistant Secretary')
-                                            @if ($row->query_status == "P")
-                                                <p class="text-danger">Note: Query raised by {{ $row->processed_by }} (
-                                                    @php
-                                                        $queries = $row->queries;
+                                            @if ($row->processed_by !== 'Assistant Secretary')
+                                                @if ($row->query_status == 'P')
+                                                    <p class="text-danger">Note: Query raised by
+                                                        {{ $row->processed_by }} (
+                                                        @php
+                                                            $queries = $row->queries;
 
-                                                        if (is_string($queries)) {
-                                                            $queries = json_decode($queries, true);
-                                                        }
-                                                    @endphp
+                                                            if (is_string($queries)) {
+                                                                $queries = json_decode($queries, true);
+                                                            }
+                                                        @endphp
 
-                                                    @if(!empty($queries) && is_array($queries))
-                                                        {{ implode(', ', $queries) }}
-                                                    @endif
-                                                    )
-                                                </p>
+                                                        @if (!empty($queries) && is_array($queries))
+                                                            {{ implode(', ', $queries) }}
+                                                        @endif
+                                                        )
+                                                    </p>
+                                                @endif
                                             @endif
-                                        @endif
 
 
                                             <p class="t-meta-time">
-                                                @if($row->appl_status == 'RET')
-                                                Returned to Applicant
-                                                <br>
-                                                Remarks: {{ $row->remarks }}
-                                                <br>
-
-                                                @php
-                                                $reasons = json_decode($row->return_reason, true);
-                                                @endphp
-
-
-
-                                                <span class="text-return">
-                                                    @if(!empty($reasons))
-                                                    Return Reason :
-
-                                                    {{ collect($reasons)->map(fn($r) => Str::upper($r))->implode(', ') }}
+                                                @if ($row->appl_status == 'RET')
+                                                    Returned to Applicant
+                                                    <br>
+                                                    Remarks: {{ $row->remarks }}
                                                     <br>
 
-                                                    Return Remarks :
-                                                    @if($row->remarks_return)
-                                                    {{ $row->remarks_return }}
+                                                    @php
+                                                        $reasons = json_decode($row->return_reason, true);
+                                                    @endphp
+
+
+
+                                                    <span class="text-return">
+                                                        @if (!empty($reasons))
+                                                            Return Reason :
+
+                                                            {{ collect($reasons)->map(fn($r) => Str::upper($r))->implode(', ') }}
+                                                            <br>
+
+                                                            Return Remarks :
+                                                            @if ($row->remarks_return)
+                                                                {{ $row->remarks_return }}
+                                                            @else
+                                                                No Remraks
+                                                            @endif
+                                                        @endif
+
+                                                    </span>
+                                                    <br>
+                                                @else
+                                                    @if (!$row->name)
+                                                        Approved by {{ $row->processed_by }}
                                                     @else
-                                                    No Remraks
+                                                        @if ($row->processed_by !== 'AP')
+                                                            @if ($row->appl_status == 'RE')
+                                                                Returned to {{ $displayName }}<br>
+                                                            @else
+                                                                Forwarded to {{ $displayName }} <br>
+                                                            @endif
+
+                                                            Remarks: {{ $row->remarks }}
+                                                        @endif
                                                     @endif
-                                                    @endif
-
-                                                </span>
-                                                <br>
-
-
-                                                @else
-
-                                                @if (!$row->name)
-                                                Approved by {{ $row->processed_by }}
-                                                @else
-
-
-                                                @if($row->processed_by !== 'AP')
-
-                                                @if($row->appl_status == 'RE')
-                                                Returned to {{ $displayName }}<br>
-                                                @else
-                                                Forwarded to {{ $displayName }} <br>
-
-                                                @endif
-
-                                                Remarks: {{ $row->remarks }}
-
-                                                @endif
-                                                @endif
                                                 @endif
                                             </p>
 
@@ -390,24 +394,24 @@
                                         </div>
 
                                     </div>
-                                    @endforeach
+                                @endforeach
 
-                                    <div class="item-timeline">
-                                        <p class="t-time">{{ format_date_other($user_entry->dt_submit) }}</p>
-                                        <div class="t-dot t-dot-warning"></div>
-                                        <div class="t-text">
-                                            <p>Received from Applicant</p>
-                                            <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License: {{ $user_entry->license_name }}</p>
-                                        </div>
+                                <div class="item-timeline">
+                                    <p class="t-time">{{ format_date_other($user_entry->dt_submit) }}</p>
+                                    <div class="t-dot t-dot-warning"></div>
+                                    <div class="t-text">
+                                        <p>Received from Applicant</p>
+                                        <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License:
+                                            {{ $user_entry->license_name }}</p>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        </div>
     </div>
-</div>
-</div>
 </div>
 
 
@@ -473,12 +477,14 @@
 </div>
 
 <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3">
-    <div id="queryToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div id="queryToast" class="toast align-items-center text-white bg-danger border-0" role="alert"
+        aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body">
                 You have raised a query, so you must select at least one query type.
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
         </div>
     </div>
 </div>
@@ -497,12 +503,12 @@
     });
 
 
- $('#remarks').maxlength({
-    placement: "top",
-    warningClass: "badge badge-success",
-    limitReachedClass: "badge badge-danger",
-    alwaysShow: true
-});
+    $('#remarks').maxlength({
+        placement: "top",
+        warningClass: "badge badge-success",
+        limitReachedClass: "badge badge-danger",
+        alwaysShow: true
+    });
 
     $(document).ready(function() {
 
@@ -514,10 +520,10 @@
         // var individualCheckboxes = $('.form-check-input:not(#check_all):not(#reset_all)');
         var individualCheckboxes = $('#specific-class .form-check-input:not(#check_all, #reset_all)');
 
-       //forwardbtn
+        //forwardbtn
         var approveButton = $('#confirmApprovalBtn');
         var confirmApproval = $('#confirmApproval');
-        confirmApproval.change(function () {
+        confirmApproval.change(function() {
             approveButton.prop('disabled', !this.checked);
         });
 
@@ -526,7 +532,7 @@
 
         confirmForwardPres = $("#confirmForwardPres");
 
-        checkPresident.change(function () {
+        checkPresident.change(function() {
             confirmForwardPres.prop('disabled', !this.checked);
         });
 
@@ -570,7 +576,8 @@
 
         // If any individual checkbox is manually unchecked, uncheck "Check All"
         individualCheckboxes.change(function() {
-            if (checklistBoxes.length > 0 && checklistBoxes.filter(':checked').length === checklistBoxes.length) {
+            if (checklistBoxes.length > 0 && checklistBoxes.filter(':checked').length === checklistBoxes
+                .length) {
                 checkAllBox.prop('checked', true);
             } else {
                 checkAllBox.prop('checked', false);
@@ -579,44 +586,44 @@
         });
 
 
-         approveButton.click(function () {
+        approveButton.click(function() {
 
             var oldapplicationId = @json($applicant->old_application);
 
             var appl_type = @json($applicant->appl_type);
             var form_name = @json($applicant->form_name);
 
-            var licensename      = @json($applicant->license_name);
-            var applicationId    = @json($applicant->application_id);
-            var processedBy      = @json(Auth::user()->name);
+            var licensename = @json($applicant->license_name);
+            var applicationId = @json($applicant->application_id);
+            var processedBy = @json(Auth::user()->name);
 
-            var old_issuedat      = @json($old_issued_at_date);
+            var old_issuedat = @json($old_issued_at_date);
 
-            var returnapp      = @json($applicant->return_flag);
+            var returnapp = @json($applicant->return_flag);
 
             // alert(old_issuedat);
-            var remarks          = $("#remarks").val().trim();
-             $("#remarks_error").text("");
+            var remarks = $("#remarks").val().trim();
+            $("#remarks_error").text("");
 
-                    if (remarks === "") {
-                        $("#remarks_error").text("Remarks is required.");
-                        $("#remarks").focus();
-                        return;
-                    }
+            if (remarks === "") {
+                $("#remarks_error").text("Remarks is required.");
+                $("#remarks").focus();
+                return;
+            }
 
             var firstCertNo = @json($qcQscStaffs_details->first()->staff_cc_no);
             // alert(firstStaff);
             // var firstCertNo = firstStaff.cc_number;
-            var qc_validity_date =  @json($qcQscStaffs_details->first()->staff_cc_validity_to);
+            var qc_validity_date = @json($qcQscStaffs_details->first()->staff_cc_validity_to);
 
             // alert(qc_validity_date);
             var bank_validity = @json($banksolvency->bank_validity);
 
-             var role_id         = @json(Auth::user()->roles_id);
+            var role_id = @json(Auth::user()->roles_id);
 
 
 
-             var checklistStatus = [];
+            var checklistStatus = [];
 
             var maxQcCertNo = @json($maxQcCertNo);
 
@@ -624,55 +631,55 @@
 
             // alert(qc_validity_date);
 
-                    $("#specific-class input[name='checklists[]']:checked").each(function () {
-                        checklistStatus.push($(this).val());
-                    });
+            $("#specific-class input[name='checklists[]']:checked").each(function() {
+                checklistStatus.push($(this).val());
+            });
 
-                     let checklists = {};
-                        let status = {};
-                        let check_id = {};
-
-
-                    $("#specific-class tbody tr").each(function () {
-
-                        let checkbox = $(this).find("input[name^='checklists']");
-                        let switchBtn = $(this).find("input[name^='status']");
-                        let checkid = $(this).find("input[name^='check_id']");
-
-                        let name = checkbox.attr("name");
-
-                        if (!name) {
-                            return; // skip this row
-                        }
-
-                        let match = name.match(/\d+/);
-
-                        if (!match) {
-                            return; // skip if no number found
-                        }
-
-                        let id = match[0];
-
-                        checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
-                        check_id[id] = checkid.val();
-                    });
+            let checklists = {};
+            let status = {};
+            let check_id = {};
 
 
-                      let staffVerification = [];
+            $("#specific-class tbody tr").each(function() {
 
-                        $('.staff-status-switch').each(function () {
+                let checkbox = $(this).find("input[name^='checklists']");
+                let switchBtn = $(this).find("input[name^='status']");
+                let checkid = $(this).find("input[name^='check_id']");
 
-                            let staffId = $(this).data('id');
+                let name = checkbox.attr("name");
 
-                            let verifyFlag = $(this).is(':checked') ? 1 : 0;
+                if (!name) {
+                    return; // skip this row
+                }
 
-                            staffVerification.push({
-                                staff_id: staffId,
-                                verify_flag: verifyFlag
-                            });
+                let match = name.match(/\d+/);
 
-                        });
+                if (!match) {
+                    return; // skip if no number found
+                }
+
+                let id = match[0];
+
+                checklists[id] = checkbox.is(":checked") ? 1 : 0;
+                status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
+                check_id[id] = checkid.val();
+            });
+
+
+            let staffVerification = [];
+
+            $('.staff-status-switch').each(function() {
+
+                let staffId = $(this).data('id');
+
+                let verifyFlag = $(this).is(':checked') ? 1 : 0;
+
+                staffVerification.push({
+                    staff_id: staffId,
+                    verify_flag: verifyFlag
+                });
+
+            });
 
 
             // 🔹 STEP 1: CHECK VALIDITY FROM CONTROLLER
@@ -688,14 +695,14 @@
                     qc_validity_date: qc_validity_date,
                     bank_validity: bank_validity,
                     appl_type: appl_type,
-                    returnapp : returnapp,
+                    returnapp: returnapp,
                     checklists: checklists,
                     status: status,
                     check_id: check_id,
 
 
                 },
-                success: function (res) {
+                success: function(res) {
 
                     if (res.status === "INVALID") {
 
@@ -936,6 +943,7 @@
                     }
                 }
             });
+
             function formatDDMMYYYY(dateStr) {
                 if (!dateStr) return '';
                 const d = new Date(dateStr);
@@ -950,12 +958,12 @@
             function showApprovePopup(validity_override) {
 
                 Swal.fire({
-                title: "Declaration",
-                text: 'Confirm to this application has been reviewed and approved.',
-                showCancelButton: true,
-                confirmButtonText: "Approved",
-                cancelButtonText: "Cancel",
-                focusConfirm: false,
+                    title: "Declaration",
+                    text: 'Confirm to this application has been reviewed and approved.',
+                    showCancelButton: true,
+                    confirmButtonText: "Approved",
+                    cancelButtonText: "Cancel",
+                    focusConfirm: false,
                 }).then((result) => {
 
                     if (result.isConfirmed) {
@@ -964,7 +972,8 @@
                             url: '{{ route('admin.approveApplicationForma') }}',
                             type: 'POST',
                             headers: {
-                                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr(
+                                    "content")
                             },
                             data: {
                                 application_id: applicationId,
@@ -973,24 +982,24 @@
                                 licensename: licensename,
                                 remarks: remarks || "No remarks provided",
 
-                                  validity_override: validity_override,
-                                    qc_validity_date: qc_validity_date,
-                                    bank_validity: bank_validity,
-                                    appl_type: appl_type,
-                                    old_issuedat : old_issuedat,
-                                      role_id : role_id,
+                                validity_override: validity_override,
+                                qc_validity_date: qc_validity_date,
+                                bank_validity: bank_validity,
+                                appl_type: appl_type,
+                                old_issuedat: old_issuedat,
+                                role_id: role_id,
 
 
-                                    staff_verification: JSON.stringify(staffVerification),
-                                    check_id: check_id,
-                                    checklists: checklists,
-                                    status: status
+                                staff_verification: JSON.stringify(staffVerification),
+                                check_id: check_id,
+                                checklists: checklists,
+                                status: status
                             },
-                          success: function (response) {
+                            success: function(response) {
 
                                 if (response.status === "success") {
 
-                                   let digitisationHTML = "";
+                                    let digitisationHTML = "";
 
                                     if (
                                         appl_type.trim() === "D" &&
@@ -1042,8 +1051,8 @@
                                     } else {
 
                                         /*
-                                        * No digitisation mapping found
-                                        */
+                                         * No digitisation mapping found
+                                         */
 
                                         digitisationHTML = `
 
@@ -1227,13 +1236,13 @@
         });
 
 
-        confirmForwardPres.click(function () {
-            var applicationId   = @json($applicant->application_id);
-            var role_id         = @json(Auth::user()->roles_id);
-            var forwardedTo     = @json($nextForwardUser->roles_id);
-            var processedBy     = @json(Auth::user()->name);
-            var role            = @json($nextForwardUser->name);
-            var remarks         = $("#remarks").val().trim();
+        confirmForwardPres.click(function() {
+            var applicationId = @json($applicant->application_id);
+            var role_id = @json(Auth::user()->roles_id);
+            var forwardedTo = @json($nextForwardUser->roles_id);
+            var processedBy = @json(Auth::user()->name);
+            var role = @json($nextForwardUser->name);
+            var remarks = $("#remarks").val().trim();
             $("#remarks_error").text("");
 
             if (remarks === "") {
@@ -1241,12 +1250,12 @@
                 $("#remarks").focus();
                 return;
             }
-            var queryswitch     = $("#Queryswitch").prop("checked");
-            var checkboxStatus  = "Yes";
+            var queryswitch = $("#Queryswitch").prop("checked");
+            var checkboxStatus = "Yes";
 
             var queryType = null;
             var query_status = "No";
-              var returnflag = @json($applicant->return_flag);
+            var returnflag = @json($applicant->return_flag);
             var application_status = @json($applicant->application_status);
 
             if (queryswitch) {
@@ -1255,40 +1264,40 @@
             }
 
             // ===============================
-                        // Checklist Data
-                        // ===============================
-                    let checklists = {};
-                    let status = {};
-                    let check_id = {};
+            // Checklist Data
+            // ===============================
+            let checklists = {};
+            let status = {};
+            let check_id = {};
 
-                    $("#specific-class tbody tr").each(function () {
+            $("#specific-class tbody tr").each(function() {
 
-                        let checkbox = $(this).find("input[name^='checklists']");
-                        let switchBtn = $(this).find("input[name^='status']");
-                        let checkid = $(this).find("input[name^='check_id']");
+                let checkbox = $(this).find("input[name^='checklists']");
+                let switchBtn = $(this).find("input[name^='status']");
+                let checkid = $(this).find("input[name^='check_id']");
 
-                        let name = checkbox.attr("name");
+                let name = checkbox.attr("name");
 
-                        if (!name) {
-                            return; // skip this row
-                        }
+                if (!name) {
+                    return; // skip this row
+                }
 
-                        let match = name.match(/\d+/);
+                let match = name.match(/\d+/);
 
-                        if (!match) {
-                            return; // skip if no number found
-                        }
+                if (!match) {
+                    return; // skip if no number found
+                }
 
-                        let id = match[0];
+                let id = match[0];
 
-                        checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
-                        check_id[id] = checkid.val();
-                    });
+                checklists[id] = checkbox.is(":checked") ? 1 : 0;
+                status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
+                check_id[id] = checkid.val();
+            });
 
             Swal.fire({
                 title: "Declaration",
-                text:'I confirm that have been verified by me as a secretary.',
+                text: 'I confirm that have been verified by me as a secretary.',
                 showCancelButton: true,
                 confirmButtonText: "Forward to President",
                 cancelButtonText: "Cancel",
@@ -1298,58 +1307,59 @@
 
                     let staffVerification = [];
 
-                        $('.staff-status-switch').each(function () {
+                    $('.staff-status-switch').each(function() {
 
-                            let staffId = $(this).data('id');
+                        let staffId = $(this).data('id');
 
-                            let verifyFlag = $(this).is(':checked') ? 1 : 0;
+                        let verifyFlag = $(this).is(':checked') ? 1 : 0;
 
-                            staffVerification.push({
-                                staff_id: staffId,
-                                verify_flag: verifyFlag
-                            });
-
+                        staffVerification.push({
+                            staff_id: staffId,
+                            verify_flag: verifyFlag
                         });
 
-                        console.log("STAFF VERIFICATION:", staffVerification);
+                    });
+
+                    console.log("STAFF VERIFICATION:", staffVerification);
 
                     $.ajax({
-                        url: '{{ route('admin.forwardApplicationforma',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
+                        url: '{{ route('admin.forwardApplicationforma', ['role' => '__ROLE__']) }}'
+                            .replace('__ROLE__', role),
                         type: 'POST',
                         headers: {
                             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
                         },
-                         data: {
+                        data: {
 
-                        application_id: applicationId,
+                            application_id: applicationId,
 
-                        processed_by: processedBy,
+                            processed_by: processedBy,
 
-                        forwarded_to: forwardedTo,
+                            forwarded_to: forwardedTo,
 
-                        role_id: role_id,
+                            role_id: role_id,
 
-                        remarks: remarks || "No remarks provided",
+                            remarks: remarks || "No remarks provided",
 
-                        checkboxes: checkboxStatus,
+                            checkboxes: checkboxStatus,
 
-                        application_status: application_status,
+                            application_status: application_status,
 
-                        queryswitch: queryswitch ? "Yes" : "No",
+                            queryswitch: queryswitch ? "Yes" : "No",
 
-                        returnflag: returnflag,
+                            returnflag: returnflag,
 
-                        "queryType[]": queryType,
+                            "queryType[]": queryType,
 
-                        // IMPORTANT
-                        staff_verification: JSON.stringify(staffVerification),
-                         checklists: checklists,
-                                    status: status,
-                                    check_id: check_id
+                            // IMPORTANT
+                            staff_verification: JSON.stringify(staffVerification),
+                            checklists: checklists,
+                            status: status,
+                            check_id: check_id
 
-                    },
+                        },
 
-                        success: function (response) {
+                        success: function(response) {
 
                             // if (response.status == "success") {
 
@@ -1372,15 +1382,17 @@
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false
                                 }).then(() => {
-                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                    window.location.href =
+                                        "{{ url('admin/dashboard') }}";
                                 });
                             }
 
                         },
-                        error: function (xhr) {
-                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error
-                                ? xhr.responseJSON.error
-                                : "An unexpected error occurred.";
+                        error: function(xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON
+                                .error ?
+                                xhr.responseJSON.error :
+                                "An unexpected error occurred.";
                             Swal.fire({
                                 icon: "error",
                                 title: "Error",
@@ -1394,15 +1406,15 @@
         });
 
 
- $('#confirmReturnBtn').on('click', function () {
+        $('#confirmReturnBtn').on('click', function() {
 
 
-            var applicationId   = @json($applicant->application_id);
-            var returnBy        = @json(Auth::user()->name);
-            var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
+            var applicationId = @json($applicant->application_id);
+            var returnBy = @json(Auth::user()->name);
+            var forwardedTo = @json($returnForwardUser->roles_id ?? 0);
 
             // alert(forwardedTo);
-            var remarks         = $("#remarks").val().trim();
+            var remarks = $("#remarks").val().trim();
 
             var returnflag = @json($applicant->return_flag);
 
@@ -1412,61 +1424,61 @@
             queryType = $("#queryType").val();
             let errorBox = $("#query_error");
 
-              // ===============================
-                        // Checklist Data
-                        // ===============================
-                        let checklists = {};
-                        let status = {};
-                        let check_id = {};
+            // ===============================
+            // Checklist Data
+            // ===============================
+            let checklists = {};
+            let status = {};
+            let check_id = {};
 
-                    $("#specific-class tbody tr").each(function () {
+            $("#specific-class tbody tr").each(function() {
 
-                        let checkbox = $(this).find("input[name^='checklists']");
-                        let switchBtn = $(this).find("input[name^='status']");
-                        let checkid = $(this).find("input[name^='check_id']");
+                let checkbox = $(this).find("input[name^='checklists']");
+                let switchBtn = $(this).find("input[name^='status']");
+                let checkid = $(this).find("input[name^='check_id']");
 
-                        let name = checkbox.attr("name");
+                let name = checkbox.attr("name");
 
-                        if (!name) {
-                            return; // skip this row
-                        }
+                if (!name) {
+                    return; // skip this row
+                }
 
-                        let match = name.match(/\d+/);
+                let match = name.match(/\d+/);
 
-                        if (!match) {
-                            return; // skip if no number found
-                        }
+                if (!match) {
+                    return; // skip if no number found
+                }
 
-                        let id = match[0];
+                let id = match[0];
 
-                        checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
-                        check_id[id] = checkid.val();
-                    });
+                checklists[id] = checkbox.is(":checked") ? 1 : 0;
+                status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
+                check_id[id] = checkid.val();
+            });
 
-                        let staffVerification = [];
+            let staffVerification = [];
 
-                        $('.staff-status-switch').each(function () {
+            $('.staff-status-switch').each(function() {
 
-                            let staffId = $(this).data('id');
+                let staffId = $(this).data('id');
 
-                            let verifyFlag = $(this).is(':checked') ? 1 : 0;
+                let verifyFlag = $(this).is(':checked') ? 1 : 0;
 
-                            staffVerification.push({
-                                staff_id: staffId,
-                                verify_flag: verifyFlag
-                            });
+                staffVerification.push({
+                    staff_id: staffId,
+                    verify_flag: verifyFlag
+                });
 
-                        });
+            });
 
 
 
             Swal.fire({
-               title: "Return",
+                title: "Return",
                 html: 'You want to return this application!',
                 showCancelButton: true,
 
-                 confirmButtonText: "Forward to {{ 'Secretary' }}",
+                confirmButtonText: "Forward to {{ 'Secretary' }}",
                 cancelButtonText: "Cancel",
                 focusConfirm: false,
             }).then((result) => {
@@ -1478,23 +1490,23 @@
                             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
                         },
                         data: {
-                            application_id  : applicationId,
-                            return_by       : returnBy,
-                            forwarded_to    : forwardedTo,
-                            remarks         : remarks || "No remarks provided",
-                            checkboxes      : checkboxStatus,
-                            queryswitch     : queryswitch,
+                            application_id: applicationId,
+                            return_by: returnBy,
+                            forwarded_to: forwardedTo,
+                            remarks: remarks || "No remarks provided",
+                            checkboxes: checkboxStatus,
+                            queryswitch: queryswitch,
                             "queryType[]": queryType,
                             checklists: checklists,
-                                        status: status,
-                                        check_id: check_id,
+                            status: status,
+                            check_id: check_id,
 
-                        returnflag: returnflag,
+                            returnflag: returnflag,
 
-                        staff_verification: JSON.stringify(staffVerification)
+                            staff_verification: JSON.stringify(staffVerification)
 
                         },
-                        success: function (response) {
+                        success: function(response) {
                             // if (response.status == "success") {
                             //     $('#returnConfirmModal').modal('hide');
                             //     $('#declarationModal').modal('hide');
@@ -1515,12 +1527,15 @@
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false
                                 }).then(() => {
-                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                    window.location.href =
+                                        "{{ url('admin/dashboard') }}";
                                 });
                             }
                         },
-                        error: function (xhr) {
-                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
+                        error: function(xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON
+                                .error ? xhr.responseJSON.error :
+                                "An unexpected error occurred.";
                             $('#errorMessage').text(errorMessage);
                             $('#errorModal').modal('show');
                         }
@@ -1536,280 +1551,282 @@
 
         // --------process-----------
 
-       
-$("#returntoapplicant").on("click", function () {
 
-    $(".modal-footer button").not(this).prop("disabled", true);
+        $("#returntoapplicant").on("click", function() {
 
-    $("#return_section").slideDown();
+            $(".modal-footer button").not(this).prop("disabled", true);
 
-    $('html, body').animate({
-        scrollTop: $("#return_section").offset().top - 120
-    }, 600);
+            $("#return_section").slideDown();
 
-});
+            $('html, body').animate({
+                scrollTop: $("#return_section").offset().top - 120
+            }, 600);
 
-$("#exit_return").on("click", function () {
-
-    $("#return_section").slideUp();
-
-    $(".modal-footer button").prop("disabled", false);
-
-    // Clear return checkboxes
-    $(".return-checkbox").prop("checked", false);
-
-    // Clear remarks
-    $("#remarks_return").val("");
-
-    // Clear validation messages
-    $("#checkbox_error").text("").hide();
-    $("#remarks_error").text("");
-    $("#query_error").text("");
-});
-
-$("#process_return").on("click", function () {
-
-    // -----------------------------------------
-    // BASIC VALIDATION
-    // -----------------------------------------
-
-    var remarks = $("#remarks").val().trim();
-    var remarks_return = $("#remarks_return").val().trim();
-
-    $("#remarks_error").text("");
-    $("#checkbox_error").text("").hide();
-    $("#query_error").text("");
-
-    // Remarks validation (same as forwardbtn)
-    if (remarks === "") {
-        $("#remarks_error").text("Remarks is required");
-        $("#remarks").focus();
-        return;
-    }
-
-    // Return reason validation
-    let checkedReasons = [];
-
-    $(".return-checkbox:checked").each(function () {
-        checkedReasons.push($(this).val());
-    });
-
-    if (checkedReasons.length === 0) {
-
-        $("#checkbox_error")
-            .text("Select at least one reason before return.")
-            .fadeIn();
-
-        $('html, body').animate({
-            scrollTop: $("#checkbox_error").offset().top - 150
-        }, 600);
-
-        return;
-    } else {
-        $("#checkbox_error").fadeOut();
-    }
-
-    // -----------------------------------------
-    // APPLICATION DETAILS
-    // -----------------------------------------
-
-    var applicationId = @json($applicant->application_id);
-    var processedBy = @json(Auth::user()->name);
-    var role_id = @json(Auth::user()->roles_id);
-    var forwardedTo = @json($returnForwardUser->roles_id ?? 0);
-
-    var returnflag = @json($applicant->return_flag);
-    var application_status = @json($applicant->application_status);
-
-    var checkboxStatus = "Yes";
-
-    // -----------------------------------------
-    // QUERY VALIDATION
-    // -----------------------------------------
-
-    let queryswitch = $("#Queryswitch").prop("checked");
-    let queryType = $("#queryType").val() || [];
-    let errorBox = $("#query_error");
-
-    errorBox.text("");
-
-    if (queryswitch && queryType.length === 0) {
-
-        Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "Please select at least one query type."
         });
 
-        return;
-    }
+        $("#exit_return").on("click", function() {
 
-    // -----------------------------------------
-    // RETURN CONFIRMATION
-    // -----------------------------------------
+            $("#return_section").slideUp();
 
-    Swal.fire({
-        title: "Declaration",
-        text: "Confirm that the application is being returned to the applicant for the selected reasons.",
-        showCancelButton: true,
-        confirmButtonText: "Return to Applicant",
-        cancelButtonText: "Cancel",
-        focusConfirm: false
-    }).then((result) => {
+            $(".modal-footer button").prop("disabled", false);
 
-        if (!result.isConfirmed) {
-            return;
-        }
+            // Clear return checkboxes
+            $(".return-checkbox").prop("checked", false);
 
-        // -----------------------------------------
-        // CHECKLIST DATA
-        // -----------------------------------------
+            // Clear remarks
+            $("#remarks_return").val("");
 
-        let check_id = {};
-        let checklists = {};
-        let status = {};
-
-        $('input[name^="check_id["]').each(function () {
-
-            let id = $(this).attr("name")
-                .replace("check_id[", "")
-                .replace("]", "");
-
-            check_id[id] = $(this).val();
-
-            checklists[id] =
-                $('input[name="checklists[' + id + ']"]').is(":checked")
-                    ? 1
-                    : 0;
-
-            status[id] =
-                $('input[name="status[' + id + ']"]').is(":checked")
-                    ? 1
-                    : 0;
+            // Clear validation messages
+            $("#checkbox_error").text("").hide();
+            $("#remarks_error").text("");
+            $("#query_error").text("");
         });
 
-        console.log("CHECK ID:", check_id);
-        console.log("CHECKLISTS:", checklists);
-        console.log("STATUS:", status);
+        $("#process_return").on("click", function() {
 
-        // -----------------------------------------
-        // STAFF VERIFICATION DATA
-        // -----------------------------------------
+            // -----------------------------------------
+            // BASIC VALIDATION
+            // -----------------------------------------
 
-        let staffVerification = [];
+            var remarks = $("#remarks").val().trim();
+            var remarks_return = $("#remarks_return").val().trim();
 
-        $(".staff-status-switch").each(function () {
+            $("#remarks_error").text("");
+            $("#checkbox_error").text("").hide();
+            $("#query_error").text("");
 
-            let staffId = $(this).data("id");
-            let verifyFlag = $(this).is(":checked") ? 1 : 0;
+            // Remarks validation (same as forwardbtn)
+            if (remarks === "") {
+                $("#remarks_error").text("Remarks is required");
+                $("#remarks").focus();
+                return;
+            }
 
-            staffVerification.push({
-                staff_id: staffId,
-                verify_flag: verifyFlag
+            // Return reason validation
+            let checkedReasons = [];
+
+            $(".return-checkbox:checked").each(function() {
+                checkedReasons.push($(this).val());
             });
-        });
 
-        console.log("STAFF VERIFICATION:", staffVerification);
+            if (checkedReasons.length === 0) {
 
-        // -----------------------------------------
-        // AJAX REQUEST
-        // -----------------------------------------
+                $("#checkbox_error")
+                    .text("Select at least one reason before return.")
+                    .fadeIn();
 
-        $.ajax({
-            url: '{{ route("admin.returntoapplicantforma") }}',
-            type: "POST",
+                $('html, body').animate({
+                    scrollTop: $("#checkbox_error").offset().top - 150
+                }, 600);
 
-            headers: {
-                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
-            },
+                return;
+            } else {
+                $("#checkbox_error").fadeOut();
+            }
 
-            data: {
-                application_id: applicationId,
-                return_by: processedBy,
-                forwarded_to: forwardedTo,
-                role_id: role_id,
+            // -----------------------------------------
+            // APPLICATION DETAILS
+            // -----------------------------------------
 
-                remarks: remarks,
-                remarks_return: remarks_return,
+            var applicationId = @json($applicant->application_id);
+            var processedBy = @json(Auth::user()->name);
+            var role_id = @json(Auth::user()->roles_id);
+            var forwardedTo = @json($returnForwardUser->roles_id ?? 0);
 
-                checkboxes: checkboxStatus,
-                reasons: checkedReasons,
+            var returnflag = @json($applicant->return_flag);
+            var application_status = @json($applicant->application_status);
 
-                application_status: application_status,
-                returnflag: returnflag,
+            var checkboxStatus = "Yes";
 
-                queryswitch: queryswitch ? "Yes" : "No",
-                "queryType[]": queryType,
+            // -----------------------------------------
+            // QUERY VALIDATION
+            // -----------------------------------------
 
-                // Staff verification
-                staff_verification: JSON.stringify(staffVerification),
+            let queryswitch = $("#Queryswitch").prop("checked");
+            let queryType = $("#queryType").val() || [];
+            let errorBox = $("#query_error");
 
-                // Checklist data
-                check_id: check_id,
-                checklists: checklists,
-                status: status
-            },
+            errorBox.text("");
 
-            success: function (response) {
-
-                if (response.status === "success") {
-
-                    Swal.fire({
-                        icon: "success",
-                        title: "Success",
-                        text: response.message,
-                        confirmButtonText: "OK",
-                        allowOutsideClick: false
-                    }).then(() => {
-                        window.location.href = "{{ url('admin/dashboard') }}";
-                    });
-
-                } else {
-
-                    Swal.fire({
-                        icon: "error",
-                        title: "Error",
-                        text: response.message || "Unable to return the application."
-                    });
-                }
-            },
-
-            error: function (xhr) {
-
-                let errorMessage =
-                    xhr.responseJSON && (
-                        xhr.responseJSON.error ||
-                        xhr.responseJSON.message
-                    )
-                    ? (
-                        xhr.responseJSON.error ||
-                        xhr.responseJSON.message
-                    )
-                    : "An unexpected error occurred.";
+            if (queryswitch && queryType.length === 0) {
 
                 Swal.fire({
                     icon: "error",
                     title: "Error",
-                    text: errorMessage
+                    text: "Please select at least one query type."
                 });
+
+                return;
             }
+
+            // -----------------------------------------
+            // RETURN CONFIRMATION
+            // -----------------------------------------
+
+            Swal.fire({
+                title: "Declaration",
+                text: "Confirm that the application is being returned to the applicant for the selected reasons.",
+                showCancelButton: true,
+                confirmButtonText: "Return to Applicant",
+                cancelButtonText: "Cancel",
+                focusConfirm: false
+            }).then((result) => {
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                // -----------------------------------------
+                // CHECKLIST DATA
+                // -----------------------------------------
+
+                let check_id = {};
+                let checklists = {};
+                let status = {};
+
+                $('input[name^="check_id["]').each(function() {
+
+                    let id = $(this).attr("name")
+                        .replace("check_id[", "")
+                        .replace("]", "");
+
+                    check_id[id] = $(this).val();
+
+                    checklists[id] =
+                        $('input[name="checklists[' + id + ']"]').is(":checked") ?
+                        1 :
+                        0;
+
+                    status[id] =
+                        $('input[name="status[' + id + ']"]').is(":checked") ?
+                        1 :
+                        0;
+                });
+
+                console.log("CHECK ID:", check_id);
+                console.log("CHECKLISTS:", checklists);
+                console.log("STATUS:", status);
+
+                // -----------------------------------------
+                // STAFF VERIFICATION DATA
+                // -----------------------------------------
+
+                let staffVerification = [];
+
+                $(".staff-status-switch").each(function() {
+
+                    let staffId = $(this).data("id");
+                    let verifyFlag = $(this).is(":checked") ? 1 : 0;
+
+                    staffVerification.push({
+                        staff_id: staffId,
+                        verify_flag: verifyFlag
+                    });
+                });
+
+                console.log("STAFF VERIFICATION:", staffVerification);
+
+                // -----------------------------------------
+                // AJAX REQUEST
+                // -----------------------------------------
+
+                $.ajax({
+                    url: '{{ route('admin.returntoapplicantforma') }}',
+                    type: "POST",
+
+                    headers: {
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+                    },
+
+                    data: {
+                        application_id: applicationId,
+                        return_by: processedBy,
+                        forwarded_to: forwardedTo,
+                        role_id: role_id,
+
+                        remarks: remarks,
+                        remarks_return: remarks_return,
+
+                        checkboxes: checkboxStatus,
+                        reasons: checkedReasons,
+
+                        application_status: application_status,
+                        returnflag: returnflag,
+
+                        queryswitch: queryswitch ? "Yes" : "No",
+                        "queryType[]": queryType,
+
+                        // Staff verification
+                        staff_verification: JSON.stringify(staffVerification),
+
+                        // Checklist data
+                        check_id: check_id,
+                        checklists: checklists,
+                        status: status
+                    },
+
+                    success: function(response) {
+
+                        if (response.status === "success") {
+
+                            Swal.fire({
+                                icon: "success",
+                                title: "Success",
+                                text: response.message,
+                                confirmButtonText: "OK",
+                                allowOutsideClick: false
+                            }).then(() => {
+                                window.location.href =
+                                    "{{ url('admin/dashboard') }}";
+                            });
+
+                        } else {
+
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: response.message ||
+                                    "Unable to return the application."
+                            });
+                        }
+                    },
+
+                    error: function(xhr) {
+
+                        let errorMessage =
+                            xhr.responseJSON && (
+                                xhr.responseJSON.error ||
+                                xhr.responseJSON.message
+                            ) ?
+                            (
+                                xhr.responseJSON.error ||
+                                xhr.responseJSON.message
+                            ) :
+                            "An unexpected error occurred.";
+
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: errorMessage
+                        });
+                    }
+                });
+            });
         });
-    });
-});
 
 
         // -----------------------------------------------
- forwardbtn.click(function() {
+        forwardbtn.click(function() {
 
-                        var remarks = $("#remarks").val().trim();
+            var remarks = $("#remarks").val().trim();
 
-                         $("#remarks_error").text("");
+            $("#remarks_error").text("");
 
-                        if (remarks === "") {
-                            $("#remarks_error").text("Remarks is required");
-                            $("#remarks").focus();
-                            return;
-                        }
+            if (remarks === "") {
+                $("#remarks_error").text("Remarks is required");
+                $("#remarks").focus();
+                return;
+            }
 
             Swal.fire({
                 title: "Declaration",
@@ -1832,10 +1849,10 @@ $("#process_return").on("click", function () {
 
                     var returnflag = @json($applicant->return_flag);
 
-                   var application_status = @json($applicant->application_status);
-// alert(application_status);
+                    var application_status = @json($applicant->application_status);
+                    // alert(application_status);
 
-// alert(forwardedTo);
+                    // alert(forwardedTo);
 
 
                     // alert(application_status);
@@ -1860,7 +1877,7 @@ $("#process_return").on("click", function () {
                     let checklists = {};
                     let status = {};
 
-                    $('input[name^="check_id["]').each(function () {
+                    $('input[name^="check_id["]').each(function() {
 
                         let id = $(this).attr('name')
                             .replace('check_id[', '')
@@ -1869,14 +1886,14 @@ $("#process_return").on("click", function () {
                         check_id[id] = $(this).val();
 
                         checklists[id] =
-                            $('input[name="checklists[' + id + ']"]').is(':checked')
-                                ? 1
-                                : 0;
+                            $('input[name="checklists[' + id + ']"]').is(':checked') ?
+                            1 :
+                            0;
 
                         status[id] =
-                            $('#status_' + id).prop('checked')
-                                ? 1
-                                : 0;
+                            $('#status_' + id).prop('checked') ?
+                            1 :
+                            0;
                     });
 
                     console.log("CHECK ID:", check_id);
@@ -1886,59 +1903,60 @@ $("#process_return").on("click", function () {
 
                     let staffVerification = [];
 
-                        $('.staff-status-switch').each(function () {
+                    $('.staff-status-switch').each(function() {
 
-                            let staffId = $(this).data('id');
+                        let staffId = $(this).data('id');
 
-                            let verifyFlag = $(this).is(':checked') ? 1 : 0;
+                        let verifyFlag = $(this).is(':checked') ? 1 : 0;
 
-                            staffVerification.push({
-                                staff_id: staffId,
-                                verify_flag: verifyFlag
-                            });
-
+                        staffVerification.push({
+                            staff_id: staffId,
+                            verify_flag: verifyFlag
                         });
 
-                        console.log("STAFF VERIFICATION:", staffVerification);
+                    });
+
+                    console.log("STAFF VERIFICATION:", staffVerification);
 
                     $.ajax({
-                        url: '{{ route('admin.forwardApplicationforma',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
+                        url: '{{ route('admin.forwardApplicationforma', ['role' => '__ROLE__']) }}'
+                            .replace('__ROLE__', role),
                         type: 'POST',
                         headers: {
                             "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
                         },
-                         data: {
+                        data: {
 
-                        application_id: applicationId,
+                            application_id: applicationId,
 
-                        processed_by: processedBy,
+                            processed_by: processedBy,
 
-                        forwarded_to: forwardedTo,
+                            forwarded_to: forwardedTo,
 
-                        role_id: role_id,
+                            role_id: role_id,
 
-                        remarks: remarks || "No remarks provided",
+                            remarks: remarks || "No remarks provided",
 
-                        checkboxes: checkboxStatus,
+                            checkboxes: checkboxStatus,
 
-                        application_status: application_status,
+                            application_status: application_status,
 
-                        queryswitch: queryswitch ? "Yes" : "No",
+                            queryswitch: queryswitch ? "Yes" : "No",
 
-                        returnflag: returnflag,
+                            returnflag: returnflag,
 
-                        "queryType[]": queryType,
+                            "queryType[]": queryType,
 
-                        // IMPORTANT
-                        staff_verification: JSON.stringify(staffVerification),
+                            // IMPORTANT
+                            staff_verification: JSON.stringify(staffVerification),
 
-                        check_id: check_id,
-                        checklists: checklists,
-                        status: status
+                            check_id: check_id,
+                            checklists: checklists,
+                            status: status
 
 
-                    },
-                        success: function (response) {
+                        },
+                        success: function(response) {
                             if (response.status == "success") {
                                 Swal.fire({
                                     icon: "success",
@@ -1947,14 +1965,16 @@ $("#process_return").on("click", function () {
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false
                                 }).then(() => {
-                                    window.location.href = "{{ url('admin/dashboard') }}";
+                                    window.location.href =
+                                        "{{ url('admin/dashboard') }}";
                                 });
                             }
                         },
-                        error: function (xhr) {
-                            let errorMessage = xhr.responseJSON && xhr.responseJSON.error
-                                ? xhr.responseJSON.error
-                                : "An unexpected error occurred.";
+                        error: function(xhr) {
+                            let errorMessage = xhr.responseJSON && xhr.responseJSON
+                                .error ?
+                                xhr.responseJSON.error :
+                                "An unexpected error occurred.";
                             Swal.fire({
                                 icon: "error",
                                 title: "Error",
@@ -1969,51 +1989,52 @@ $("#process_return").on("click", function () {
 
         confirmForward.click(function() {
 
-               var applicationId = @json($applicant->application_id);
-    var processedBy   = @json(Auth::user()->name);
-    var role_id       = @json(Auth::user()->roles_id);
-    var forwardedTo   = @json($nextForwardUser->roles_id);
-    var role          = @json($nextForwardUser->name);
-    var remarks       = $("#remarks").val().trim();
-    var queryswitch   = $("#Queryswitch").prop("checked");
-    var checkboxStatus = "No";
-    var queryType = null;
+            var applicationId = @json($applicant->application_id);
+            var processedBy = @json(Auth::user()->name);
+            var role_id = @json(Auth::user()->roles_id);
+            var forwardedTo = @json($nextForwardUser->roles_id);
+            var role = @json($nextForwardUser->name);
+            var remarks = $("#remarks").val().trim();
+            var queryswitch = $("#Queryswitch").prop("checked");
+            var checkboxStatus = "No";
+            var queryType = null;
 
-    if (queryswitch === true) {
-        queryType = $("#queryType").val();
-        if (!queryType || queryType.length === 0) {
-            $('#declarationModal').modal('hide');
-            $("#queryToast").toast("show"); // Show Bootstrap Toast
-            return false;
-        }
-        checkboxStatus = "Yes";
-    }
+            if (queryswitch === true) {
+                queryType = $("#queryType").val();
+                if (!queryType || queryType.length === 0) {
+                    $('#declarationModal').modal('hide');
+                    $("#queryToast").toast("show"); // Show Bootstrap Toast
+                    return false;
+                }
+                checkboxStatus = "Yes";
+            }
 
-    //  alert(
-    //      "id: " + applicationId +
-    //     "Role: " + role +
-    //     "\nRemarks: " + remarks +
-    //     "\nCheckbox Status: " + checkboxStatus +
-    //     "\nQuery Type: " + (queryType ?? "None")
-    // );
+            //  alert(
+            //      "id: " + applicationId +
+            //     "Role: " + role +
+            //     "\nRemarks: " + remarks +
+            //     "\nCheckbox Status: " + checkboxStatus +
+            //     "\nQuery Type: " + (queryType ?? "None")
+            // );
 
             $.ajax({
-                url: '{{ route('admin.forwardApplicationforma',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
+                url: '{{ route('admin.forwardApplicationforma', ['role' => '__ROLE__']) }}'
+                    .replace('__ROLE__', role),
                 type: 'POST',
                 // contentType: 'application/json',
                 headers: {
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
                 },
 
-               data: {
-            application_id: applicationId,
-            processed_by: processedBy,
-            role_id: role_id,
-            forwarded_to: forwardedTo,
-            remarks: remarks,
-            checkboxes: checkboxStatus,
-             queryswitch: queryswitch,
-            queryType: queryType
+                data: {
+                    application_id: applicationId,
+                    processed_by: processedBy,
+                    role_id: role_id,
+                    forwarded_to: forwardedTo,
+                    remarks: remarks,
+                    checkboxes: checkboxStatus,
+                    queryswitch: queryswitch,
+                    queryType: queryType
                 },
                 success: function(response) {
 
@@ -2025,13 +2046,14 @@ $("#process_return").on("click", function () {
                         $('#successModal').modal('show');
 
                         $('#successModal').on('hidden.bs.modal', function() {
-                            window.location.href =  BASE_URL + '/admin/dashboard'
+                            window.location.href = BASE_URL + '/admin/dashboard'
                         });
                     }
 
                 },
                 error: function(xhr) {
-                    let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "An unexpected error occurred.";
+                    let errorMessage = xhr.responseJSON && xhr.responseJSON.error ? xhr
+                        .responseJSON.error : "An unexpected error occurred.";
                     $('#errorModal .modal-body').html(`<p>${errorMessage}</p>`);
                     $('#errorModal').modal('show');
                 }
@@ -2042,210 +2064,210 @@ $("#process_return").on("click", function () {
 
 
 <script>
-    $(document).on("click", ".verify-license", function () {
-    let license = $(this).data("license");
-    let date = $(this).data("date");
-    let proprietorId = $(this).data("id");
+    $(document).on("click", ".verify-license", function() {
+        let license = $(this).data("license");
+        let date = $(this).data("date");
+        let proprietorId = $(this).data("id");
 
-    $.ajax({
-        url: "{{ route('admin.verify.license.formAccc_admin') }}",
-        method: "POST",
-        data: {
-            _token: "{{ csrf_token() }}",
-            license_number: license,
-            date: date
-        },
-        success: function (response) {
-            if (response.exists) {
-                $("#verify-result-" + proprietorId)
-                    .html('<p class="text-success">Valid License</p>');
-            } else {
-                $("#verify-result-" + proprietorId)
-                    .html('<p class="text-danger">Invalid License</p>');
+        $.ajax({
+            url: "{{ route('admin.verify.license.formAccc_admin') }}",
+            method: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                license_number: license,
+                date: date
+            },
+            success: function(response) {
+                if (response.exists) {
+                    $("#verify-result-" + proprietorId)
+                        .html('<p class="text-success">Valid License</p>');
+                } else {
+                    $("#verify-result-" + proprietorId)
+                        .html('<p class="text-danger">Invalid License</p>');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.status === 422) {
+                    let errors = xhr.responseJSON.errors;
+                    let errMsg = errors.date ? errors.date[0] : "Validation failed";
+                    $("#verify-result-" + proprietorId)
+                        .html('<p class="text-danger">' + errMsg + '</p>');
+                }
             }
-        },
-        error: function (xhr) {
-            if (xhr.status === 422) {
-                let errors = xhr.responseJSON.errors;
-                let errMsg = errors.date ? errors.date[0] : "Validation failed";
-                $("#verify-result-" + proprietorId)
-                    .html('<p class="text-danger">' + errMsg + '</p>');
-            }
-        }
+        });
     });
-});
 
-$(document).on('click', '.verify-btn_EA', function (e) {
-    e.preventDefault();
+    $(document).on('click', '.verify-btn_EA', function(e) {
+        e.preventDefault();
 
-    let btn = $(this);
+        let btn = $(this);
 
-    let license = btn.data('license');
-    let firstIssue = btn.data('firstissue');
-    let validityFrom = btn.data('validity_from');
-    let validityTo = btn.data('validity_to');
+        let license = btn.data('license');
+        let firstIssue = btn.data('firstissue');
+        let validityFrom = btn.data('validity_from');
+        let validityTo = btn.data('validity_to');
 
-    let resultDiv = btn.siblings('.verify-result_EA');
+        let resultDiv = btn.siblings('.verify-result_EA');
 
-    resultDiv.html('<span class="text-info">Checking...</span>');
+        resultDiv.html('<span class="text-info">Checking...</span>');
 
-    $.ajax({
-        url: "{{ route('admin.verifylicenseformAea_admin') }}",
-        method: "POST",
-        data: {
-            _token: "{{ csrf_token() }}",
-            license_number: license,
-            first_issue: firstIssue,
-            validity_from: validityFrom,
-            validity_to: validityTo
-        },
-        success: function (response) {
-            if (response.exists) {
+        $.ajax({
+            url: "{{ route('admin.verifylicenseformAea_admin') }}",
+            method: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                license_number: license,
+                first_issue: firstIssue,
+                validity_from: validityFrom,
+                validity_to: validityTo
+            },
+            success: function(response) {
+                if (response.exists) {
+                    resultDiv.html(
+                        '<span class="text-success">Valid License</span>'
+                    );
+                } else {
+                    resultDiv.html(
+                        '<span class="text-danger">Invalid License</span>'
+                    );
+                }
+            },
+            error: function(xhr) {
+                let message = 'Error checking license';
+
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    message = Object.values(xhr.responseJSON.errors)
+                        .flat()
+                        .join('<br>');
+                }
+
                 resultDiv.html(
-                    '<span class="text-success">Valid License</span>'
-                );
-            } else {
-                resultDiv.html(
-                    '<span class="text-danger">Invalid License</span>'
+                    '<span class="text-danger">' + message + '</span>'
                 );
             }
-        },
-        error: function (xhr) {
-            let message = 'Error checking license';
-
-            if (xhr.responseJSON && xhr.responseJSON.errors) {
-                message = Object.values(xhr.responseJSON.errors)
-                    .flat()
-                    .join('<br>');
-            }
-
-            resultDiv.html(
-                '<span class="text-danger">' + message + '</span>'
-            );
-        }
+        });
     });
-});
 
-$(document).on('click', '.verify-btn_staff', function () {
-    let btn = $(this);
-    let license = btn.data('license');
-    let date = btn.data('date');
-    let resultDiv = btn.siblings('.verify-result_staff');
+    $(document).on('click', '.verify-btn_staff', function() {
+        let btn = $(this);
+        let license = btn.data('license');
+        let date = btn.data('date');
+        let resultDiv = btn.siblings('.verify-result_staff');
 
-    resultDiv.html('<p class="text-info">Checking...</p>');
+        resultDiv.html('<p class="text-info">Checking...</p>');
 
-    $.ajax({
-        url: "{{ route('admin.verifyLicenseFormAccc_adminstaff') }}",
-        method: "POST",
-        data: {
-            _token: "{{ csrf_token() }}",
-            license_number: license,
-            date: date
-        },
-        success: function (response) {
-            if (response.exists) {
-                resultDiv.html('<p class="text-success">Valid License</p>');
-            } else {
-                resultDiv.html('<p class="text-danger">Invalid License</p>');
+        $.ajax({
+            url: "{{ route('admin.verifyLicenseFormAccc_adminstaff') }}",
+            method: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                license_number: license,
+                date: date
+            },
+            success: function(response) {
+                if (response.exists) {
+                    resultDiv.html('<p class="text-success">Valid License</p>');
+                } else {
+                    resultDiv.html('<p class="text-danger">Invalid License</p>');
+                }
+            },
+            error: function() {
+                resultDiv.html('<p class="text-danger">Error checking license</p>');
             }
-        },
-        error: function () {
-            resultDiv.html('<p class="text-danger">Error checking license</p>');
-        }
+        });
     });
-});
 
 
-// --------------------------------------------------------------------
-$(document).on('click', '.history-btn_staff', function () {
-    let btn = $(this);
-    let license = btn.data('license');
-    let date = btn.data('date');
-    let application_id = btn.data('application_id');
+    // --------------------------------------------------------------------
+    $(document).on('click', '.history-btn_staff', function() {
+        let btn = $(this);
+        let license = btn.data('license');
+        let date = btn.data('date');
+        let application_id = btn.data('application_id');
 
-    // Set modal title dynamically
-    $("#showlicense .modal-title").text(`Certificate Number ${license} Mapped with`);
+        // Set modal title dynamically
+        $("#showlicense .modal-title").text(`Certificate Number ${license} Mapped with`);
 
-    // Clear any old data first
-    $("#showlicense table tbody").html(`
+        // Clear any old data first
+        $("#showlicense table tbody").html(`
         <tr>
             <td colspan="5" class="text-info">Fetching license history...</td>
         </tr>
     `);
 
-    // Show modal immediately
-    $("#showlicense").modal('show');
+        // Show modal immediately
+        $("#showlicense").modal('show');
 
-    // Fetch data via AJAX
-    $.ajax({
-        url: "{{ route('admin.history_resultstaff') }}",
-        method: "POST",
-        data: {
-            _token: "{{ csrf_token() }}",
-            license_number: license,
-            date: date,
-            application_id: application_id
-        },
-        success: function (response) {
-            if (response.exists && response.html) {
-                $("#showlicense table tbody").html(response.html);
-            } else {
-                $("#showlicense table tbody").html(`
+        // Fetch data via AJAX
+        $.ajax({
+            url: "{{ route('admin.history_resultstaff') }}",
+            method: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                license_number: license,
+                date: date,
+                application_id: application_id
+            },
+            success: function(response) {
+                if (response.exists && response.html) {
+                    $("#showlicense table tbody").html(response.html);
+                } else {
+                    $("#showlicense table tbody").html(`
                     <tr>
                         <td colspan="5" class="text-danger">❌ No license history found.</td>
                     </tr>
                 `);
-            }
-        },
-        error: function () {
-            $("#showlicense table tbody").html(`
+                }
+            },
+            error: function() {
+                $("#showlicense table tbody").html(`
                 <tr>
                     <td colspan="5" class="text-danger">⚠️ Error fetching license history.</td>
                 </tr>
             `);
-        }
+            }
+        });
     });
-});
 
 
 
-// ----------admin check cert-------------
-$(document).on("click", ".verify-cert_ownership", function () {
+    // ----------admin check cert-------------
+    $(document).on("click", ".verify-cert_ownership", function() {
 
-    let $button = $(this);
+        let $button = $(this);
 
-    let id = $button.data("id");
+        let id = $button.data("id");
 
-    let certificate_no =
-        $button.attr("data-license") || "";
+        let certificate_no =
+            $button.attr("data-license") || "";
 
-    let dateof_issue =
-        $button.attr("data-dateofissue") || "";
+        let dateof_issue =
+            $button.attr("data-dateofissue") || "";
 
-    let valid_from =
-        $button.attr("data-validfrom") || "";
+        let valid_from =
+            $button.attr("data-validfrom") || "";
 
-    let valid_to =
-        $button.attr("data-validto") || "";
-
-
-    console.log("========== ADMIN CC VERIFY ==========");
-    console.log("ID:", id);
-    console.log("Certificate No:", certificate_no);
-    console.log("Date of Issue:", dateof_issue);
-    console.log("Validity From:", valid_from);
-    console.log("Validity To:", valid_to);
+        let valid_to =
+            $button.attr("data-validto") || "";
 
 
-    // Check required values
-    if (
-        !certificate_no ||
-        !dateof_issue ||
-        !valid_from ||
-        !valid_to
-    ) {
+        console.log("========== ADMIN CC VERIFY ==========");
+        console.log("ID:", id);
+        console.log("Certificate No:", certificate_no);
+        console.log("Date of Issue:", dateof_issue);
+        console.log("Validity From:", valid_from);
+        console.log("Validity To:", valid_to);
 
-        $("#competencyVerifyModalBody").html(`
+
+        // Check required values
+        if (
+            !certificate_no ||
+            !dateof_issue ||
+            !valid_from ||
+            !valid_to
+        ) {
+
+            $("#competencyVerifyModalBody").html(`
 
             <div class="alert alert-warning">
                 Certificate details are incomplete.
@@ -2253,14 +2275,14 @@ $(document).on("click", ".verify-cert_ownership", function () {
 
         `);
 
-        $("#competencyVerifyModal").modal("show");
+            $("#competencyVerifyModal").modal("show");
 
-        return;
-    }
+            return;
+        }
 
 
-    // Show loading
-    $("#competencyVerifyModalBody").html(`
+        // Show loading
+        $("#competencyVerifyModalBody").html(`
 
         <div class="text-center py-5">
 
@@ -2277,47 +2299,47 @@ $(document).on("click", ".verify-cert_ownership", function () {
     `);
 
 
-    // Open modal
-    $("#competencyVerifyModal").modal("show");
+        // Open modal
+        $("#competencyVerifyModal").modal("show");
 
 
-    // Disable button
-    $button
-        .prop("disabled", true)
-        .text("Verifying...");
+        // Disable button
+        $button
+            .prop("disabled", true)
+            .text("Verifying...");
 
 
-    $.ajax({
+        $.ajax({
 
-        url: "{{ route('admin.checkCompetencyCertificateadmin') }}",
+            url: "{{ route('admin.checkCompetencyCertificateadmin') }}",
 
-        type: "POST",
+            type: "POST",
 
-        data: {
+            data: {
 
-            _token: $('meta[name="csrf-token"]').attr("content"),
+                _token: $('meta[name="csrf-token"]').attr("content"),
 
-            certificate_no: certificate_no,
+                certificate_no: certificate_no,
 
-            dateof_issue: dateof_issue,
+                dateof_issue: dateof_issue,
 
-            valid_from: valid_from,
+                valid_from: valid_from,
 
-            valid_to: valid_to
+                valid_to: valid_to
 
-        },
+            },
 
 
-       success: function (response) {
+            success: function(response) {
 
-    console.log("ADMIN VERIFY RESPONSE:", response);
+                console.log("ADMIN VERIFY RESPONSE:", response);
 
-    if (response.status === true && response.certificate) {
+                if (response.status === true && response.certificate) {
 
-        let certificate = response.certificate;
-        let records = Array.isArray(response.data) ? response.data : [];
+                    let certificate = response.certificate;
+                    let records = Array.isArray(response.data) ? response.data : [];
 
-        let result = `
+                    let result = `
             <div class="competency-result-box">
 
                 <!-- CERTIFICATE DETAILS -->
@@ -2359,9 +2381,9 @@ $(document).on("click", ".verify-cert_ownership", function () {
                 </div>
         `;
 
-        if (records.length > 0) {
+                    if (records.length > 0) {
 
-            result += `
+                        result += `
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped">
 
@@ -2385,20 +2407,20 @@ $(document).on("click", ".verify-cert_ownership", function () {
                         <tbody>
             `;
 
-            records.forEach(function (data, index) {
+                        records.forEach(function(data, index) {
 
-                let licenceCategory = data.emp_cate ?? '-';
+                            let licenceCategory = data.emp_cate ?? '-';
 
-                let transformer = '-';
+                            let transformer = '-';
 
-                if (
-                    data.voltage_level &&
-                    data.voltage_level !== 'up_to_650v'
-                ) {
-                    transformer = data.transformer_kva ?? '-';
-                }
+                            if (
+                                data.voltage_level &&
+                                data.voltage_level !== 'up_to_650v'
+                            ) {
+                                transformer = data.transformer_kva ?? '-';
+                            }
 
-                result += `
+                            result += `
                     <tr>
 
                         <td>
@@ -2451,66 +2473,66 @@ $(document).on("click", ".verify-cert_ownership", function () {
 
                     </tr>
                 `;
-            });
+                        });
 
-            result += `
+                        result += `
                         </tbody>
 
                     </table>
                 </div>
             `;
 
-        } else {
+                    } else {
 
-            result += `
+                        result += `
                 <div class="alert alert-info">
                     Certificate found, but no experience data found.
                 </div>
             `;
-        }
+                    }
 
-        result += `
+                    result += `
             </div>
         `;
 
-        $("#competencyVerifyModalBody").html(result);
+                    $("#competencyVerifyModalBody").html(result);
 
-    } else {
+                } else {
 
-        $("#competencyVerifyModalBody").html(`
+                    $("#competencyVerifyModalBody").html(`
             <div class="alert alert-warning">
                 ${response.message ?? "Certificate not found."}
             </div>
         `);
-    }
-},
+                }
+            },
 
 
-        error: function (xhr) {
+            error: function(xhr) {
 
-            console.log(
-                "ADMIN VERIFY ERROR:",
-                xhr.responseText
-            );
-
-
-            let message =
-                "Unable to check competency certificate.";
+                console.log(
+                    "ADMIN VERIFY ERROR:",
+                    xhr.responseText
+                );
 
 
-            // Laravel validation error
-            if (
-                xhr.responseJSON &&
-                xhr.responseJSON.message
-            ) {
-
-                message =
-                    xhr.responseJSON.message;
-
-            }
+                let message =
+                    "Unable to check competency certificate.";
 
 
-            $("#competencyVerifyModalBody").html(`
+                // Laravel validation error
+                if (
+                    xhr.responseJSON &&
+                    xhr.responseJSON.message
+                ) {
+
+                    message =
+                        xhr.responseJSON.message;
+
+                }
+
+
+                $("#competencyVerifyModalBody").html(`
 
                 <div class="alert alert-danger">
 
@@ -2520,61 +2542,61 @@ $(document).on("click", ".verify-cert_ownership", function () {
 
             `);
 
-        },
+            },
 
 
-        complete: function () {
+            complete: function() {
 
-            $button
-                .prop("disabled", false)
-                .text("Verify");
+                $button
+                    .prop("disabled", false)
+                    .text("Verify");
 
-        }
+            }
+
+        });
 
     });
 
-});
 
 
+    // verify- competency_staff----------------
 
-// verify- competency_staff----------------
+    $(document).on("click", ".verify-staff", function() {
 
-$(document).on("click", ".verify-staff", function () {
+        let $button = $(this);
 
-    let $button = $(this);
+        let id = $button.data("id");
 
-    let id = $button.data("id");
+        let certificate_no =
+            $button.attr("data-license") || "";
 
-    let certificate_no =
-        $button.attr("data-license") || "";
+        let dateof_issue =
+            $button.attr("data-dateofissue") || "";
 
-    let dateof_issue =
-        $button.attr("data-dateofissue") || "";
+        let valid_from =
+            $button.attr("data-validfrom") || "";
 
-    let valid_from =
-        $button.attr("data-validfrom") || "";
-
-    let valid_to =
-        $button.attr("data-validto") || "";
-
-
-    console.log("========== ADMIN CC VERIFY ==========");
-    console.log("ID:", id);
-    console.log("Certificate No:", certificate_no);
-    console.log("Date of Issue:", dateof_issue);
-    console.log("Validity From:", valid_from);
-    console.log("Validity To:", valid_to);
+        let valid_to =
+            $button.attr("data-validto") || "";
 
 
-    // Check required values
-    if (
-        !certificate_no ||
-        !dateof_issue ||
-        !valid_from ||
-        !valid_to
-    ) {
+        console.log("========== ADMIN CC VERIFY ==========");
+        console.log("ID:", id);
+        console.log("Certificate No:", certificate_no);
+        console.log("Date of Issue:", dateof_issue);
+        console.log("Validity From:", valid_from);
+        console.log("Validity To:", valid_to);
 
-        $("#competencyVerifyModalBody").html(`
+
+        // Check required values
+        if (
+            !certificate_no ||
+            !dateof_issue ||
+            !valid_from ||
+            !valid_to
+        ) {
+
+            $("#competencyVerifyModalBody").html(`
 
             <div class="alert alert-warning">
                 Certificate details are incomplete.
@@ -2582,14 +2604,14 @@ $(document).on("click", ".verify-staff", function () {
 
         `);
 
-        $("#competencyVerifyModal").modal("show");
+            $("#competencyVerifyModal").modal("show");
 
-        return;
-    }
+            return;
+        }
 
 
-    // Show loading
-    $("#competencyVerifyModalBody").html(`
+        // Show loading
+        $("#competencyVerifyModalBody").html(`
 
         <div class="text-center py-5">
 
@@ -2606,63 +2628,63 @@ $(document).on("click", ".verify-staff", function () {
     `);
 
 
-    // Open modal
-    $("#competencyVerifyModal").modal("show");
+        // Open modal
+        $("#competencyVerifyModal").modal("show");
 
 
-    // Disable button
-    $button
-        .prop("disabled", true)
-        .text("Verifying...");
+        // Disable button
+        $button
+            .prop("disabled", true)
+            .text("Verifying...");
 
 
-    $.ajax({
+        $.ajax({
 
-        url: "{{ route('admin.checkCompetencyCertificateadmin') }}",
+            url: "{{ route('admin.checkCompetencyCertificateadmin') }}",
 
-        type: "POST",
+            type: "POST",
 
-        data: {
+            data: {
 
-            _token: $('meta[name="csrf-token"]').attr("content"),
+                _token: $('meta[name="csrf-token"]').attr("content"),
 
-            certificate_no: certificate_no,
+                certificate_no: certificate_no,
 
-            dateof_issue: dateof_issue,
+                dateof_issue: dateof_issue,
 
-            valid_from: valid_from,
+                valid_from: valid_from,
 
-            valid_to: valid_to
+                valid_to: valid_to
 
-        },
-
-
-        success: function (response) {
-
-            console.log(
-                "ADMIN VERIFY RESPONSE:",
-                response
-            );
+            },
 
 
-            // Certificate found
-            if (
-                response.status === true &&
-                response.certificate
-            ) {
+            success: function(response) {
 
-                let certificate =
-                    response.certificate;
-
-                let records =
-                    response.data || [];
+                console.log(
+                    "ADMIN VERIFY RESPONSE:",
+                    response
+                );
 
 
-                // ----------------------------------
-                // Certificate Details
-                // ----------------------------------
-                let applicant = response.applicant_details || {};
-                let result = `
+                // Certificate found
+                if (
+                    response.status === true &&
+                    response.certificate
+                ) {
+
+                    let certificate =
+                        response.certificate;
+
+                    let records =
+                        response.data || [];
+
+
+                    // ----------------------------------
+                    // Certificate Details
+                    // ----------------------------------
+                    let applicant = response.applicant_details || {};
+                    let result = `
 
                     <div class="competency-result-box">
 
@@ -2760,13 +2782,13 @@ $(document).on("click", ".verify-staff", function () {
                 `;
 
 
-                // ----------------------------------
-                // Experience Records
-                // ----------------------------------
+                    // ----------------------------------
+                    // Experience Records
+                    // ----------------------------------
 
-                if (records.length > 0) {
+                    if (records.length > 0) {
 
-                    result += `
+                        result += `
 
                         <div class="table-responsive">
 
@@ -2837,9 +2859,9 @@ $(document).on("click", ".verify-staff", function () {
                     `;
 
 
-                    records.forEach(function (data, index) {
+                        records.forEach(function(data, index) {
 
-                        result += `
+                            result += `
 
                             <tr>
 
@@ -2923,10 +2945,10 @@ $(document).on("click", ".verify-staff", function () {
 
                         `;
 
-                    });
+                        });
 
 
-                    result += `
+                        result += `
 
                                 </tbody>
 
@@ -2936,9 +2958,9 @@ $(document).on("click", ".verify-staff", function () {
 
                     `;
 
-                } else {
+                    } else {
 
-                    result += `
+                        result += `
 
                         <div class="alert alert-info">
 
@@ -2949,27 +2971,27 @@ $(document).on("click", ".verify-staff", function () {
 
                     `;
 
-                }
+                    }
 
 
-                // Close main box
-                result += `
+                    // Close main box
+                    result += `
 
                     </div>
 
                 `;
 
 
-                // Display result
-                $("#competencyVerifyModalBody")
-                    .html(result);
+                    // Display result
+                    $("#competencyVerifyModalBody")
+                        .html(result);
 
 
-            } else {
+                } else {
 
-                // Certificate not found
+                    // Certificate not found
 
-                $("#competencyVerifyModalBody").html(`
+                    $("#competencyVerifyModalBody").html(`
 
                     <div class="alert alert-warning">
 
@@ -2982,36 +3004,36 @@ $(document).on("click", ".verify-staff", function () {
 
                 `);
 
-            }
+                }
 
-        },
-
-
-        error: function (xhr) {
-
-            console.log(
-                "ADMIN VERIFY ERROR:",
-                xhr.responseText
-            );
+            },
 
 
-            let message =
-                "Unable to check competency certificate.";
+            error: function(xhr) {
+
+                console.log(
+                    "ADMIN VERIFY ERROR:",
+                    xhr.responseText
+                );
 
 
-            // Laravel validation error
-            if (
-                xhr.responseJSON &&
-                xhr.responseJSON.message
-            ) {
-
-                message =
-                    xhr.responseJSON.message;
-
-            }
+                let message =
+                    "Unable to check competency certificate.";
 
 
-            $("#competencyVerifyModalBody").html(`
+                // Laravel validation error
+                if (
+                    xhr.responseJSON &&
+                    xhr.responseJSON.message
+                ) {
+
+                    message =
+                        xhr.responseJSON.message;
+
+                }
+
+
+                $("#competencyVerifyModalBody").html(`
 
                 <div class="alert alert-danger">
 
@@ -3021,60 +3043,60 @@ $(document).on("click", ".verify-staff", function () {
 
             `);
 
-        },
+            },
 
 
-        complete: function () {
+            complete: function() {
 
-            $button
-                .prop("disabled", false)
-                .text("View History");
+                $button
+                    .prop("disabled", false)
+                    .text("View History");
 
-        }
+            }
+
+        });
 
     });
 
-});
+
+    // ---------other staff----------------------------------------
+
+    $(document).on("click", ".verify-otherstaff", function() {
+
+        let $button = $(this);
+
+        let id = $button.data("id");
+
+        let certificate_no =
+            $button.attr("data-license") || "";
+
+        let dateof_issue =
+            $button.attr("data-dateofissue") || "";
+
+        let valid_from =
+            $button.attr("data-validfrom") || "";
+
+        let valid_to =
+            $button.attr("data-validto") || "";
 
 
-// ---------other staff----------------------------------------
-
-$(document).on("click", ".verify-otherstaff", function () {
-
-    let $button = $(this);
-
-    let id = $button.data("id");
-
-    let certificate_no =
-        $button.attr("data-license") || "";
-
-    let dateof_issue =
-        $button.attr("data-dateofissue") || "";
-
-    let valid_from =
-        $button.attr("data-validfrom") || "";
-
-    let valid_to =
-        $button.attr("data-validto") || "";
+        console.log("========== ADMIN CC VERIFY ==========");
+        console.log("ID:", id);
+        console.log("Certificate No:", certificate_no);
+        console.log("Date of Issue:", dateof_issue);
+        console.log("Validity From:", valid_from);
+        console.log("Validity To:", valid_to);
 
 
-    console.log("========== ADMIN CC VERIFY ==========");
-    console.log("ID:", id);
-    console.log("Certificate No:", certificate_no);
-    console.log("Date of Issue:", dateof_issue);
-    console.log("Validity From:", valid_from);
-    console.log("Validity To:", valid_to);
+        // Check required values
+        if (
+            !certificate_no ||
+            !dateof_issue ||
+            !valid_from ||
+            !valid_to
+        ) {
 
-
-    // Check required values
-    if (
-        !certificate_no ||
-        !dateof_issue ||
-        !valid_from ||
-        !valid_to
-    ) {
-
-        $("#competencyVerifyModalBody").html(`
+            $("#competencyVerifyModalBody").html(`
 
             <div class="alert alert-warning">
                 Certificate details are incomplete.
@@ -3082,14 +3104,14 @@ $(document).on("click", ".verify-otherstaff", function () {
 
         `);
 
-        $("#competencyVerifyModal").modal("show");
+            $("#competencyVerifyModal").modal("show");
 
-        return;
-    }
+            return;
+        }
 
 
-    // Show loading
-    $("#competencyVerifyModalBody").html(`
+        // Show loading
+        $("#competencyVerifyModalBody").html(`
 
         <div class="text-center py-5">
 
@@ -3106,63 +3128,63 @@ $(document).on("click", ".verify-otherstaff", function () {
     `);
 
 
-    // Open modal
-    $("#competencyVerifyModal").modal("show");
+        // Open modal
+        $("#competencyVerifyModal").modal("show");
 
 
-    // Disable button
-    $button
-        .prop("disabled", true)
-        .text("Verifying...");
+        // Disable button
+        $button
+            .prop("disabled", true)
+            .text("Verifying...");
 
 
-    $.ajax({
+        $.ajax({
 
-        url: "{{ route('admin.checkCompetencyotherCertificateadmin') }}",
+            url: "{{ route('admin.checkCompetencyotherCertificateadmin') }}",
 
-        type: "POST",
+            type: "POST",
 
-        data: {
+            data: {
 
-            _token: $('meta[name="csrf-token"]').attr("content"),
+                _token: $('meta[name="csrf-token"]').attr("content"),
 
-            certificate_no: certificate_no,
+                certificate_no: certificate_no,
 
-            dateof_issue: dateof_issue,
+                dateof_issue: dateof_issue,
 
-            valid_from: valid_from,
+                valid_from: valid_from,
 
-            valid_to: valid_to
+                valid_to: valid_to
 
-        },
-
-
-        success: function (response) {
-
-            console.log(
-                "ADMIN VERIFY RESPONSE:",
-                response
-            );
+            },
 
 
-            // Certificate found
-            if (
-                response.status === true &&
-                response.certificate
-            ) {
+            success: function(response) {
 
-              let certificate =
-                    response.certificate;
-
-                let records =
-                    response.data || [];
+                console.log(
+                    "ADMIN VERIFY RESPONSE:",
+                    response
+                );
 
 
-                // ----------------------------------
-                // Certificate Details
-                // ----------------------------------
-                let applicant = response.applicant_details || {};
-                let result = `
+                // Certificate found
+                if (
+                    response.status === true &&
+                    response.certificate
+                ) {
+
+                    let certificate =
+                        response.certificate;
+
+                    let records =
+                        response.data || [];
+
+
+                    // ----------------------------------
+                    // Certificate Details
+                    // ----------------------------------
+                    let applicant = response.applicant_details || {};
+                    let result = `
 
                     <div class="competency-result-box">
 
@@ -3260,13 +3282,13 @@ $(document).on("click", ".verify-otherstaff", function () {
                 `;
 
 
-                // ----------------------------------
-                // Experience Records
-                // ----------------------------------
+                    // ----------------------------------
+                    // Experience Records
+                    // ----------------------------------
 
-                if (records.length > 0) {
+                    if (records.length > 0) {
 
-                    result += `
+                        result += `
 
                         <div class="table-responsive">
 
@@ -3337,9 +3359,9 @@ $(document).on("click", ".verify-otherstaff", function () {
                     `;
 
 
-                    records.forEach(function (data, index) {
+                        records.forEach(function(data, index) {
 
-                        result += `
+                            result += `
 
                             <tr>
 
@@ -3425,10 +3447,10 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                         `;
 
-                    });
+                        });
 
 
-                    result += `
+                        result += `
 
                                 </tbody>
 
@@ -3438,9 +3460,9 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                     `;
 
-                } else {
+                    } else {
 
-                    result += `
+                        result += `
 
                         <div class="alert alert-info">
 
@@ -3451,26 +3473,26 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                     `;
 
-                }
+                    }
 
 
-                // Close main box
-                result += `
+                    // Close main box
+                    result += `
 
                     </div>
 
                 `;
 
 
-                // Display result
-                $("#competencyVerifyModalBody")
-                    .html(result);
+                    // Display result
+                    $("#competencyVerifyModalBody")
+                        .html(result);
 
-            } else {
+                } else {
 
-                // Certificate not found
+                    // Certificate not found
 
-                $("#competencyVerifyModalBody").html(`
+                    $("#competencyVerifyModalBody").html(`
 
                     <div class="alert alert-warning">
 
@@ -3483,36 +3505,36 @@ $(document).on("click", ".verify-otherstaff", function () {
 
                 `);
 
-            }
+                }
 
-        },
-
-
-        error: function (xhr) {
-
-            console.log(
-                "ADMIN VERIFY ERROR:",
-                xhr.responseText
-            );
+            },
 
 
-            let message =
-                "Unable to check competency certificate.";
+            error: function(xhr) {
+
+                console.log(
+                    "ADMIN VERIFY ERROR:",
+                    xhr.responseText
+                );
 
 
-            // Laravel validation error
-            if (
-                xhr.responseJSON &&
-                xhr.responseJSON.message
-            ) {
-
-                message =
-                    xhr.responseJSON.message;
-
-            }
+                let message =
+                    "Unable to check competency certificate.";
 
 
-            $("#competencyVerifyModalBody").html(`
+                // Laravel validation error
+                if (
+                    xhr.responseJSON &&
+                    xhr.responseJSON.message
+                ) {
+
+                    message =
+                        xhr.responseJSON.message;
+
+                }
+
+
+                $("#competencyVerifyModalBody").html(`
 
                 <div class="alert alert-danger">
 
@@ -3522,74 +3544,70 @@ $(document).on("click", ".verify-otherstaff", function () {
 
             `);
 
-        },
+            },
 
 
-        complete: function () {
+            complete: function() {
 
-            $button
-                .prop("disabled", false)
-                .text("View History");
+                $button
+                    .prop("disabled", false)
+                    .text("View History");
+
+            }
+
+        });
+
+    });
+
+    // ----------------------------------
+
+    $(document).on('change', '.staff-status-switch', function() {
+
+        let id = $(this).data('id');
+
+        if ($(this).is(':checked')) {
+
+            $('#staffStatusText_' + id)
+                .removeClass('bg-danger')
+                .addClass('bg-success')
+                .text('Correct');
+
+        } else {
+
+            $('#staffStatusText_' + id)
+                .removeClass('bg-success')
+                .addClass('bg-danger')
+                .text('InCorrect');
 
         }
 
     });
 
-});
+    $(document).on('change', '.status-switch', function() {
 
-// ----------------------------------
+        let id = $(this).attr('id').replace('status_', '');
 
-$(document).on('change', '.staff-status-switch', function () {
+        let verifyValue = $(this).is(':checked') ? 1 : 0;
 
-    let id = $(this).data('id');
+        // Store the current value
+        $(this).val(verifyValue);
 
-    if ($(this).is(':checked')) {
+        if (verifyValue === 1) {
 
-        $('#staffStatusText_' + id)
-            .removeClass('bg-danger')
-            .addClass('bg-success')
-            .text('Correct');
+            $('#statusText_' + id)
+                .removeClass('bg-danger')
+                .addClass('bg-success')
+                .text('Correct');
 
-    } else {
+        } else {
 
-        $('#staffStatusText_' + id)
-            .removeClass('bg-success')
-            .addClass('bg-danger')
-            .text('InCorrect');
+            $('#statusText_' + id)
+                .removeClass('bg-success')
+                .addClass('bg-danger')
+                .text('Incorrect');
+        }
 
-    }
-
-});
-
-$(document).on('change', '.status-switch', function () {
-
-    let id = $(this).attr('id').replace('status_', '');
-
-    let verifyValue = $(this).is(':checked') ? 1 : 0;
-
-    // Store the current value
-    $(this).val(verifyValue);
-
-    if (verifyValue === 1) {
-
-        $('#statusText_' + id)
-            .removeClass('bg-danger')
-            .addClass('bg-success')
-            .text('Correct');
-
-    } else {
-
-        $('#statusText_' + id)
-            .removeClass('bg-success')
-            .addClass('bg-danger')
-            .text('Incorrect');
-    }
-
-    console.log('Checklist ID:', id);
-    console.log('Verify Value:', verifyValue);
-});
-
-
+        console.log('Checklist ID:', id);
+        console.log('Verify Value:', verifyValue);
+    });
 </script>
-
-
