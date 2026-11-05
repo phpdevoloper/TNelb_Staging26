@@ -695,8 +695,6 @@ class LoginController extends Controller
 
         // dd($contractorCards);exit;
 
-
-
         $amendmentCards = $amendmentCardsCollection->all();
 
         // Pendancy Report data (used for Secretary and President dashboards)

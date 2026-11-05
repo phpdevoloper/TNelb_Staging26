@@ -2989,11 +2989,25 @@ exit; -->
                                                         REMOVE QC / QSC
                                                         ========================================================= --}}
 
-                                        @php
+                                      @php
                                             $normalStaffs = collect($staffs ?? [])
                                                 ->filter(function ($staff) {
                                                     return !in_array($staff->staff_category ?? '', ['QC', 'QSC']) &&
                                                         ($staff->staff_flag ?? '1') == '1';
+                                                })
+                                                ->sortBy(function ($staff) {
+                                                    $categoryOrder = [
+                                                        'B'      => 1,
+                                                        'C'      => 2,
+                                                        'OTHERS' => 3,
+                                                    ];
+
+                                                    return sprintf(
+                                                        '%d-%010d-%010d',
+                                                        $categoryOrder[$staff->staff_category ?? ''] ?? 4,
+                                                        (int) ($staff->row_index ?? 0),
+                                                        (int) ($staff->id ?? 0)
+                                                    );
                                                 })
                                                 ->values();
 
@@ -3024,44 +3038,50 @@ exit; -->
                                                             class="form-control row_index">
                                                     </td>
 
-                                                    <td>
+                                                   <td>
 
-                                                        @if ($i < 2)
-                                                            <input type="hidden"
-                                                                name="staff_category[{{ $i }}]"
-                                                                value="B" class="staff_category">
+                                                    @if ($i < 2 && (!$staff || $category === 'B'))
+                                                        {{-- First two mandatory B staff --}}
+                                                        <input type="hidden"
+                                                            name="staff_category[{{ $i }}]"
+                                                            value="B"
+                                                            class="staff_category">
 
-                                                            <input type="text" class="form-control"
-                                                                value="B" readonly>
-                                                        @else
-                                                            <select class="form-control staff_category"
-                                                                name="staff_category[{{ $i }}]">
+                                                        <input type="text"
+                                                            class="form-control"
+                                                            value="B"
+                                                            readonly>
+                                                    @else
 
-                                                                <option value="">Select Category</option>
+                                                        <select class="form-control staff_category"
+                                                            name="staff_category[{{ $i }}]">
 
-                                                                <option value="B"
-                                                                    {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
-                                                                    B
-                                                                </option>
+                                                            <option value="">Select Category</option>
 
-                                                                <option value="C"
-                                                                    {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
-                                                                    C
-                                                                </option>
+                                                            <option value="B"
+                                                                {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
+                                                                B
+                                                            </option>
 
-                                                                <option value="OTHERS"
-                                                                    {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
-                                                                    OTHERS
-                                                                </option>
+                                                            <option value="C"
+                                                                {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
+                                                                C
+                                                            </option>
 
-                                                            </select>
-                                                        @endif
+                                                            <option value="OTHERS"
+                                                                {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
+                                                                OTHERS
+                                                            </option>
 
-                                                        <span class="error text-danger">
-                                                            {{ $errors->first('staff_category.' . $i) }}
-                                                        </span>
+                                                        </select>
 
-                                                    </td>
+                                                    @endif
+
+                                                    <span class="error text-danger">
+                                                        {{ $errors->first('staff_category.' . $i) }}
+                                                    </span>
+
+                                                </td>
 
 
 
@@ -8473,115 +8493,87 @@ if (qual_proof) {
 
              // ================= QUALIFICATION PROOF =================
 
-            let existingFileUrl = $.trim(
-                $section.attr("data-existing-file") || ""
-            );
 
-            let presentFile = $.trim(
-                $section.attr("data-present-file") || ""
-            );
-
-            let fileInput = $section.find("input[name='qual_proof[]']")[0];
-
-            let hasNewFile = !!(
-                fileInput &&
-                fileInput.files &&
-                fileInput.files.length > 0
-            );
-
-            let finalFileUrl = "";
-
-            if (hasNewFile) {
-                finalFileUrl = $.trim(window.uploadedFilePath || "");
-
-
-            if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
-
-            if (!finalFileUrl) {
-                setError(
-                    $section.find("input[name='qual_proof[]']"),
-                    "Please upload Qualification proof"
-                );
-            }
-
-
-            let uploadedFilePath =
-                window.uploadedFilePath || "";
-
-            let finalFileUrl = "";
-
-            if (hasNewFile && uploadedFilePath) {
-
-                finalFileUrl = uploadedFilePath;
-
-            } else if (hasExistingFile) {
-
-                finalFileUrl = existingFileUrl;
-
-            } else if (hasPresentFile) {
-
-                finalFileUrl = presentFile;
-            }
-
-
-            // ================= AGE PROOF =================
-
-            let existingAgeFile = $.trim(
-                $section.attr("data-existing-age-file") || ""
-            );
-
-            let presentAgeFile = $.trim(
-                $section.attr("data-present-age-file") || ""
-            );
-
-            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
-
-            let hasNewAgeFile = !!(
-                ageFileInput &&
-                ageFileInput.files &&
-                ageFileInput.files.length > 0
-            );
-
-            let finalAgeFileUrl = "";
-
-            if (hasNewAgeFile) {
-                finalAgeFileUrl = $.trim(window.uploadedAgeFilePath || "");
-
-
-            if (
-                !hasExistingAgeFile &&
-                !hasPresentAgeFile &&
-                !hasNewAgeFile
-            ) {
-
-            if (!finalAgeFileUrl) {
-                setError(
-                    $section.find("input[name='age_proof[]']"),
-                    "Please upload Age proof"
+                let existingFileUrl = $.trim(
+                    $section.attr("data-existing-file") || ""
                 );
 
-                isValid = false;
-            }
+                let presentFile = $.trim(
+                    $section.attr("data-present-file") || ""
+                );
+
+                let fileInput = $section.find("input[name='qual_proof[]']")[0];
+
+                let hasNewFile = !!(
+                    fileInput &&
+                    fileInput.files &&
+                    fileInput.files.length > 0
+                );
+
+                let uploadedFilePath = $.trim(window.uploadedFilePath || "");
+
+                let finalFileUrl = "";
+
+                if (hasNewFile) {
+                    finalFileUrl = uploadedFilePath;
+                } else if (existingFileUrl) {
+                    finalFileUrl = existingFileUrl;
+                } else if (presentFile) {
+                    finalFileUrl = presentFile;
+                }
+
+                if (!finalFileUrl) {
+                    setError(
+                        $section.find("input[name='qual_proof[]']"),
+                        hasNewFile
+                            ? "Qualification proof upload is still processing. Please try again."
+                            : "Please upload Qualification proof"
+                    );
+                }
 
 
-            let uploadedAgeFilePath =
-                window.uploadedAgeFilePath || "";
+                // =====================================================
+                // AGE PROOF
+                // =====================================================
 
-            let finalAgeFileUrl = "";
+                let existingAgeFile = $.trim(
+                    $section.attr("data-existing-age-file") || ""
+                );
 
-            if (hasNewAgeFile && uploadedAgeFilePath) {
+                let presentAgeFile = $.trim(
+                    $section.attr("data-present-age-file") || ""
+                );
 
-                finalAgeFileUrl = uploadedAgeFilePath;
+                let ageFileInput = $section.find("input[name='age_proof[]']")[0];
 
-            } else if (hasExistingAgeFile) {
+                let hasNewAgeFile = !!(
+                    ageFileInput &&
+                    ageFileInput.files &&
+                    ageFileInput.files.length > 0
+                );
 
-                finalAgeFileUrl = existingAgeFile;
+                let uploadedAgeFilePath = $.trim(
+                    window.uploadedAgeFilePath || ""
+                );
 
-            } else if (hasPresentAgeFile) {
+                let finalAgeFileUrl = "";
 
-                finalAgeFileUrl = presentAgeFile;
-            }
+                if (hasNewAgeFile) {
+                    finalAgeFileUrl = uploadedAgeFilePath;
+                } else if (existingAgeFile) {
+                    finalAgeFileUrl = existingAgeFile;
+                } else if (presentAgeFile) {
+                    finalAgeFileUrl = presentAgeFile;
+                }
 
+                if (!finalAgeFileUrl) {
+                    setError(
+                        $section.find("input[name='age_proof[]']"),
+                        hasNewAgeFile
+                            ? "Age proof upload is still processing. Please try again."
+                            : "Please upload Age proof"
+                    );
+                }
             // ===========================
             // FATHER NAME
             // ===========================

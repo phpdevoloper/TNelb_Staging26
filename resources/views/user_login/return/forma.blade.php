@@ -2301,35 +2301,51 @@ exit; -->
 
                         <div class="row">
 
-                            <!-- License Number -->
+                            <!-- Previous License Number -->
                             <div class="col-3 col-md-3">
                                 <label>Previous License Number <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_licence_no" maxlength="15" placeholder="Previous License Number" value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}" readonly="">
-
-
-
+                                <input class="form-control previous_application_number"
+                                    type="text"
+                                    id="previous_application_number"
+                                    name="previous_licence_no"
+                                    maxlength="15"
+                                    placeholder="Previous License Number"
+                                    value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}"
+                                    readonly>
                             </div>
 
-                            <!-- License Validity -->
+                            <!-- Licence Date of First Issue -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Date of First Issue <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="date" id="previous_validity_first_issue" name="previous_validity_first_issue" placeholder="Licence Date of First Issue"title="Select a date up to today" value="{{ old('previous_validity_first_issue', !empty($application->previous_validity_first_issue) ? \Carbon\Carbon::parse($application->previous_validity_first_issue)->format('d-m-Y') : '') }}" readonly="readonly">
+                                <input class="form-control previous_application_validity"
+                                    type="date"
+                                    id="previous_validity_first_issue"
+                                    name="previous_validity_first_issue"
+                                    value="{{ old('previous_validity_first_issue', !empty($application->previous_validity_first_issue) ? \Carbon\Carbon::parse($application->previous_validity_first_issue)->format('Y-m-d') : '') }}"
+                                    readonly>
                             </div>
 
+                            <!-- Licence Validity From -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Validity From <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="date" id="previous_validity_from" name="previous_validity_from" placeholder="Licence Validity From" 
-                                value="{{ old('previous_validity_from', !empty($application->previous_validity_from) ? \Carbon\Carbon::parse($application->previous_validity_from)->format('d-m-Y') : '') }}"
-                                readonly="readonly">
+                                <input class="form-control previous_application_validity"
+                                    type="date"
+                                    id="previous_validity_from"
+                                    name="previous_validity_from"
+                                    value="{{ old('previous_validity_from', !empty($application->previous_validity_from) ? \Carbon\Carbon::parse($application->previous_validity_from)->format('Y-m-d') : '') }}"
+                                    readonly>
                             </div>
 
-
+                            <!-- Licence Validity To -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Validity To <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="date" id="previous_validity_to" name="previous_validity_to" placeholder="Licence Validity To" 
-                                 value="{{ old('previous_validity_to', !empty($application->previous_validity_to) ? \Carbon\Carbon::parse($application->previous_validity_to)->format('d-m-Y') : '') }}"readonly="readonly">
+                                <input class="form-control previous_application_validity"
+                                    type="date"
+                                    id="previous_validity_to"
+                                    name="previous_validity_to"
+                                    value="{{ old('previous_validity_to', !empty($application->previous_validity_to) ? \Carbon\Carbon::parse($application->previous_validity_to)->format('Y-m-d') : '') }}"
+                                    readonly>
                             </div>
-
 
                         </div>
 
@@ -2960,14 +2976,20 @@ exit; -->
             $rowIndex = $staff->row_index ?? ($i + 1);
         @endphp
 
-        <tr class="staff-fields"
+       <tr class="staff-fields {{ $isEditable ? 'table-warning' : '' }}"
             data-id="{{ $staff->id }}"
             data-row-index="{{ $rowIndex }}"
-            data-editable="{{ $isEditable ? '1' : '0' }}">
+            data-editable="{{ $isEditable ? '1' : '0' }}"
+            style="{{ $isEditable ? 'background-color: #fff3cd !important;' : '' }}">
 
             {{-- SERIAL NUMBER --}}
             <td>
                 {{ $i + 1 }}
+                 @if ($isEditable)
+                    <span class="badge bg-warning text-dark ms-1">
+                        <i class="fa fa-pencil"></i> Editable
+                    </span>
+                @endif
 
                 <input type="hidden"
                     name="row_index[{{ $i }}]"

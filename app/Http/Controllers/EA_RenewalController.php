@@ -23,6 +23,7 @@ use App\Models\TnelbApplicantStaffDetail;
 // use Illuminate\Contracts\Validation\Rule;
 use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
+use Carbon\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,8 +34,8 @@ class EA_RenewalController extends BaseController
 {
 
 
-// ------------form A draft and renew-------------
-      public function renew_form($appl_id)
+    // ------------form A draft and renew-------------
+    public function renew_form($appl_id)
     {
 
         if (!Auth::check()) {
@@ -111,12 +112,14 @@ class EA_RenewalController extends BaseController
 
         $proofService = app(\App\Services\FormS\FormSProofDocumentService::class);
         $proofCrypt = app(\App\Services\FormS\SensitiveProofCryptService::class);
-        foreach (CC_Proof_doc::where('application_id', $masterApplicationId)
-            ->whereIn('proof_name', [
-                \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR,
-                \App\Services\FormS\FormSProofDocumentService::PROOF_PAN,
-            ])
-            ->get() as $proof) {
+        foreach (
+            CC_Proof_doc::where('application_id', $masterApplicationId)
+                ->whereIn('proof_name', [
+                    \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR,
+                    \App\Services\FormS\FormSProofDocumentService::PROOF_PAN,
+                ])
+                ->get() as $proof
+        ) {
             $proofName = strtoupper(trim((string) ($proof->proof_name ?? '')));
             $proofNo = $proofCrypt->decryptProofNumber($proof->proof_no ?? null);
             if ($proofName === \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR) {
@@ -240,16 +243,568 @@ class EA_RenewalController extends BaseController
     }
 
 
-     public function renew_form_ea($application_id){
+    public function renew_form_ea($application_id)
+    {
 
-  $application = null;
+    //  dd($application_id); exit;
+    $old_application_id = $application_id;
+    // $license_number = $request->license_number;
+    $login_id = Auth::user()->login_id;
+
+    $old_applicationdetails = DB::table('ccl_forma_meta')
+        ->where('application_id', $old_application_id)
+        ->first();
+
+        // dd($old_applicationdetails); exit;
+
+    if (!$old_applicationdetails) {
+        return back()->with('error', 'Old application details not found.');
+    }
+
+    $license_name = $old_applicationdetails->license_name;
+    $form_name = $old_applicationdetails->form_name;
+    $license_number = $old_applicationdetails->license_number;
+
+    // dd($license_number); exit;
+    $appl_type = 'R';
+
+    // =====================================================
+    // 2. CHECK EXISTING UNFINISHED ALTERATION APPLICATION
+    // =====================================================
+
+    $existingAlterApplication = DB::table('ccl_forma_meta')
+        ->where('login_id', $login_id)
+        ->where('appl_type', 'R')
+        ->whereRaw(
+            "LOWER(COALESCE(payment_status, '')) <> ?",
+            ['paid']
+        )
+        ->whereRaw(
+            "COALESCE(application_status, '') <> ?",
+            ['R']
+        )
+        ->orderByDesc('id')
+        ->first();
+
+    if ($existingAlterApplication) {
+
+        // Reuse existing unfinished application ID.
+        // Do not generate another ID or copy records again.
+
+        $applicationId = $existingAlterApplication->application_id;
+
+    } else {
+
+        // =====================================================
+        // 3. GENERATE NEW APPLICATION ID
+        // =====================================================
+
+        $applicationId = $this->generateApplicationId(
+            $appl_type,
+            $form_name,
+            $license_name
+        );
+
+        // Prevent accidental duplicate application ID
+        if (
+            DB::table('ccl_forma_meta')
+                ->where('application_id', $applicationId)
+                ->exists()
+        ) {
+            return back()->with(
+                'error',
+                'Generated application ID already exists.'
+            );
+        }
+
+        // =====================================================
+        // 4. COPY ALL RELATED TABLES
+        // =====================================================
+
+        try {
+
+            DB::beginTransaction();
+
+            // -------------------------------------------------
+            // Copy application metadata
+            // -------------------------------------------------
+
+            $metaData = (array) $old_applicationdetails;
+
+            unset($metaData['id']);
+
+            $metaData['application_id'] = $applicationId;
+            $metaData['license_number'] = $license_number;
+            $metaData['payment_status'] = 'draft';
+            $metaData['application_status'] = 'P';
+            $metaData['appl_type'] = 'R';
+            $metaData['login_id'] = $login_id;
+
+            $metaData['old_application'] = $old_application_id;
+
+            $metaData['processed_by'] = null;
+
+            
+
+            DB::table('ccl_forma_meta')->insert($metaData);
+
+            // -------------------------------------------------
+            // Reusable function to copy table records
+            // -------------------------------------------------
+
+            $copyTableRecords = function ($table, $query) use ($applicationId) {
+
+                $records = $query->get();
+
+                foreach ($records as $record) {
+
+                    $data = (array) $record;
+
+                    // Remove old primary key
+                    unset($data['id']);
+
+                    // Assign new application ID
+                    $data['application_id'] = $applicationId;
+
+                    // Update timestamps if available
+                    if (array_key_exists('created_at', $data)) {
+                        $data['created_at'] = now();
+                    }
+
+                    if (array_key_exists('updated_at', $data)) {
+                        $data['updated_at'] = now();
+                    }
+
+                    DB::table($table)->insert($data);
+                }
+            };
+
+            // -------------------------------------------------
+            // 1. Proprietors / Ownership
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'cl_ownership_table',
+                DB::table('cl_ownership_table')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 2. All Staff (QC, QSC, B, C, etc.)
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'cl_staff_tbl',
+                DB::table('cl_staff_tbl')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 3. Applicant Documents
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'tnelb_applicant_doc_A',
+                DB::table('tnelb_applicant_doc_A')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 4. Bank Solvency
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'tnelb_banksolvency_a',
+                DB::table('tnelb_banksolvency_a')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 5. Attachments
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'tnelb_attachments_cl',
+                DB::table('tnelb_attachments_cl')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 6. Address Proof
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'tnelb_addressproof_cl',
+                DB::table('tnelb_addressproof_cl')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 7. Equipment User Details
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'tnelb_equimentsuser_cl',
+                DB::table('tnelb_equimentsuser_cl')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 8. Equipment Form Details
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'equipmentforma_tbls',
+                DB::table('equipmentforma_tbls')
+                    ->where('application_id', $old_application_id)
+            );
+
+            // -------------------------------------------------
+            // 9. Authority Signatories
+            // -------------------------------------------------
+
+            $copyTableRecords(
+                'cl_forma_signs',
+                DB::table('cl_forma_signs')
+                    ->where('application_id', $old_application_id)
+            );
+
+            DB::commit();
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            \Log::error('Application alteration copy error', [
+                'old_application_id' => $old_application_id,
+                'new_application_id' => $applicationId,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with(
+                'error',
+                'Unable to copy application details: ' . $e->getMessage()
+            );
+        }
+    }
+
+    // =====================================================
+    // 5. USE NEW / EXISTING APPLICATION ID FOR THE FORM
+    // =====================================================
+
+    $application_id = $applicationId;
+
+    // =====================================================
+    // 6. INITIALIZE VARIABLES
+    // =====================================================
+
+    $application = null;
+
+    $proprietors = collect();
+    $staffs = collect();
+    $QCstaffs = collect();
+
+    $document = null;
+    $banksolvency = null;
+
+    $equipmentlist = collect();
+    $equiplist = collect();
+    $attachment_doc = collect();
+
+    $Address_proof = null;
+    $equipmentDetails = collect();
+
+    $authoritysignatory = collect();
+
+    $draftCount = 0;
+    $draftCounts = 0;
+
+    $ownershipType = null;
+    $license_details = null;
+    $old_license_number = null;
+    $form_code = null;
+
+    // =====================================================
+    // 7. FETCH APPLICATION DATA
+    // =====================================================
+
+    if ($application_id) {
+
+        // -------------------------------------------------
+        // Application metadata
+        // -------------------------------------------------
+
+        $application = DB::table('ccl_forma_meta')
+            ->where('application_id', $application_id)
+            ->first();
+
+        // -------------------------------------------------
+        // Proprietors
+        // -------------------------------------------------
+
+        $proprietors = DB::table('cl_ownership_table')
+            ->where('application_id', $application_id)
+            ->where('proprietor_flag', '1')
+            ->orderBy('id')
+            ->get();
+
+        $draftCount = $proprietors->count();
+
+        $draftCounts = ProprietorformA::where(
+            'application_id',
+            $application_id
+        )->count();
+
+        // -------------------------------------------------
+        // Ownership type
+        // -------------------------------------------------
+
+        $ownershipType = ProprietorformA::where(
+            'application_id',
+            $application_id
+        )
+            ->where('proprietor_flag', 1)
+            ->value('ownership_type');
+
+        // -------------------------------------------------
+        // QC / QSC Staff
+        // -------------------------------------------------
+
+        $QCstaffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
+            ->orderBy('id', 'ASC')
+            ->get();
+
+        // -------------------------------------------------
+        // Other Staff
+        // -------------------------------------------------
+
+        $staffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
+            ->orderBy('id', 'DESC')
+            ->get();
+
+            // dd($QCstaffs, $staffs); exit;
+
+        // -------------------------------------------------
+        // Old/current licence remains linked to old application
+        // -------------------------------------------------
+
+        $old_license_number = DB::table('cl_forma_lic')
+            ->where('application_id', $old_application_id)
+            ->where('license_number', $license_number)
+            ->first();
+
+        // -------------------------------------------------
+        // Current active licence
+        // -------------------------------------------------
+
+        $today = Carbon::today();
+
+        $license_details = DB::table('cl_forma_lic')
+            ->where('application_id', $old_application_id)
+            ->where('license_number', $license_number)
+            ->whereDate('valid_from', '<=', $today)
+            ->whereDate('valid_to', '>=', $today)
+            ->orderByDesc('id')
+            ->first();
+
+        // -------------------------------------------------
+        // Applicant document
+        // -------------------------------------------------
+
+        $document = DB::table('tnelb_applicant_doc_A')
+            ->where('application_id', $application_id)
+            ->first();
+
+        // -------------------------------------------------
+        // Bank solvency
+        // -------------------------------------------------
+
+        $banksolvency = Tnelb_banksolvency_a::where(
+            'application_id',
+            $application_id
+        )
+            ->where('status', '1')
+            ->first();
+
+        // -------------------------------------------------
+        // Attachments
+        // -------------------------------------------------
+
+        $attachment_doc = Tnelb_Attachments_cl::where(
+            'application_id',
+            $application_id
+        )->get();
+
+        // -------------------------------------------------
+        // Address proof
+        // -------------------------------------------------
+
+        $Address_proof = Tnelb_Addressproof_cl::where(
+            'application_id',
+            $application_id
+        )->first();
+
+        // -------------------------------------------------
+        // Equipment details
+        // -------------------------------------------------
+
+        $equipmentDetails = Tnelb_Equimentsuser_cl::where(
+            'application_id',
+            $application_id
+        )
+            ->get()
+            ->keyBy('equipment_id');
+
+        // -------------------------------------------------
+        // Equipment master list
+        // -------------------------------------------------
+
+        $equiplist = Mst_equipment_tbl::where(
+            'equip_licence_name',
+            8
+        )
+            ->where('status', 1)
+            ->orderBy('id')
+            ->get();
+
+        // -------------------------------------------------
+        // Equipment form list
+        // -------------------------------------------------
+
+        $equipmentlist = DB::table('equipmentforma_tbls')
+            ->where('login_id', $login_id)
+            ->where('application_id', $application_id)
+            ->get();
+
+        // -------------------------------------------------
+        // Licence code
+        // -------------------------------------------------
+
+        $cert_licence_code = 'EA';
+
+        $form_code = MstLicence::where(
+            'cert_licence_code',
+            $cert_licence_code
+        )
+            ->where('status', 1)
+            ->orderBy('id')
+            ->first();
+
+        // -------------------------------------------------
+        // Authority signatories
+        // -------------------------------------------------
+
+        $authoritysignatory = DB::table('cl_forma_signs')
+            ->where('login_id', $login_id)
+            ->where('application_id', $application_id)
+            ->where('flag', 1)
+            ->orderBy('row_index', 'asc')
+            ->get();
+    }
+
+    // =====================================================
+    // 8. RETURN VIEW
+    // =====================================================
+
+    $isAlterDraft = 0;
+
+    return view(
+        'user_login.renew-form_ea',
+        compact(
+            'application',
+            'proprietors',
+            'draftCount',
+            'staffs',
+            'document',
+            'banksolvency',
+            'equipmentlist',
+            'equiplist',
+            'form_code',
+            'attachment_doc',
+            'Address_proof',
+            'equipmentDetails',
+            'QCstaffs',
+            'draftCounts',
+            'ownershipType',
+            'old_license_number',
+            'license_details',
+            'application_id',
+            'old_application_id',
+            'license_number',
+            'authoritysignatory',
+            'isAlterDraft'
+        )
+    );
+
+        // return view('user_login.renew-form_ea', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'authoritysignatory'));
+
+    }
+
+
+     private function generateApplicationId($appl_type, $formName, $licenseName)
+    {
+        $model = EA_Application_model::class;
+
+        $prefix = ($appl_type === 'N') ? '' : $appl_type;
+        $year = date('y');
+
+        $applicationPrefix = strtoupper(
+            $prefix . $formName . $licenseName . $year
+        );
+
+        // Check whether an application already exists
+        $query = $model::where(
+            'application_id',
+            'LIKE',
+            $applicationPrefix . '%'
+        );
+
+        // For alteration applications, check appl_type = A
+        if ($appl_type === 'R') {
+            $query->where('appl_type', 'R');
+        }
+
+        $lastApplication = $query
+            ->orderByDesc('id')
+            ->value('application_id');
+
+        // Start from 000001 if no application exists
+        $nextNumber = '000001';
+
+        if ($lastApplication && preg_match('/(\d{6})$/', $lastApplication, $matches)) {
+
+            $lastNumber = (int) $matches[1];
+
+            $nextNumber = str_pad(
+                $lastNumber + 1,
+                6,
+                '0',
+                STR_PAD_LEFT
+            );
+        }
+
+        return $applicationPrefix . $nextNumber;
+    }
+
+
+
+    public function renew_form_ea_bk($application_id)
+    {
+
+        $application = null;
         $proprietors = collect();
         $staffs = collect();
         $document = collect();
 
         if ($application_id) {
 
-         $old_license_number= DB::table('cl_forma_lic')->where('application_id', $application_id)->first();
+            $old_license_number = DB::table('cl_forma_lic')->where('application_id', $application_id)->first();
             $application = DB::table('ccl_forma_meta')->where('application_id', $application_id)->first();
             $proprietors = DB::table('cl_ownership_table')
                 ->where('application_id', $application_id)
@@ -265,28 +820,28 @@ class EA_RenewalController extends BaseController
                 ->value('ownership_type');
             // dd($proprietors);exit;
 
-             $QCstaffs = DB::table('cl_staff_tbl')
-            ->where('application_id', $application_id)
-            ->whereIn('staff_category', ['QC', 'QSC'])
-            ->where('staff_flag', '1')
-            ->orderBy('id', 'ASC')
-            ->get();
+            $QCstaffs = DB::table('cl_staff_tbl')
+                ->where('application_id', $application_id)
+                ->whereIn('staff_category', ['QC', 'QSC'])
+                ->where('staff_flag', '1')
+                ->orderBy('id', 'ASC')
+                ->get();
 
             $staffs = DB::table('cl_staff_tbl')
-            ->where('application_id', $application_id)
-            ->whereNotIn('staff_category', ['QC', 'QSC'])
-             ->where('staff_flag', '1')
-            ->orderBy('id', 'ASC')
-            ->get();
+                ->where('application_id', $application_id)
+                ->whereNotIn('staff_category', ['QC', 'QSC'])
+                ->where('staff_flag', '1')
+                ->orderBy('id', 'ASC')
+                ->get();
 
             // dd($staffs);
             // exit;
 
-             $license_details = DB::table('cl_forma_lic')
-            ->where('application_id', $application_id)
-            ->where('valid_to','<', $today)
-            ->select('*')
-            ->first();
+            $license_details = DB::table('cl_forma_lic')
+                ->where('application_id', $application_id)
+                ->where('valid_to', '<', $today)
+                ->select('*')
+                ->first();
 
             // $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
@@ -332,7 +887,7 @@ class EA_RenewalController extends BaseController
     }
 
 
-     // ----------------------------draft
+    // ----------------------------draft
     public function edit($application_id)
     {
         $application = null;
@@ -407,14 +962,13 @@ class EA_RenewalController extends BaseController
                 ->where('flag', 1)
                 ->orderBy('row_index', 'asc')
                 ->get();
-
         }
 
         return view('user_login.apply-form-a', compact('application', 'proprietors', 'draftCount', 'staffs', 'document', 'banksolvency', 'equipmentlist', 'equiplist', 'form_code', 'attachment_doc', 'Address_proof', 'equipmentDetails', 'QCstaffs', 'draftCounts', 'ownershipType', 'authoritysignatory'));
     }
 
 
-      public function edit_renewaldraft($application_id)
+    public function edit_renewaldraft($application_id)
     {
 
         // dd($application_id);
@@ -430,20 +984,20 @@ class EA_RenewalController extends BaseController
                 ->where('application_id', $application_id)
                 ->where('proprietor_flag', '1')
                 ->orderBy('id')->get();
-                $draftCount = $proprietors->count();
+            $draftCount = $proprietors->count();
 
             $staffs = DB::table('tnelb_applicant_cl_staffdetails')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
             $document = DB::table('tnelb_applicant_doc_A')->where('application_id', $application_id)->first();
 
             $license_details = DB::table('cl_forma_lic')
-            ->where('application_id', $application_id)
-            ->select('*')
-            ->first();
+                ->where('application_id', $application_id)
+                ->select('*')
+                ->first();
 
 
-        $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status','1')->first();
+            $banksolvency = Tnelb_banksolvency_a::where('application_id', $application_id)->where('status', '1')->first();
 
-        $equipmentlist = Equipment_storetmp_A::where('application_id', $application_id)->first();
+            $equipmentlist = Equipment_storetmp_A::where('application_id', $application_id)->first();
 
             // dd($license_details);
             // exit;
@@ -468,7 +1022,8 @@ class EA_RenewalController extends BaseController
 
     // ----------------A draft and renew end---------------
 
-    public function renew_form_ea_old($appl_id){
+    public function renew_form_ea_old($appl_id)
+    {
 
         if (!Auth::check()) {
             return redirect()->route('logout');
@@ -485,19 +1040,19 @@ class EA_RenewalController extends BaseController
         // var_dump($license_deatails->license_number);die;
 
         $proprietors = DB::table('cl_ownership_table')
-        ->where('application_id', $appl_id)
-        ->get();
+            ->where('application_id', $appl_id)
+            ->get();
 
         $staffs = DB::table('tnelb_applicant_cl_staffdetails')
-        ->where('application_id', $appl_id)
-        ->get();
+            ->where('application_id', $appl_id)
+            ->get();
 
 
         $document = DB::table('tnelb_applicant_doc_A')
-        ->where('application_id', $appl_id)
-        ->first();
+            ->where('application_id', $appl_id)
+            ->first();
 
-        return view('user_login.renew-form_ea', compact ('application', 'proprietors', 'staffs', 'document','license_deatails'));
+        return view('user_login.renew-form_ea', compact('application', 'proprietors', 'staffs', 'document', 'license_deatails'));
     }
 
     public function store(Request $request)
@@ -553,7 +1108,7 @@ class EA_RenewalController extends BaseController
             'application_status' => 'P',
             'license_number' => '',
             'payment_status' => $isDraft ? 'draft' : 'paid',
-            'name_of_authorised_to_sign' => !empty($request->name_of_authorised_to_sign)? json_encode($request->name_of_authorised_to_sign): null,
+            'name_of_authorised_to_sign' => !empty($request->name_of_authorised_to_sign) ? json_encode($request->name_of_authorised_to_sign) : null,
             'enclosure' => '1',
             'previous_contractor_license' => $request->previous_contractor_license,
             'criminal_offence' => $request->criminal_offence,
@@ -585,7 +1140,7 @@ class EA_RenewalController extends BaseController
             foreach ($request->proprietor_name as $index => $proprietor_name) {
 
                 $competencyHolding = $request->competency_certificate_holding[$index] ?? 'no';
-                $list =ProprietorformA::create([
+                $list = ProprietorformA::create([
                     'login_id' => $request->login_id_store,
                     'application_id' => $newApplicationId,
                     'proprietor_name' => $proprietor_name,
@@ -622,7 +1177,6 @@ class EA_RenewalController extends BaseController
                         ? ($request->previous_experience_lnumber[$index] ?? null)
                         : null,
                 ]);
-
             }
         }
 
