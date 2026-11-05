@@ -1360,12 +1360,12 @@
 
                                                                 @if($workflow->form_name == 'A')
 
-                                                                    <a href="{{ route('generatea.pdf', ['login_id' => $workflow->application_id]) }}"
+                                                                    <a href="{{ route('payment-receipt_cl.pdf', ['login_id' => $workflow->application_id]) }}"
                                                                     target="_blank"
                                                                     style="font-weight:500;">
 
                                                                         <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i>
-                                                                        <span style="font-size: x-small;">Download</span>
+                                                                        <span style="font-size: x-small;">Receipt</span>
 
                                                                     </a>
 
@@ -1376,7 +1376,7 @@
                                                                     style="font-weight:500;">
 
                                                                         <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i>
-                                                                        <span style="font-size: x-small;">Download</span>
+                                                                        <span style="font-size: x-small;">Receipt</span>
 
                                                                     </a>
 
@@ -1387,7 +1387,7 @@
                                                                     style="font-weight:500;">
 
                                                                         <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i>
-                                                                        <span style="font-size: x-small;">Download</span>
+                                                                        <span style="font-size: x-small;">Receipt</span>
 
                                                                     </a>
 
@@ -1398,7 +1398,7 @@
                                                                     style="font-weight:500;">
 
                                                                         <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i>
-                                                                        <span style="font-size: x-small;">Download</span>
+                                                                        <span style="font-size: x-small;">Receipt</span>
 
                                                                     </a>
 

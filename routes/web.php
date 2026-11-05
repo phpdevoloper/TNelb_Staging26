@@ -392,6 +392,9 @@ Route::post('/forma/storerenewal', [FormAController::class, 'storerenewal'])->na
 Route::put('/forma/update/{appl_id}', [FormAController::class, 'update'])->name('forma.update');
 
 Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->name('payment-receipt.pdf');
+
+Route::get('/payment-receipt_cl/{login_id}', [PDFFormAController::class, 'paymentDetails_cl'])->name('payment-receipt_cl.pdf');
+
 Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->name('generate.tamil.pdf');
 
 Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->name('generatea.pdf');
