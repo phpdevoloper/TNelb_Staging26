@@ -214,7 +214,7 @@ exit; -->
 
 
             <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name" value="EA">
-
+            <input type="hidden" name="license_number" value="{{ $application->license_number ?? ''}}">
 
 
             <input type="hidden" class="form-control text-box single-line" id="appl_type" name="appl_type" value="{{ trim($application->appl_type) }}">
@@ -625,8 +625,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -1151,8 +1151,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -1718,8 +1718,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -2239,7 +2239,8 @@ exit; -->
 
 
                         <div class="col-md-12">
-                <div class="row align-items-center">
+                            
+                <div class="row align-items-center form-section" id="previous_license">
                     <div class="col-12 col-md-12">
                         <label for="Name">4. Whether any application for
                             Contractor's licence was made
@@ -2300,35 +2301,51 @@ exit; -->
 
                         <div class="row">
 
-                            <!-- License Number -->
+                            <!-- Previous License Number -->
                             <div class="col-3 col-md-3">
                                 <label>Previous License Number <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_number" type="text" id="previous_application_number" name="previous_licence_no" maxlength="15" placeholder="Previous License Number" value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}" readonly="">
-
-
-
+                                <input class="form-control previous_application_number"
+                                    type="text"
+                                    id="previous_application_number"
+                                    name="previous_licence_no"
+                                    maxlength="15"
+                                    placeholder="Previous License Number"
+                                    value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}"
+                                    readonly>
                             </div>
 
-                            <!-- License Validity -->
+                            <!-- Licence Date of First Issue -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Date of First Issue <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_first_issue" name="previous_validity_first_issue" placeholder="Licence Date of First Issue"title="Select a date up to today" value="{{ old('previous_validity_first_issue', !empty($application->previous_validity_first_issue) ? \Carbon\Carbon::parse($application->previous_validity_first_issue)->format('d-m-Y') : '') }}" readonly="readonly">
+                                <input class="form-control previous_application_validity"
+                                    type="date"
+                                    id="previous_validity_first_issue"
+                                    name="previous_validity_first_issue"
+                                    value="{{ old('previous_validity_first_issue', !empty($application->previous_validity_first_issue) ? \Carbon\Carbon::parse($application->previous_validity_first_issue)->format('Y-m-d') : '') }}"
+                                    readonly>
                             </div>
 
+                            <!-- Licence Validity From -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Validity From <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_from" name="previous_validity_from" placeholder="Licence Validity From" 
-                                value="{{ old('previous_validity_from', !empty($application->previous_validity_from) ? \Carbon\Carbon::parse($application->previous_validity_from)->format('d-m-Y') : '') }}"
-                                readonly="readonly">
+                                <input class="form-control previous_application_validity"
+                                    type="date"
+                                    id="previous_validity_from"
+                                    name="previous_validity_from"
+                                    value="{{ old('previous_validity_from', !empty($application->previous_validity_from) ? \Carbon\Carbon::parse($application->previous_validity_from)->format('Y-m-d') : '') }}"
+                                    readonly>
                             </div>
 
-
+                            <!-- Licence Validity To -->
                             <div class="col-3 col-md-3">
                                 <label>Licence Validity To <span class="text-red">*</span></label>
-                                <input class="form-control previous_application_validity flatpickr-input" type="text" id="previous_validity_to" name="previous_validity_to" placeholder="Licence Validity To" 
-                                 value="{{ old('previous_validity_to', !empty($application->previous_validity_to) ? \Carbon\Carbon::parse($application->previous_validity_to)->format('d-m-Y') : '') }}"readonly="readonly">
+                                <input class="form-control previous_application_validity"
+                                    type="date"
+                                    id="previous_validity_to"
+                                    name="previous_validity_to"
+                                    value="{{ old('previous_validity_to', !empty($application->previous_validity_to) ? \Carbon\Carbon::parse($application->previous_validity_to)->format('Y-m-d') : '') }}"
+                                    readonly>
                             </div>
-
 
                         </div>
 
@@ -2895,58 +2912,8 @@ exit; -->
 
     @else
 
-        {{-- =====================================================
-             EXISTING APPLICATION
-             SHOW ONLY STAFF MATCHING verify_flag = '0'
-             EXCLUDE QC / QSC
-        ====================================================== --}}
-
-        @php
-            $pendingCertificateNumbers = collect($staff_store_tbl_0 ?? [])
-                ->map(function ($ccNo) {
-                    return strtoupper(trim((string) $ccNo));
-                })
-                ->filter()
-                ->unique()
-                ->values()
-                ->toArray();
-
-            $normalStaffs = collect($staffs ?? [])
-                ->filter(function ($staff) use ($pendingCertificateNumbers) {
-
-                    $category = strtoupper(trim(
-                        (string) ($staff->staff_category ?? '')
-                    ));
-
-                    $ccNo = strtoupper(trim(
-                        (string) ($staff->staff_cc_no ?? '')
-                    ));
-
-                    return !in_array($category, ['QC', 'QSC'], true)
-                        && ($staff->staff_flag ?? '1') == '1'
-                        && $ccNo !== ''
-                        && in_array(
-                            $ccNo,
-                            $pendingCertificateNumbers,
-                            true
-                        );
-                })
-                ->values();
-
-            $staff_count = $normalStaffs->count();
-        @endphp
-
-        <tbody id="staff-container">
-
-           
-{{-- =====================================================
-     EXISTING APPLICATION
-     SHOW ALL ACTIVE STAFF (staff_flag = 1)
-     ONLY verify_flag = 0 MATCHES ARE EDITABLE
-     EXCLUDE QC / QSC
-====================================================== --}}
-
-@php
+     
+      @php
     $pendingCertificateNumbers = collect($staff_store_tbl_0 ?? [])
         ->map(function ($ccNo) {
             return strtoupper(trim((string) $ccNo));
@@ -2963,6 +2930,20 @@ exit; -->
                 ['QC', 'QSC'],
                 true
             ) && ($staff->staff_flag ?? '0') == '1';
+        })
+        ->sortBy(function ($staff) {
+            $category = strtoupper(trim((string) ($staff->staff_category ?? '')));
+
+            $categoryOrder = [
+                'B'      => 1,
+                'C'      => 2,
+                'OTHERS' => 3,
+            ];
+
+            return [
+                $categoryOrder[$category] ?? 4,
+                (int) ($staff->id ?? 0)
+            ];
         })
         ->values();
 
@@ -2995,14 +2976,20 @@ exit; -->
             $rowIndex = $staff->row_index ?? ($i + 1);
         @endphp
 
-        <tr class="staff-fields"
+       <tr class="staff-fields {{ $isEditable ? 'table-warning' : '' }}"
             data-id="{{ $staff->id }}"
             data-row-index="{{ $rowIndex }}"
-            data-editable="{{ $isEditable ? '1' : '0' }}">
+            data-editable="{{ $isEditable ? '1' : '0' }}"
+            style="{{ $isEditable ? 'background-color: #fff3cd !important;' : '' }}">
 
             {{-- SERIAL NUMBER --}}
             <td>
                 {{ $i + 1 }}
+                 @if ($isEditable)
+                    <span class="badge bg-warning text-dark ms-1">
+                        <i class="fa fa-pencil"></i> Editable
+                    </span>
+                @endif
 
                 <input type="hidden"
                     name="row_index[{{ $i }}]"
@@ -3147,39 +3134,43 @@ exit; -->
                 <span class="error text-danger"></span>
             </td>
 
-            {{-- ACTION --}}
-            <td class="action-column">
+   {{-- ACTION --}}
+{{-- ACTION --}}
+<td class="action-column">
 
-                @if ($isEditable)
-                    <button type="button"
-                        class="btn btn-primary verify-otherstaff">
-                        Verify
-                    </button>
+    {{-- VERIFY: Only for B and C --}}
+    @if (in_array($category, ['B', 'C'], true))
+        <button type="button"
+            class="btn btn-primary verify-otherstaff">
+            Verify
+        </button>
+    @endif
 
-                    @if ($loop->last)
-                        <button type="button"
-                            class="btn btn-success addotherstaffs"
-                            onclick="addStaffRows()">
-                            + Add
-                        </button>
-                    @endif
+    {{-- REMOVE: Only editable rows, excluding first two B rows --}}
+    @if (
+        $isEditable &&
+        !(
+            $category === 'B' &&
+            $i < 2
+        )
+    )
+        <button type="button"
+            class="btn btn-danger removeotherStaffRow"
+            onclick="removeStaffRow(this)">
+            Remove
+        </button>
+    @endif
 
-                    @if ($i >= 2)
-                        <button type="button"
-                            class="btn btn-danger removeotherStaffRow"
-                            onclick="removeStaffRow(this)">
-                            Remove
-                        </button>
-                    @endif
-                @else
-                <button type="button"
-                class="btn btn-primary verify-otherstaff">
-                Verify
-            </button>
-          
-                @endif
+    {{-- ADD: Last row only --}}
+    @if ($loop->last)
+        <button type="button"
+            class="btn btn-success addotherstaffs"
+            onclick="addStaffRows()">
+            + Add
+        </button>
+    @endif
 
-            </td>
+</td>
 
             {{-- CERTIFICATE HOLDER --}}
             <td class="certificate-holder-column">
@@ -3699,15 +3690,11 @@ exit; -->
 
 
                             </div>
-                            <hr>
-                            <!-- ------------------------------------------------------- -->
-
-
-                            <hr>
+                           
 
 
                             </div>
-                            <hr>
+                     
                             <div class="row" style="display: none;">
                                 <div class="col-12 col-md-6 ">
                                     <div class="row align-items-center">
@@ -6014,6 +6001,17 @@ $(document).on("click", "#add-more-authority-name", function () {
                     return;
                 }
 
+                // Get the latest row index from the table
+                let lastRowIndex = 0;
+
+                $("#proprietor-section .pr_table_count table tbody tr").each(function () {
+                    let index = parseInt($(this).attr("data-row-index"), 10) || 0;
+
+                    if (index > lastRowIndex) {
+                        lastRowIndex = index;
+                    }
+                });
+
                 let nextRowIndex = lastRowIndex + 1;
 
                 resetproprietor(false);
@@ -6034,6 +6032,7 @@ $(document).on("click", "#add-more-authority-name", function () {
                 $section.find(".file-link, .age-file-link").html("");
 
                 $("#save_proprietor").text("Save");
+
                 $section.slideDown();
             });
 
@@ -6839,15 +6838,17 @@ $(document).on("click", "#add-more-authority-name", function () {
             }
 
             let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
+            let validityFromYMD = convertDDMMYYYYtoYMD(ccValidityFrom);
+            let validityToYMD = convertDDMMYYYYtoYMD(ccValidityTo);
 
-            $section.find("input[name='competency_certificate_first_issue[]']")
+           $section.find("input[name='competency_certificate_first_issue[]']")
                 .val(firstIssueYMD);
 
             $section.find("input[name='competency_certificate_validity_from[]']")
-                .val(ccValidityFrom);
+                .val(validityFromYMD);
 
             $section.find("input[name='competency_certificate_validity_to[]']")
-                .val(ccValidityTo);
+                .val(validityToYMD);
 
             console.log("CC First Issue from table:", ccFirstIssue);
             console.log("CC First Issue for date input:", firstIssueYMD);
@@ -9502,6 +9503,13 @@ $(document).ready(function(){
             $(this).find("#add-director").prop("disabled", true);
             $(this).find(".update-director-row").prop("disabled", true);
             $(this).find(".remove-director-row").prop("disabled", true);
+
+            $(this).find(".removeotherStaffRow").prop("disabled", true);
+
+            $(this).find(".addotherstaffs").prop("disabled", true);
+
+
+
 
             // grey background
             $(this).find("input, textarea, select").css({

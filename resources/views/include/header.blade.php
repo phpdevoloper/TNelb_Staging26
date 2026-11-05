@@ -2055,67 +2055,7 @@ use Illuminate\Support\Facades\Auth;
                                 </div>
 
                             </div>
-                            {{-- <div class="form-group form_alt_css">
-                                <div class="row mb-2">
-                                    <div class="col-lg-12">
-                                        <label style="float: left;">Choose the Fields to Alter <span class="fill">*</span></label>
-
-                                    </div>
-
-                                    <div class="col-lg-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" id="qc-staff-table" name="return_reasons[]" value="qc-staff-table" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="qc-staff-table">1) QC/QSC Staff Details</label>
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="col-lg-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" id="staff_details" name="return_reasons[]" value="staff_details" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="staff_details">2) Other Staff Details</label>
-                                        </div>
-
-                                    </div>
-                                    <div class="col-lg-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" id="bank_solvency" name="return_reasons[]" value="bank_solvency" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="bank_solvency">3) Bank Solvency </label>
-                                        </div>
-
-                                    </div>
-
-                                    <div class="col-lg-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" id="authorized_signatory" name="return_reasons[]" value="authorized_signatory" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="authorized_signatory">4) Authorized Signatory </label>
-                                        </div>
-
-                                    </div>
-
-
-                                    <div class="col-lg-6">
-                                        <div class="form-check">
-                                            <input type="checkbox" id="equipments_details" name="return_reasons[]" value="equipments_details" class="form-check-input return-checkbox">
-                                            <label class="form-check-label" for="equipments_details">5) Equipments Details </label>
-                                        </div>
-
-                                    </div>
-
-
-
-                                </div>
-                                <span class="error text-danger" id="alter_fields_error"></span>
-
-                            </div> --}}
-
-
-
-
-
-
-
+                            
                         </form>
 
 

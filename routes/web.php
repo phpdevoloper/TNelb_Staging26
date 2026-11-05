@@ -318,6 +318,10 @@ Route::middleware(['auth'])->group(function () {
    Route::post('/save-qc-staff', [StaffController::class, 'saveQCStaff'])
     ->name('save.qc.staff');
 
+
+      Route::post('/save-qc-staff_alter', [StaffController::class, 'saveQCStaffAlter'])
+    ->name('save.qc.staff_alter');
+
     Route::post('/remove-qc-staff', [StaffController::class, 'removeQCStaff'])
     ->name('remove.qc.staff');
 
@@ -388,6 +392,9 @@ Route::post('/forma/storerenewal', [FormAController::class, 'storerenewal'])->na
 Route::put('/forma/update/{appl_id}', [FormAController::class, 'update'])->name('forma.update');
 
 Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->name('payment-receipt.pdf');
+
+Route::get('/payment-receipt_cl/{login_id}', [PDFFormAController::class, 'paymentDetails_cl'])->name('payment-receipt_cl.pdf');
+
 Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->name('generate.tamil.pdf');
 
 Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->name('generatea.pdf');

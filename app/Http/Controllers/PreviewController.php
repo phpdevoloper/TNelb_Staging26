@@ -77,8 +77,8 @@ class PreviewController extends BaseController
             ->get();
 
         $equipmentlist = DB::table('tnelb_equimentsuser_cl')
-            // ->where('login_id', Auth::user()->login_id)
             ->where('application_id', $application_id)
+            ->orderBy('equipment_id', 'ASC')
             ->get();
 
         $attachments_cl = DB::table('tnelb_attachments_cl')
@@ -173,16 +173,6 @@ class PreviewController extends BaseController
 
         $applicant_data->ownership_doc_url = $this->previewFileUrl($applicant_data->ownership_doc ?? null);
 
-        $documentCards = $this->previewDocumentCards(
-            $applicant_data,
-            $documents,
-            $cl_ownership_table,
-            $staffdetails,
-            $addressproof,
-            $banksolvency,
-            $attachments_cl,
-            $equipmentlist
-        );
 
         $printRoute = match (strtoupper(trim((string) ($applicant_data->form_name ?? '')))) {
             'A' => 'generatea.pdf',
@@ -216,85 +206,8 @@ class PreviewController extends BaseController
             'clDigitization',
             'Qcstaffs',
             'applicantUser',
-            'documentCards',
             'printUrl'
         ));
-    }
-
-    private function previewDocumentCards($applicant, $documents, $owners, $staffdetails, $addressproof, $banksolvency, $attachments, $equipmentlist): array
-    {
-        $push = function (array &$bucket, ?string $label, ?string $path) {
-            $url = $this->previewFileUrl($path);
-            if ($url === null || $label === null || $label === '') {
-                return;
-            }
-            foreach ($bucket as $existing) {
-                if ($existing['url'] === $url) {
-                    return;
-                }
-            }
-            $bucket[] = ['label' => $label, 'url' => $url];
-        };
-
-        $aadhaar = [];
-        $address = [];
-        $education = [];
-        $experience = [];
-        $other = [];
-
-        $push($aadhaar, 'Aadhaar Card', $documents?->aadhaar_doc ?? null);
-        $push($aadhaar, 'Aadhaar Card', $applicant->aadhaar_doc ?? null);
-
-        $push($address, 'Address Proof', $addressproof?->file_doc ?? null);
-
-        foreach ($owners as $owner) {
-            $who = trim((string) ($owner->proprietor_name ?? 'Owner'));
-            $push($education, 'Education Certificate — ' . $who, $owner->educational_proof ?? null);
-        }
-
-        foreach ($staffdetails as $staff) {
-            $who = trim((string) ($staff->staff_name ?? 'Staff'));
-            foreach (['appointment_letter', 'consent_letter', 'app_doc', 'cons_doc'] as $column) {
-                $value = $staff->{$column} ?? null;
-                if (!is_string($value) || !preg_match('/\.pdf|\/|\\\\/i', $value)) {
-                    continue;
-                }
-                $push($experience, 'Experience Certificate — ' . $who, $value);
-            }
-        }
-
-        $push($other, 'Ownership Document', $applicant->ownership_doc ?? null);
-        $push($other, 'Bank Solvency', $banksolvency?->bank_doc ?? null);
-        $push($other, 'PAN Card', $documents?->pancard_doc ?? $applicant->pan_doc ?? null);
-        $push($other, 'GST Document', $documents?->gst_doc ?? $applicant->gst_doc ?? null);
-
-        $attachmentLabels = [
-            'separatesheet' => 'Separate Sheet',
-            'ccholders' => 'CC Holders',
-            'criminaloffence' => 'Criminal Offence',
-            'consentletter' => 'Consent Letter',
-            'specimensignature' => 'Specimen Signature',
-        ];
-        foreach ($attachments as $attachment) {
-            $type = strtolower(trim((string) ($attachment->type ?? '')));
-            $label = $attachmentLabels[$type] ?? 'Other Document';
-            $push($other, $label, $attachment->file_doc ?? null);
-        }
-
-        foreach ($equipmentlist as $equipment) {
-            $serial = trim((string) ($equipment->serial_no ?? ''));
-            $suffix = $serial !== '' ? ' (' . $serial . ')' : '';
-            $push($other, 'Test Report' . $suffix, $equipment->testreport_file ?? null);
-            $push($other, 'Purchase Report' . $suffix, $equipment->purchasereport_file ?? null);
-        }
-
-        return [
-            ['key' => 'aadhaar', 'title' => 'Aadhaar Card', 'files' => $aadhaar],
-            ['key' => 'address', 'title' => 'Address Proof', 'files' => $address],
-            ['key' => 'education', 'title' => 'Education Certificate', 'files' => $education],
-            ['key' => 'experience', 'title' => 'Experience Certificate', 'files' => $experience],
-            ['key' => 'other', 'title' => 'Other Documents', 'files' => $other],
-        ];
     }
 
     private function previewFileUrl(?string $path): ?string

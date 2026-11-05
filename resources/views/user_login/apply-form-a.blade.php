@@ -363,9 +363,6 @@ exit; -->
                     @endif
 
 
-
-
-
                     <div class="row align-items-center head_label mt-2">
                         <div class="col-12 col-md-12 title_bar">
                             <label>3) Ownership Type - Proprietor / Partners / Directors Details<span
@@ -618,8 +615,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -1144,8 +1141,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -1711,8 +1708,8 @@ exit; -->
                                                     <td data-competency="{{ $p->competency_certificate_holding }}"
                                                         data-certno="{{ $p->competency_certificate_number }}"
                                                         data-ccfirstissue="{{ $p->competency_certificate_first_issue ? \Carbon\Carbon::parse($p->competency_certificate_first_issue)->format('Y-m-d') : '' }}"
-                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('d-m-Y') : '' }}"
-                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('d-m-Y') : '' }}">
+                                                        data-ccvalidityfrom="{{ $p->competency_certificate_validity_from ? \Carbon\Carbon::parse($p->competency_certificate_validity_from)->format('Y-m-d') : '' }}"
+                                                        data-ccvalidityto="{{ $p->competency_certificate_validity_to ? \Carbon\Carbon::parse($p->competency_certificate_validity_to)->format('Y-m-d') : '' }}">
 
                                                         @if ($p->competency_certificate_holding == 'yes')
                                                             Yes - CC_No: {{ $p->competency_certificate_number }},
@@ -2573,23 +2570,8 @@ exit; -->
                                             @endfor
 
 
-                                            {{-- IMPORTANT:
-                     DO NOT PUT FEE ROW HERE.
-                     JavaScript will create it as the LAST row.
-                --}}
-
                                         </tbody>
-                                          {{-- <tfoot>
-        <tr>
-            <td colspan="2" class="text-end">
-                <strong>Total Fee</strong>
-            </td>
-
-            <td>
-                <strong id="qc-total-fee">0</strong>
-            </td>
-        </tr>
-    </tfoot> --}}
+      
 
                                     @endif
 
@@ -3007,11 +2989,25 @@ exit; -->
                                                         REMOVE QC / QSC
                                                         ========================================================= --}}
 
-                                        @php
+                                      @php
                                             $normalStaffs = collect($staffs ?? [])
                                                 ->filter(function ($staff) {
                                                     return !in_array($staff->staff_category ?? '', ['QC', 'QSC']) &&
                                                         ($staff->staff_flag ?? '1') == '1';
+                                                })
+                                                ->sortBy(function ($staff) {
+                                                    $categoryOrder = [
+                                                        'B'      => 1,
+                                                        'C'      => 2,
+                                                        'OTHERS' => 3,
+                                                    ];
+
+                                                    return sprintf(
+                                                        '%d-%010d-%010d',
+                                                        $categoryOrder[$staff->staff_category ?? ''] ?? 4,
+                                                        (int) ($staff->row_index ?? 0),
+                                                        (int) ($staff->id ?? 0)
+                                                    );
                                                 })
                                                 ->values();
 
@@ -3042,44 +3038,50 @@ exit; -->
                                                             class="form-control row_index">
                                                     </td>
 
-                                                    <td>
+                                                   <td>
 
-                                                        @if ($i < 2)
-                                                            <input type="hidden"
-                                                                name="staff_category[{{ $i }}]"
-                                                                value="B" class="staff_category">
+                                                    @if ($i < 2 && (!$staff || $category === 'B'))
+                                                        {{-- First two mandatory B staff --}}
+                                                        <input type="hidden"
+                                                            name="staff_category[{{ $i }}]"
+                                                            value="B"
+                                                            class="staff_category">
 
-                                                            <input type="text" class="form-control"
-                                                                value="B" readonly>
-                                                        @else
-                                                            <select class="form-control staff_category"
-                                                                name="staff_category[{{ $i }}]">
+                                                        <input type="text"
+                                                            class="form-control"
+                                                            value="B"
+                                                            readonly>
+                                                    @else
 
-                                                                <option value="">Select Category</option>
+                                                        <select class="form-control staff_category"
+                                                            name="staff_category[{{ $i }}]">
 
-                                                                <option value="B"
-                                                                    {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
-                                                                    B
-                                                                </option>
+                                                            <option value="">Select Category</option>
 
-                                                                <option value="C"
-                                                                    {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
-                                                                    C
-                                                                </option>
+                                                            <option value="B"
+                                                                {{ old('staff_category.' . $i, $category) == 'B' ? 'selected' : '' }}>
+                                                                B
+                                                            </option>
 
-                                                                <option value="OTHERS"
-                                                                    {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
-                                                                    OTHERS
-                                                                </option>
+                                                            <option value="C"
+                                                                {{ old('staff_category.' . $i, $category) == 'C' ? 'selected' : '' }}>
+                                                                C
+                                                            </option>
 
-                                                            </select>
-                                                        @endif
+                                                            <option value="OTHERS"
+                                                                {{ old('staff_category.' . $i, $category) == 'OTHERS' ? 'selected' : '' }}>
+                                                                OTHERS
+                                                            </option>
 
-                                                        <span class="error text-danger">
-                                                            {{ $errors->first('staff_category.' . $i) }}
-                                                        </span>
+                                                        </select>
 
-                                                    </td>
+                                                    @endif
+
+                                                    <span class="error text-danger">
+                                                        {{ $errors->first('staff_category.' . $i) }}
+                                                    </span>
+
+                                                </td>
 
 
 
@@ -6079,6 +6081,17 @@ function toggleCompetencyFields(type, show) {
                     return;
                 }
 
+                // Get the latest row index from the table
+                let lastRowIndex = 0;
+
+                $("#proprietor-section .pr_table_count table tbody tr").each(function () {
+                    let index = parseInt($(this).attr("data-row-index"), 10) || 0;
+
+                    if (index > lastRowIndex) {
+                        lastRowIndex = index;
+                    }
+                });
+
                 let nextRowIndex = lastRowIndex + 1;
 
                 resetproprietor(false);
@@ -6099,6 +6112,7 @@ function toggleCompetencyFields(type, show) {
                 $section.find(".file-link, .age-file-link").html("");
 
                 $("#save_proprietor").text("Save");
+
                 $section.slideDown();
             });
 
@@ -6904,15 +6918,17 @@ function toggleCompetencyFields(type, show) {
             }
 
             let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
+            let validityFromYMD = convertDDMMYYYYtoYMD(ccValidityFrom);
+            let validityToYMD = convertDDMMYYYYtoYMD(ccValidityTo);
 
-            $section.find("input[name='competency_certificate_first_issue[]']")
+           $section.find("input[name='competency_certificate_first_issue[]']")
                 .val(firstIssueYMD);
 
             $section.find("input[name='competency_certificate_validity_from[]']")
-                .val(ccValidityFrom);
+                .val(validityFromYMD);
 
             $section.find("input[name='competency_certificate_validity_to[]']")
-                .val(ccValidityTo);
+                .val(validityToYMD);
 
             console.log("CC First Issue from table:", ccFirstIssue);
             console.log("CC First Issue for date input:", firstIssueYMD);
@@ -8477,115 +8493,87 @@ if (qual_proof) {
 
              // ================= QUALIFICATION PROOF =================
 
-            let existingFileUrl = $.trim(
-                $section.attr("data-existing-file") || ""
-            );
 
-            let presentFile = $.trim(
-                $section.attr("data-present-file") || ""
-            );
-
-            let fileInput = $section.find("input[name='qual_proof[]']")[0];
-
-            let hasNewFile = !!(
-                fileInput &&
-                fileInput.files &&
-                fileInput.files.length > 0
-            );
-
-            let finalFileUrl = "";
-
-            if (hasNewFile) {
-                finalFileUrl = $.trim(window.uploadedFilePath || "");
-
-
-            if (!hasExistingFile && !hasPresentFile && !hasNewFile) {
-
-            if (!finalFileUrl) {
-                setError(
-                    $section.find("input[name='qual_proof[]']"),
-                    "Please upload Qualification proof"
-                );
-            }
-
-
-            let uploadedFilePath =
-                window.uploadedFilePath || "";
-
-            let finalFileUrl = "";
-
-            if (hasNewFile && uploadedFilePath) {
-
-                finalFileUrl = uploadedFilePath;
-
-            } else if (hasExistingFile) {
-
-                finalFileUrl = existingFileUrl;
-
-            } else if (hasPresentFile) {
-
-                finalFileUrl = presentFile;
-            }
-
-
-            // ================= AGE PROOF =================
-
-            let existingAgeFile = $.trim(
-                $section.attr("data-existing-age-file") || ""
-            );
-
-            let presentAgeFile = $.trim(
-                $section.attr("data-present-age-file") || ""
-            );
-
-            let ageFileInput = $section.find("input[name='age_proof[]']")[0];
-
-            let hasNewAgeFile = !!(
-                ageFileInput &&
-                ageFileInput.files &&
-                ageFileInput.files.length > 0
-            );
-
-            let finalAgeFileUrl = "";
-
-            if (hasNewAgeFile) {
-                finalAgeFileUrl = $.trim(window.uploadedAgeFilePath || "");
-
-
-            if (
-                !hasExistingAgeFile &&
-                !hasPresentAgeFile &&
-                !hasNewAgeFile
-            ) {
-
-            if (!finalAgeFileUrl) {
-                setError(
-                    $section.find("input[name='age_proof[]']"),
-                    "Please upload Age proof"
+                let existingFileUrl = $.trim(
+                    $section.attr("data-existing-file") || ""
                 );
 
-                isValid = false;
-            }
+                let presentFile = $.trim(
+                    $section.attr("data-present-file") || ""
+                );
+
+                let fileInput = $section.find("input[name='qual_proof[]']")[0];
+
+                let hasNewFile = !!(
+                    fileInput &&
+                    fileInput.files &&
+                    fileInput.files.length > 0
+                );
+
+                let uploadedFilePath = $.trim(window.uploadedFilePath || "");
+
+                let finalFileUrl = "";
+
+                if (hasNewFile) {
+                    finalFileUrl = uploadedFilePath;
+                } else if (existingFileUrl) {
+                    finalFileUrl = existingFileUrl;
+                } else if (presentFile) {
+                    finalFileUrl = presentFile;
+                }
+
+                if (!finalFileUrl) {
+                    setError(
+                        $section.find("input[name='qual_proof[]']"),
+                        hasNewFile
+                            ? "Qualification proof upload is still processing. Please try again."
+                            : "Please upload Qualification proof"
+                    );
+                }
 
 
-            let uploadedAgeFilePath =
-                window.uploadedAgeFilePath || "";
+                // =====================================================
+                // AGE PROOF
+                // =====================================================
 
-            let finalAgeFileUrl = "";
+                let existingAgeFile = $.trim(
+                    $section.attr("data-existing-age-file") || ""
+                );
 
-            if (hasNewAgeFile && uploadedAgeFilePath) {
+                let presentAgeFile = $.trim(
+                    $section.attr("data-present-age-file") || ""
+                );
 
-                finalAgeFileUrl = uploadedAgeFilePath;
+                let ageFileInput = $section.find("input[name='age_proof[]']")[0];
 
-            } else if (hasExistingAgeFile) {
+                let hasNewAgeFile = !!(
+                    ageFileInput &&
+                    ageFileInput.files &&
+                    ageFileInput.files.length > 0
+                );
 
-                finalAgeFileUrl = existingAgeFile;
+                let uploadedAgeFilePath = $.trim(
+                    window.uploadedAgeFilePath || ""
+                );
 
-            } else if (hasPresentAgeFile) {
+                let finalAgeFileUrl = "";
 
-                finalAgeFileUrl = presentAgeFile;
-            }
+                if (hasNewAgeFile) {
+                    finalAgeFileUrl = uploadedAgeFilePath;
+                } else if (existingAgeFile) {
+                    finalAgeFileUrl = existingAgeFile;
+                } else if (presentAgeFile) {
+                    finalAgeFileUrl = presentAgeFile;
+                }
 
+                if (!finalAgeFileUrl) {
+                    setError(
+                        $section.find("input[name='age_proof[]']"),
+                        hasNewAgeFile
+                            ? "Age proof upload is still processing. Please try again."
+                            : "Please upload Age proof"
+                    );
+                }
             // ===========================
             // FATHER NAME
             // ===========================

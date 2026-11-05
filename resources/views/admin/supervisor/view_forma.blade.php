@@ -116,6 +116,7 @@
 .app-view-table-wrap {
     padding: 0 1rem 1rem;
 }
+
 </style>
 
 <div id="content" class="main-content">
@@ -204,12 +205,9 @@
                                    
 
                                         <td>
-                                            <a href="{{ route('admin.applicants_detail_forma', ['applicant_id' => $application->application_id]) }}">
+                                            <a href="{{ route('admin.applicants_detail_forma_preview', ['applicant_id' => $application->application_id]) }}" target="_blank" rel="noopener">
                                                 {{ $application->application_id }}
                                             </a>
-
-                                        
-                                           
                                         </td>
                                         <td>{{ $application->applicant_name }}</td>
                                         {{-- <td>{{ $application->form_name }}</td> --}}
@@ -217,12 +215,11 @@
                                         <td>Success</td>
                                         <td>{{ \Carbon\Carbon::parse($application->dt_submit)->format('d-m-Y h:i A') }}</td>
                                         <td>
-                                            <a href="{{ route('admin.applicants_detail_forma', ['applicant_id' => $application->application_id]) }}">
-                                                <button class="btn btn-primary">
-                                                    <i class="fa fa-eye"></i>
-                                                </button>
-                                            </a>
-                                          
+                                        <a href="{{ route('admin.applicants_detail_forma', ['applicant_id' => $application->application_id]) }}">
+                                            <button class="btn btn-primary">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                        </a>
                                         </td>
                                     </tr>
                                     @endforeach

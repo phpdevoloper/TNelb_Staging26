@@ -472,8 +472,6 @@ class LoginController extends Controller
 
                     if ($staff->role_id == '1') {
 
-
-
                         // recent modify for count form A
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
@@ -624,6 +622,7 @@ class LoginController extends Controller
             })
             ->values()
             ->all();
+            
 
         $formColors = [
             'C'   => 'bg-yellow',
@@ -695,8 +694,6 @@ class LoginController extends Controller
         $contractorCards = $contractorCardsCollection->all();
 
         // dd($contractorCards);exit;
-
-
 
         $amendmentCards = $amendmentCardsCollection->all();
 
@@ -2238,6 +2235,16 @@ class LoginController extends Controller
     // -----------------form A -------------------
     public function applicants_detail_forma($applicant_id)
     {
+        return view('admin.dashboard.applicants_detail_forma', $this->formADetailData($applicant_id));
+    }
+
+    public function applicants_detail_forma_preview($applicant_id)
+    {
+        return view('admin.dashboard.applicants_detail_forma_preview', $this->formADetailData($applicant_id));
+    }
+
+    private function formADetailData(string $applicant_id): array
+    {
 
         $returnForwardUser = null;
 
@@ -2247,24 +2254,30 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        $applicantQuery1 = DB::table('ccl_forma_meta')
-            ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
-            ->where('ccl_forma_meta.application_id', $applicant_id)
-            ->select(
-                'ccl_forma_meta.*',
-                'payments.transaction_id',
-                'payments.payment_status',
-                'payments.amount',
-                'payments.payment_mode',
-                'payments.created_at as payment_date',
-                'payments.application_fee',
-                'payments.late_fee',
-            );
+     $applicantQuery1 = DB::table('ccl_forma_meta')
+        ->leftJoin('payments', function ($join) {
+            $join->on('ccl_forma_meta.application_id', '=', 'payments.application_id')
+                ->whereRaw('payments.id = (
+                    SELECT MAX(p2.id)
+                    FROM payments p2
+                    WHERE p2.application_id = ccl_forma_meta.application_id
+                )');
+        })
+        ->where('ccl_forma_meta.application_id', $applicant_id)
+        ->select(
+            'ccl_forma_meta.*',
+            'payments.transaction_id',
+            'payments.payment_status',
+            'payments.amount',
+            'payments.payment_mode',
+            'payments.created_at as payment_date',
+            'payments.application_fee',
+            'payments.late_fee'
+        );
 
-        $applicant = $applicantQuery1
-            // ->unionAll($applicantQuery2)
-            ->orderByDesc('dt_submit')
-            ->first();
+    $applicant = $applicantQuery1
+        ->orderByDesc('ccl_forma_meta.dt_submit')
+        ->first();
 
         $appl_type = trim($applicant->appl_type);
 
@@ -2561,15 +2574,9 @@ class LoginController extends Controller
         $staff_checklist = DB::table('cl_staff_detail_adminstore')->where('application_id', $applicant_id)
             ->get();
 
-        $view = match ($staff->name) {
-            'President'  => 'admin.dashboard.applicants_detail_forma',
-            'Secretary'  => 'admin.dashboard.applicants_detail_forma',
-            'Supervisor' => 'admin.dashboard.applicants_detail_forma',
-            // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-            'Assistant Secretary'    => 'admin.dashboard.applicants_detail_forma',
-
-            default      => abort(403, 'Unauthorized'),
-        };
+        if (! in_array($staff->name, ['President', 'Secretary', 'Supervisor', 'Assistant Secretary'], true)) {
+            abort(403, 'Unauthorized');
+        }
         $staffVerifyList = $staff_checklist
             ->whereNotNull('staff_cc_no')
             ->pluck('verify_flag', 'staff_cc_no')
@@ -2598,17 +2605,19 @@ class LoginController extends Controller
                 ->get();
 
                 // dd($authoritysignatory); exit;
+
+                // dd($applicant); exit;
         
-        $applicant->appl_type = match(trim($applicant->appl_type)) {
-            'N' => 'New',
-            'R' => 'Renewal',
-            'D' => 'Digitisation',
-            'A' => 'Alteration',
-            default => $applicant->appl_type,
-        };
+        // $applicant->appl_type = match(trim($applicant->appl_type)) {
+        //     'N' => 'New',
+        //     'R' => 'Renewal',
+        //     'D' => 'Digitisation',
+        //     'A' => 'Alteration',
+        //     default => $applicant->appl_type,
+        // };
         
 
-        return view($view, compact(
+        return compact(
             'applicant',
             'cl_ownership_table',
             'staffdetails',
@@ -2640,7 +2649,7 @@ class LoginController extends Controller
             'maxQcValidityDate',
             'cl_digitization', 'authoritysignatory'
 
-        ));
+        );
     }
 
 

@@ -2958,7 +2958,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         }
     });
 
-// --------------------- alteration_clSubmit --------------------
+
 // --------------------- alteration_clSubmit --------------------
 $(document).on('click', '#alteration_clSubmit', function () {
 
@@ -2980,7 +2980,7 @@ $(document).on('click', '#alteration_clSubmit', function () {
     // Redirect to forma_alter()
     let url = "{{ route('forma_alter') }}";
 
-    url += '?application_id=' + encodeURIComponent(applicationId);
+    url += '?old_applicationid=' + encodeURIComponent(applicationId);
     url += '&license_number=' + encodeURIComponent(licenseNumber);
 
     window.location.href = url;
