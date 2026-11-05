@@ -2235,6 +2235,16 @@ class LoginController extends Controller
     // -----------------form A -------------------
     public function applicants_detail_forma($applicant_id)
     {
+        return view('admin.dashboard.applicants_detail_forma', $this->formADetailData($applicant_id));
+    }
+
+    public function applicants_detail_forma_preview($applicant_id)
+    {
+        return view('admin.dashboard.applicants_detail_forma_preview', $this->formADetailData($applicant_id));
+    }
+
+    private function formADetailData(string $applicant_id): array
+    {
 
         $returnForwardUser = null;
 
@@ -2564,15 +2574,9 @@ class LoginController extends Controller
         $staff_checklist = DB::table('cl_staff_detail_adminstore')->where('application_id', $applicant_id)
             ->get();
 
-        $view = match ($staff->name) {
-            'President'  => 'admin.dashboard.applicants_detail_forma',
-            'Secretary'  => 'admin.dashboard.applicants_detail_forma',
-            'Supervisor' => 'admin.dashboard.applicants_detail_forma',
-            // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-            'Assistant Secretary'    => 'admin.dashboard.applicants_detail_forma',
-
-            default      => abort(403, 'Unauthorized'),
-        };
+        if (! in_array($staff->name, ['President', 'Secretary', 'Supervisor', 'Assistant Secretary'], true)) {
+            abort(403, 'Unauthorized');
+        }
         $staffVerifyList = $staff_checklist
             ->whereNotNull('staff_cc_no')
             ->pluck('verify_flag', 'staff_cc_no')
@@ -2613,7 +2617,7 @@ class LoginController extends Controller
         // };
         
 
-        return view($view, compact(
+        return compact(
             'applicant',
             'cl_ownership_table',
             'staffdetails',
@@ -2645,7 +2649,7 @@ class LoginController extends Controller
             'maxQcValidityDate',
             'cl_digitization', 'authoritysignatory'
 
-        ));
+        );
     }
 
 
