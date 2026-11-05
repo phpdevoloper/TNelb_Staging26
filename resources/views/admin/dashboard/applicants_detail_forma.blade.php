@@ -1308,12 +1308,9 @@
 
 
 
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }},
-
-                                                                    {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }},
 
 
-
+                                                                @endif
                                                                 </p>
 
                                                         </div>
@@ -2519,6 +2516,8 @@
             </div>
         </div>
     </div>
+</div>
+</div>
 </div>
 
 
