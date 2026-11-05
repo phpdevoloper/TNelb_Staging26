@@ -356,7 +356,6 @@
                                                                 </p>
 
                                                         </div>
-                                                        @endif
                                                         
 
 
@@ -369,7 +368,6 @@
                                         </div>
 
                                     </div>
-                                </div>
 
                                 <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel"
                                     aria-labelledby="profile-tab" tabindex="0">
@@ -491,11 +489,9 @@
                                             <thead>
                                                 <tr>
                                                     <th>Staff Name</th>
-                                                    <th>Competency Certificate Number <br> Certificate First Issue ,
-                                                        <br>Validity From<br> Validity To</th>
+                                                    <th>Competency Certificate Number</th>
                                                     <th>Certificate First Issue , <br>Validity From<br> Validity To</th>
                                                     <th>Attachments</th>
-                                                    <th>History of Staff</th>
                                                     <th>Verify</th>
                                                 </tr>
                                             </thead>
@@ -518,19 +514,6 @@
                                                                 <a href="{{ asset($staff->cons_doc) }}"
                                                                     target="_blank">Consent Letter</a>
                                                             </div>
-                                                        </td>
-                                                        <td>
-                                                            @if (!empty($staff->staff_cc_no))
-                                                                <button type="button"
-                                                                    class="btn btn-primary verify-staff"
-                                                                    data-license="{{ $staff->staff_cc_no }}"
-                                                                    data-dateofissue="{{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }}"
-                                                                    data-validfrom="{{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') : '' }}"
-                                                                    data-validto="{{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') : '' }}">
-
-                                                                    View History
-                                                                </button>
-                                                            @endif
                                                         </td>
                                                         <td class="text-center">
 
@@ -580,10 +563,8 @@
                                                 <tr>
 
                                                     <th>Staff Category </th>
-                                                    <th>Staff Name <br> CC Number <br>CC First Issue , <br>Validity
-                                                        From<br> Validity To</th>
-                                                    <th>History of Staff
-                                                    </th>
+                                                    <th>Staff Name,CC Number</th>
+                                                    <th>CC First Issue , <br>Validity From<br> Validity To</th>
                                                     <th class="text-center">Verify</th>
 
                                                 </tr>
@@ -619,35 +600,16 @@
                                                             @else
                                                                 {{ $staff->staff_name }}<br>
                                                                 {{ $staff->staff_cc_no }}<br>
-                                                                {{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }},<br>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            {{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }},<br>
 
 
                                                                 {{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') : '' }},<br>
 
 
                                                                 {{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') : '' }}
-                                                            @endif
-                                                        </td>
-
-
-                                                        <td>
-                                                            @if ($staff->staff_category != 'OTHERS')
-                                                                <button type="button"
-                                                                    class="btn btn-primary verify-otherstaff"
-                                                                    data-license="{{ $staff->staff_cc_no }}"
-                                                                    data-dateofissue="{{ $staff->staff_cc_first_issue ? \Carbon\Carbon::parse($staff->staff_cc_first_issue)->format('d-m-Y') : '' }}"
-                                                                    data-validfrom="{{ $staff->staff_cc_validity_from ? \Carbon\Carbon::parse($staff->staff_cc_validity_from)->format('d-m-Y') : '' }}"
-                                                                    data-validto="{{ $staff->staff_cc_validity_to ? \Carbon\Carbon::parse($staff->staff_cc_validity_to)->format('d-m-Y') : '' }}">
-
-                                                                    View History
-                                                                </button>
-
-
-
-
-
-                                                                <div class="history-result_staff mt-2"></div>
-                                                            @endif
                                                         </td>
 
                                                         <td class="text-center">
@@ -1179,3 +1141,4 @@
                             <button type="button" class="btn btn-primary _effect--ripple waves-effect waves-light">Save</button>
                         </div> -->
                 </div>
+</div>
