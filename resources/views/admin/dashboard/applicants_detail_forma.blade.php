@@ -1268,12 +1268,6 @@
                                                                  {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }}
 
 
-
-                                                                     {{ \Carbon\Carbon::parse($applicant->previous_validity_from)->format('d-m-Y') }},
-
-                                                                      {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }},
-
-
                                                            {{-- <div class="col-lg-12 col-12 d-flex align-items-center">
                                                             <div class="verify-result_EA "></div>  <!-- Result on left -->
                                                             <button class="btn btn-sm btn-primary verify-btn_EA"
@@ -1289,7 +1283,6 @@
 
 
 
-                                                             </div>
                                                                 @endif
                                                                 </p>
 
@@ -2500,6 +2493,7 @@
         </div>
         </div>
     </div>
+</div>
 </div>
 </div>
 

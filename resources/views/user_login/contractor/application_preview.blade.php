@@ -1099,16 +1099,28 @@
             <div class="apd-panel-body">
                 <dl class="apd-basic apd-basic-wide">
                     <div>
-                        <dt>Document</dt>
-                        <dd><span>:</span>
-                            @if(!empty($attachmentByType['criminaloffence']->file_doc_url))
-                                <a href="{{ $attachmentByType['criminaloffence']->file_doc_url }}" class="apd-pdf" target="_blank" rel="noopener">
-                                    <i class="fa fa-file-pdf-o" aria-hidden="true"></i>
-                                </a>
-                            @else
-                                —
+                        @if (Str::upper($applicant_data->criminal_offence) == 'YES')
+                            <dt>
+                                <span class="apd-badge apd-badge-success">{{ Str::upper($applicant_data->criminal_offence) }}</span>
+                            </dt>
+
+                            @if (!empty($attachmentByType['criminaloffence']->file_doc_url))
+                                <dd>
+                                    <span>:</span>
+                                    <a href="{{ $attachmentByType['criminaloffence']->file_doc_url }}"
+                                    target="_blank"
+                                    rel="noopener">
+                                        View Document
+                                        <i class="fa fa-file-pdf-o apd-pdf" aria-hidden="true"></i>
+                                    </a>
+                                </dd>
                             @endif
-                        </dd>
+                        @else
+                                <dt>
+                                    <span class="apd-badge apd-badge-danger">{{ Str::upper($applicant_data->criminal_offence) }}</span>
+                                </dt>
+                                <dd><span>:</span> —</dd>
+                        @endif
                     </div>
                 </dl>
             </div>
