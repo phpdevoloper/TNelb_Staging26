@@ -2244,24 +2244,30 @@ class LoginController extends Controller
             return abort(403, 'Unauthorized');
         }
 
-        $applicantQuery1 = DB::table('ccl_forma_meta')
-            ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
-            ->where('ccl_forma_meta.application_id', $applicant_id)
-            ->select(
-                'ccl_forma_meta.*',
-                'payments.transaction_id',
-                'payments.payment_status',
-                'payments.amount',
-                'payments.payment_mode',
-                'payments.created_at as payment_date',
-                'payments.application_fee',
-                'payments.late_fee',
-            );
+     $applicantQuery1 = DB::table('ccl_forma_meta')
+        ->leftJoin('payments', function ($join) {
+            $join->on('ccl_forma_meta.application_id', '=', 'payments.application_id')
+                ->whereRaw('payments.id = (
+                    SELECT MAX(p2.id)
+                    FROM payments p2
+                    WHERE p2.application_id = ccl_forma_meta.application_id
+                )');
+        })
+        ->where('ccl_forma_meta.application_id', $applicant_id)
+        ->select(
+            'ccl_forma_meta.*',
+            'payments.transaction_id',
+            'payments.payment_status',
+            'payments.amount',
+            'payments.payment_mode',
+            'payments.created_at as payment_date',
+            'payments.application_fee',
+            'payments.late_fee'
+        );
 
-        $applicant = $applicantQuery1
-            // ->unionAll($applicantQuery2)
-            ->orderByDesc('dt_submit')
-            ->first();
+    $applicant = $applicantQuery1
+        ->orderByDesc('ccl_forma_meta.dt_submit')
+        ->first();
 
         $appl_type = trim($applicant->appl_type);
 

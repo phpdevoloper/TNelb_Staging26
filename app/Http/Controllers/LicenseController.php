@@ -1127,9 +1127,54 @@ class LicenseController extends Controller
             ], 500);
         }
     }
+        public function check_ealicence_validity(Request $request)
+        {
+            try {
 
+                $result = DB::selectOne(
+                    "SELECT * FROM check_ealicence_validity(
+                        :form_code,
+                        :licence_no,
+                        :qc_validity,
+                        :bank_validity,
+                        :appl_type
+                    )",
+                    [
+                        'form_code'     => $request->form_name,
+                        'licence_no'    => $request->firstCertNo,
+                        'qc_validity'   => $request->qc_validity_date,
+                        'bank_validity' => $request->bank_validity,
+                        'appl_type'     => $request->appl_type,
+                    ]
+                );
 
-    public function check_ealicence_validity(Request $request)
+                // dd($result->licence_validitydate); exit;
+
+             $licenceValidityDate = !empty($result->licence_validitydate)
+               ? Carbon::parse($result->licence_validitydate)->subDay()
+                : null; 
+
+                    // dd($licenceValidityDate); exit;
+
+                    
+
+                return response()->json([
+                    'status'                => $result->status,
+                    'message'               => $result->based_on,
+                    'renewal_period'        => $result->renewal_period,
+                    'licence_validitydate'  => $licenceValidityDate,
+                ]);
+
+            } catch (\Exception $e) {
+
+                return response()->json([
+                    'status'  => 'ERROR',
+                    'message' => $e->getMessage()
+                ], 500);
+            }
+        }
+
+    public function check_ealicence_validity_bk05112026(Request $request)
     {
         //     dd($request->all());
         // exit;

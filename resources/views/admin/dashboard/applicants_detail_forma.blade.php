@@ -1306,15 +1306,11 @@
                                                                     ,
                                                                     {{ \Carbon\Carbon::parse($applicant->previous_validity_to)->format('d-m-Y') }}
 
-
-
-
-
                                                                 @endif
                                                                 </p>
 
                                                         </div>
-                                                        @endif
+                                                        
                                                         
 
 
@@ -1327,7 +1323,7 @@
                                         </div>
 
                                     </div>
-                                </div>
+                          
 
                                 <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel"
                                     aria-labelledby="profile-tab" tabindex="0">

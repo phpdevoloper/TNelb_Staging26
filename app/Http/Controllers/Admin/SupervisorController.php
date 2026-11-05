@@ -1826,6 +1826,9 @@ class SupervisorController extends Controller
                 }
 
                 $monthsToAdd = $validity->validity;
+
+
+                
             }
 
             // ======================================================
@@ -1958,9 +1961,14 @@ class SupervisorController extends Controller
                     : $now->copy();
 
                 // Old expiry + configured validity months.
+                // $configuredExpiry = $baseExpiry
+                //     ->copy()
+                //     ->addMonths($monthsToAdd);
+
                 $configuredExpiry = $baseExpiry
-                    ->copy()
-                    ->addMonths($monthsToAdd);
+                ->copy()
+                ->addMonths($monthsToAdd)
+                ->subDay();
 
                 // Collect configured, QC and bank validity dates.
                 $expiryDates = collect();
@@ -2085,56 +2093,86 @@ class SupervisorController extends Controller
                 ]);
             }
 
+
             // ======================================================
-            // N = NEW / FRESH APPLICATION
-            // ======================================================
+                // N = NEW / FRESH APPLICATION
+                // ======================================================
 
-            elseif ($appl_type === 'N') {
+                elseif ($appl_type === 'N') {
 
-                $expiryDates = collect();
+                    // Fresh application: use today's date as the base.
+                    $baseExpiry = $now->copy();
 
-                if (!empty($expiresAt)) {
-                    $expiryDates->push(Carbon::parse($expiresAt));
-                }
+                    // Add configured validity months.
+                    $configuredExpiry = $baseExpiry
+                        ->copy()
+                        ->addMonths($monthsToAdd)
+                        ->subDay();
 
-                if (!empty($request->qc_validity_date)) {
-                    $expiryDates->push(
-                        Carbon::parse($request->qc_validity_date)
-                    );
-                }
+                        
 
-                if (!empty($request->bank_validity)) {
-                    $expiryDates->push(
-                        Carbon::parse($request->bank_validity)
-                    );
-                }
+                    // Collect all expiry dates.
+                    $expiryDates = collect();
 
-                if ($expiryDates->isNotEmpty()) {
+                    $expiryDates->push($configuredExpiry);
+
+                    // QC validity.
+                    if (!empty($request->qc_validity_date)) {
+                        $expiryDates->push(
+                            Carbon::parse($request->qc_validity_date)
+                        );
+                    }
+
+                    // Bank validity.
+                    if (!empty($request->bank_validity)) {
+                        $expiryDates->push(
+                            Carbon::parse($request->bank_validity)
+                        );
+                    }
+
+                    // Select the earliest expiry date.
                     $expiresAt = $expiryDates
                         ->min()
                         ->toDateString();
+
+                    // Get existing application licence number.
+                    $newSerial = $application->license_number;
+
+                    if (empty($newSerial)) {
+                        $newSerial = $generateSerial($application->license_name);
+                    }
+
+                    // Prevent duplicate licence records.
+                    $alreadyExists = DB::table('cl_forma_lic')
+                        ->where('application_id', $request->application_id)
+                        ->exists();
+
+                    if (!$alreadyExists) {
+
+                        DB::table('cl_forma_lic')->insert([
+
+                            'application_id' => $request->application_id,
+
+                            'license_number' => $newSerial,
+
+                            'issued_by' => $request->roleid,
+
+                            'dateof_issue' => $issuedAt,
+
+                            'valid_from' => $now->format('Y-m-d'),
+
+                            'valid_to' => $expiresAt,
+
+                            'cert_status' => 'A',
+
+                            'cert_pdf' => '',
+
+                            'created_at' => $now,
+
+                            'updated_at' => $now,
+                        ]);
+                    }
                 }
-
-                $newSerial = $application->license_number;
-
-                if (empty($newSerial)) {
-                    $newSerial = $generateSerial($application->license_name);
-                }
-
-                DB::table('cl_forma_lic')->insert([
-
-                    'application_id' => $request->application_id,
-                    'license_number' => $newSerial,
-                    'issued_by'      => $request->roleid,
-                    'dateof_issue'   => $issuedAt,
-                    'valid_from'     => $issuedAt,
-                    'valid_to'       => $expiresAt,
-                    'cert_status'   => 'A',
-                    'cert_pdf'      => '',
-                    'created_at'    => $now,
-                    'updated_at'    => $now,
-                ]);
-            }
 
             // ======================================================
             // A = ALTERATION
