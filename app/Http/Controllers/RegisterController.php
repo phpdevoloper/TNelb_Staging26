@@ -220,7 +220,7 @@ class RegisterController extends BaseController
             'last_name' => 'required|string|max:50',
             'date_of_birth' => 'required|date|before:today',
             'gender' => 'required|string',
-            'mobile' => 'required|digits:10',
+            'mobile' => ['required', 'digits:10', Rule::unique('tnelb_registers', 'mobile')],
             'email' => [
                 'nullable',
                 'email',
@@ -250,11 +250,13 @@ class RegisterController extends BaseController
 
             $firstName = $validator->getData()['first_name'] ?? '';
             $lastName = $validator->getData()['last_name'] ?? '';
-            if ($firstName && $lastName) {
+            if ($firstName && $lastName && $dob && !$validator->errors()->has('date_of_birth')) {
                 $combinedName = strtoupper(preg_replace('/\s+/', '', $firstName . $lastName));
-                $existing = Register::whereRaw("UPPER(REPLACE(CONCAT(first_name, last_name), ' ', '')) = ?", [$combinedName])->first();
+                $existing = Register::whereRaw("UPPER(REPLACE(CONCAT(first_name, last_name), ' ', '')) = ?", [$combinedName])
+                    ->whereDate('date_of_birth', $dob)
+                    ->first();
                 if ($existing) {
-                    $validator->errors()->add('last_name', 'An applicant with the same name combination already exists. Please contact support if this is an error.');
+                    $validator->errors()->add('last_name', 'An applicant with the same name and date of birth is already registered.');
                 }
             }
         });

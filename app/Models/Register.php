@@ -20,6 +20,7 @@ class Register extends Model implements Authenticatable
         'salutation',
         'first_name',
         'last_name',
+        'date_of_birth',
         'gender',
         'mobile',
         'email',
