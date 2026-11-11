@@ -10,6 +10,7 @@ use App\Models\CC_Digitisation_Map;
 use App\Models\CC_Checklist_applicant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\RoleHelper;
 use App\Models\Admin\WorkflowA;
@@ -2272,6 +2273,8 @@ class SupervisorController extends Controller
 
             DB::commit();
 
+            $pdfStored = $this->storeFormALicencePdfs($request->application_id);
+
             // ======================================================
             // SUCCESS RESPONSE
             // ======================================================
@@ -2292,6 +2295,7 @@ class SupervisorController extends Controller
                 'issued_at'      => $issuedAt,
                 'expires_at'     => $expiresAt,
                 'digitisation'   => $digitisationMapping,
+                'pdf_stored'     => $pdfStored,
 
             ], 200);
         } catch (\Exception $e) {
@@ -3251,6 +3255,45 @@ class SupervisorController extends Controller
     /**
      * Resolve application for secretary/president approval — CC meta first, legacy fallback.
      */
+    private function storeFormALicencePdfs(string $applicationId): bool
+    {
+        $rowId = DB::table('cl_forma_lic')
+            ->where('application_id', $applicationId)
+            ->orderByDesc('id')
+            ->value('id');
+
+        if (!$rowId) {
+            return false;
+        }
+
+        try {
+            $licence = app(generateLicencepdfController::class);
+            $english = $licence->licencepdf_cl($applicationId, true);
+            $tamil   = $licence->licencepdf_cl_tamil($applicationId, true);
+
+            if (!$english) {
+                return false;
+            }
+
+            DB::table('cl_forma_lic')
+                ->where('id', $rowId)
+                ->update([
+                    'cert_pdf'   => Crypt::encryptString($english),
+                    'lic_pdf'    => $tamil ? Crypt::encryptString($tamil) : null,
+                    'updated_at' => now(),
+                ]);
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error('Form A licence PDF generation failed', [
+                'application_id' => $applicationId,
+                'error'          => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     private function resolveCompetencyApplicationForApproval(string $applicationId): ?object
     {
         $metaService = app(CompetencyMetaService::class);

@@ -1413,7 +1413,7 @@
 
                                                             @if (!empty($workflow->license_number) && $workflow->application_status == 'A')
 
-                                                                <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}"
+                                                                <a href="{{ route('admin.licencepdf_cl.stored', ['application_id' => $workflow->application_id]) }}"
                                                                 target="_blank">
 
                                                                     <span class="badge badge-info" style="font-size: 15px;">
