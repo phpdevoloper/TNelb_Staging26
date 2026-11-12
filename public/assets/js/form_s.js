@@ -78,7 +78,7 @@
         clearWorkRowUploadErrors($input.closest('.work-fields'));
     });
 
-    $(document).on('change', '#aadhaar_doc, #pancard_doc', function () {
+    $(document).on('change', '#pancard_doc', function () {
         var $input = $(this);
         clearLocalPreview($input);
         var file = this.files && this.files[0] ? this.files[0] : null;
@@ -596,10 +596,7 @@ function populatePreview() {
             : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
     }
 
-    setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
     setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-    var aDoc = document.getElementById('aadhaar_doc');
-    setVal('prv_aadhaar_doc', fileLabel(aDoc));
     var pDoc = document.getElementById('pancard_doc');
     setVal('prv_pan_doc', fileLabel(pDoc));
 }

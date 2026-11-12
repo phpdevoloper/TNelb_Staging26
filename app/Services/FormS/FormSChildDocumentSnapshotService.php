@@ -24,7 +24,6 @@ class FormSChildDocumentSnapshotService
     public static function identityProofNames(): array
     {
         return [
-            FormSProofDocumentService::PROOF_AADHAAR,
             FormSProofDocumentService::PROOF_PAN,
             FormSProofDocumentService::PROOF_PHOTO,
             FormSProofDocumentService::PROOF_SIGN,
@@ -83,7 +82,7 @@ class FormSChildDocumentSnapshotService
     }
 
     /**
-     * Copy PHOTO / SIGN / AADHAAR / PAN onto the child. Existing child paths
+     * Copy PHOTO / SIGN / PAN onto the child. Existing child paths
      * (new uploads) are kept. Missing child rows get the parent path string only.
      */
     public function copyParentIdentityProofsToChild(CC_CompetencyMeta $child): void

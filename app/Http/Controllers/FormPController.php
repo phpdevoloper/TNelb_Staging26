@@ -414,9 +414,6 @@ class FormPController extends BaseController
             $renewalForm = $viewData['application_details'] ?? null;
             $parentForm = TnelbFormP::where('application_id', $appl_id)->first();
             if ($renewalForm && $parentForm) {
-                if (empty($renewalForm->aadhaar_doc) && !empty($parentForm->aadhaar_doc)) {
-                    $renewalForm->aadhaar_doc = $parentForm->aadhaar_doc;
-                }
                 if (empty($renewalForm->pan_doc) && !empty($parentForm->pan_doc)) {
                     $renewalForm->pan_doc = $parentForm->pan_doc;
                 }
@@ -835,10 +832,6 @@ class FormPController extends BaseController
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_SIGNATURE])) {
             $request->files->remove('upload_sign');
         }
-        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
-            $request->files->remove('aadhaar_doc');
-            $request->merge(['aadhaar_doc_removed' => '0']);
-        }
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
             $request->files->remove('pancard_doc');
             $request->merge(['pancard_doc_removed' => '0']);
@@ -897,7 +890,6 @@ class FormPController extends BaseController
             ReturnedApplicationEditScope::SECTION_EXPERIENCE => ['qualifications'],
             ReturnedApplicationEditScope::SECTION_PHOTO => ['uploads'],
             ReturnedApplicationEditScope::SECTION_SIGNATURE => ['uploads'],
-            ReturnedApplicationEditScope::SECTION_AADHAAR_DOC => ['uploads'],
             ReturnedApplicationEditScope::SECTION_PAN_DOC => ['uploads'],
         ];
 
@@ -1020,18 +1012,10 @@ class FormPController extends BaseController
         $proof_doc = $applicant_sign;
 
         if (is_object($application_details)) {
-            $aadhaarPath = $proofService->resolveProofPath($appl_id, FormSProofDocumentService::PROOF_AADHAAR);
-            if ($aadhaarPath) {
-                $application_details->aadhaar_doc = $aadhaarPath;
-            }
             $panPath = $proofService->resolveProofPath($appl_id, FormSProofDocumentService::PROOF_PAN);
             if ($panPath) {
                 $application_details->pan_doc = $panPath;
                 $application_details->pancard_doc = $panPath;
-            }
-            $aadhaarNo = CC_Proof_doc::where('application_id', $appl_id)->where('proof_type', 'aadhaar')->value('proof_no');
-            if (! empty($aadhaarNo) && empty($application_details->aadhaar)) {
-                $application_details->aadhaar = $aadhaarNo;
             }
             $panNo = CC_Proof_doc::where('application_id', $appl_id)->where('proof_type', 'pan')->value('proof_no');
             if (! empty($panNo) && empty($application_details->pancard)) {

@@ -628,8 +628,6 @@
                 </div>
                 <div class="prv-fp-section-body">
                     <div class="prv-fp-id-grid">
-                        <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">Aadhaar Number</div><div class="prv-fp-value" id="prvFpAadhaar">—</div></div></div>
-                        <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">Aadhaar Document</div><div class="prv-fp-value" id="prvFpAadhaarDoc">—</div></div></div>
                         <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">PAN Number</div><div class="prv-fp-value" id="prvFpPan">—</div></div></div>
                         <div><div class="prv-fp-field mb-0"><div class="prv-fp-label">PAN Document</div><div class="prv-fp-value" id="prvFpPanDoc">—</div></div></div>
                     </div>

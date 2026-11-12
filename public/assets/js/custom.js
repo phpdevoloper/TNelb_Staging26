@@ -404,47 +404,7 @@ $(document).ready(function () {
 
         // Validate Date of Birth
 
-        const aadhaarInput = document.getElementById("aadhaar");
-        const aadhaarError = document.getElementById("aadhaar-error");
-
-        // get value, remove spaces, and trim
-        const aadhaar = aadhaarInput ? aadhaarInput.value.replace(/\s+/g, '').trim() : "";
-
-        const aadhaarRegex = /^[2-9]{1}[0-9]{11}$/;
-
-        if (aadhaarInput && aadhaarError && aadhaar !== '' && !aadhaarRegex.test(aadhaar)) {
-            aadhaarError.textContent =
-                "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
-            if (!firstErrorField) firstErrorField = aadhaar;
-            isValid = false;
-        } else if (aadhaarError) {
-            aadhaarError.textContent = "";
-        }
-
-        let aadhaarFileInput = $('#aadhaar_doc')[0];
-        if (aadhaarFileInput) {
-            if (aadhaarFileInput.files.length !== 0) {
-                const file = aadhaarFileInput.files[0];
-                const allowedType = 'application/pdf';
-                const maxSize = 250 * 1024; // 250 KB
-
-                if (file.type !== allowedType) {
-                    let errorMsg = $(
-                        '<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for Aadhaar document.</span>'
-                    );
-                    $('#aadhaar_doc').after(errorMsg);
-                    if (!firstErrorField) firstErrorField = $('#aadhaar_doc');
-                    isValid = false;
-                } else if (file.size > maxSize) {
-                    let errorMsg = $(
-                        '<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 250 KB.</span>'
-                    );
-                    $('#aadhaar_doc').after(errorMsg);
-                    if (!firstErrorField) firstErrorField = $('#aadhaar_doc');
-                    isValid = false;
-                }
-            }
-        }
+        // Aadhaar details removed
 
         // PAN details removed
 
@@ -726,29 +686,7 @@ $(document).ready(function () {
 
 
 
-    $(document).on('click', '.remove-docs', function () {
-        const $td = $(this).closest('td');
-        // Legacy pages could have a hidden .aadhaar-doc-input alongside the container (duplicate name="aadhaar_doc").
-        $td.find('.aadhaar-doc-input').remove();
-
-        let inputHtml = `
-            <div class="aadhaar-doc-input">
-                <input autocomplete="off" class="form-control text-box single-line" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                <span class="file-limit"> File type: PDF (Max 250 KB) </span>
-                <small class="text-danger file-error"></small>
-            </div>
-        `;
-
-        $(this).closest('.aadhaar-doc-container').replaceWith(inputHtml);
-
-        $('#aadhaar_doc_removed').val('1');
-    });
-
-    $(document).on('change', '#aadhaar_doc', function () {
-        if (this.files && this.files.length > 0) {
-            $('#aadhaar_doc_removed').val('0');
-        }
-    });
+    // Aadhaar document removed
 
     // PAN document removed
 

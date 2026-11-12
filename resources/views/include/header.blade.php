@@ -1460,7 +1460,7 @@ use Illuminate\Support\Facades\Auth;
                         </span>
                         <div>
                             <h5 class="modal-title" id="competencyInstructionsModalLabel">Form {{$form_name}} / Certificate {{$cert_name}} Digitization </h5>
-                            <small class="modal-subtitle">Please Enroll the current Certificate Details.</small>
+                            <small class="modal-subtitle">Enroll your Competency Certificate Details.</small>
                         </div>
                     </div>
                     {{-- <button type="button" class="modal-close-x" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">&times;</button> --}}
@@ -1484,8 +1484,8 @@ use Illuminate\Support\Facades\Auth;
                                             maxlength="20" autocomplete="off">
                                         @else
                                         <input type="text" class="form-control" id="digi_ccnumber" name="ccnumber"
-                                            placeholder="Enter certificate number (1–5 digits)"
-                                            inputmode="numeric" maxlength="5" pattern="[0-9]{1,5}" autocomplete="off">
+                                            placeholder="Enter certificate number (1–6 digits)"
+                                            inputmode="numeric" maxlength="6" pattern="[0-9]{1,6}" autocomplete="off">
                                         @endif
                                         <span class="error text-danger" id="ccnumber_error"></span>
                                     </div>

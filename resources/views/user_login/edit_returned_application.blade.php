@@ -902,7 +902,6 @@
         filter: grayscale(0.06);
     }
     .fs-section.fs-return-section-locked .btn-fs-change,
-    .fs-section.fs-return-section-locked .remove-aadhaar-doc,
     .fs-section.fs-return-section-locked .remove-pan-doc,
     .fs-section.fs-return-section-locked .remove-doc_edu_confirm,
     .fs-section.fs-return-section-locked input[type="file"],
@@ -946,7 +945,6 @@
     .fs-return-section-locked a[href] {
         pointer-events: auto;
     }
-    .fs-docs-table #aadhaar,
     .fs-docs-table #pancard {
         border: 1px solid #c5d0e6;
         background: #fff;
@@ -2023,7 +2021,6 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
                                 $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo->upload_path);
@@ -2067,51 +2064,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="applicant-aadhaar-no">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}" @unless($retCanEdit('aadhaar_doc')) readonly tabindex="-1" data-return-locked="1" @endunless>
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                            </div>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="aadhaar_doc">
-                                            @if (!empty($application_details->aadhaar_doc))
-                                                <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
-                                                    </a>
-                                                    @if($retCanEdit('aadhaar_doc'))
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
-                                                    @endif
-                                                </div>
-                                            @endif
-                                            @if($retCanEdit('aadhaar_doc'))
-                                            <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
-                                                <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                    <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                                </div>
-                                                <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                <small class="text-danger file-error d-block"></small>
-                                            </div>
-                                            @endif
-                                            <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
-                                            </div>
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -2123,7 +2078,7 @@
                                             </div>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -2152,7 +2107,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -2368,7 +2323,6 @@
                 el.blur();
             });
         }
-        lockReturnIdentityField('aadhaar');
         lockReturnIdentityField('pancard');
     })();
 </script>
@@ -2420,7 +2374,7 @@
         $input.closest('.form-s-file-upload-wrap').after($preview);
     });
 
-    $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
+    $(document).on('change', '#pancard_doc', function() {
         var $input = $(this);
         clearLocalPreview($input);
 
@@ -2454,33 +2408,6 @@
             class: 'preview-link'
         }).html('<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
         $input.closest('.form-s-file-upload-wrap').after($preview);
-    });
-
-    $(document).on('click', '.remove-aadhaar-doc', function(e) {
-        e.preventDefault();
-        var $button = $(this);
-        Swal.fire({
-            title: 'Do you want to remove the document?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No',
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            reverseButtons: true
-        }).then((result) => {
-            if (!result.isConfirmed) return;
-
-            var $scope = $button.closest('td, .col-12, .col-md-3');
-            var $docContainer = $scope.find('.aadhaar-doc-container').first();
-            var $docInput = $scope.find('.aadhaar-doc-input').first();
-            var $fileInput = $scope.find('#aadhaar_doc').first();
-
-            $docContainer.removeClass('d-flex align-items-center justify-content-center').addClass('d-none').hide();
-            $docInput.removeClass('d-none').show();
-            $scope.find('#aadhaar_doc_removed').val('1');
-            clearLocalPreview($fileInput);
-        });
     });
 
     $(document).on('click', '.remove-pan-doc', function(e) {
@@ -3302,7 +3229,6 @@
         applicants_address: 'Applicant Address',
         d_o_b: 'Date of Birth',
         age: 'Age',
-        aadhaar: 'Aadhaar Number',
         pancard: 'PAN Number',
         previously_number: 'Previous License Number',
         previously_date: 'Previous Date of Expiry',
@@ -3313,7 +3239,6 @@
         wireman_details: 'Wireman Details',
         upload_photo: 'Photo',
         upload_sign: 'Signature',
-        aadhaar_doc: 'Aadhaar Document',
         pancard_doc: 'PAN Document',
         educational_level: 'Education Level',
         institute_name: 'Institute / School Name',
@@ -3566,14 +3491,6 @@
             var hasSign = (signInput && signInput.files && signInput.files.length > 0) ||
                           (signWrapper && signWrapper.style.display === 'none');
             if (!hasSign) err.push('Please upload Signature.');
-        }
-        if (reasons.indexOf('Aadhaar document is missing') !== -1) {
-            var aadhaarInput = document.getElementById('aadhaar_doc');
-            var aadhaarRemoved = $('#aadhaar_doc_removed').val();
-            var aadhaarInputWrap = $('.aadhaar-doc-input');
-            var hasAadhaar = (aadhaarInput && aadhaarInput.files && aadhaarInput.files.length > 0) ||
-                             (aadhaarRemoved !== '1' && aadhaarInputWrap.hasClass('d-none'));
-            if (!hasAadhaar) err.push('Please upload Aadhaar document.');
         }
         if (err.length > 0) {
             var msg = err.join(' ');

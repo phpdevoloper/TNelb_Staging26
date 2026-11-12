@@ -106,7 +106,6 @@
 
     function docLabelForInput(inputId) {
         var savedSelectors = {
-            aadhaar_doc: '.aadhaar-doc-container a[href]',
             pancard_doc: '.pan-doc-container a[href]'
         };
         var inp = document.getElementById(inputId);
@@ -127,7 +126,7 @@
         }
         var wrap = inp.closest('td, .fs-upload-card, tr');
         if (wrap) {
-            var viewA = wrap.querySelector('.aadhaar-doc-container a[href], .pan-doc-container a[href], .fs-doc-existing a[href], a[href*="private_documents"], a[href*="attached_documents"], a[href*="/document/"]');
+            var viewA = wrap.querySelector('.pan-doc-container a[href], .fs-doc-existing a[href], a[href*="private_documents"], a[href*="attached_documents"], a[href*="/document/"]');
             if (viewA && usableHref(viewA)) {
                 return docPill(usableHref(viewA), 'View');
             }
@@ -309,9 +308,7 @@
             setField('prvFpPrevDate', fmtDate(val('previously_date')));
         }
 
-        setField('prvFpAadhaar', val('aadhaar'));
         setField('prvFpPan', val('pancard'));
-        document.getElementById('prvFpAadhaarDoc').innerHTML = docLabelForInput('aadhaar_doc');
         document.getElementById('prvFpPanDoc').innerHTML = docLabelForInput('pancard_doc');
     }
 

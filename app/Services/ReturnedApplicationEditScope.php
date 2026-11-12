@@ -25,7 +25,7 @@ final class ReturnedApplicationEditScope
 
     public const SECTION_PAN_DOC = 'pan_doc';
 
-    /** Personal details, licence/certificate verification fields, Aadhaar/PAN numbers (not file uploads). */
+    /** Personal details, licence/certificate verification fields, PAN number (not file uploads). */
     public const SECTION_APPLICANT = 'applicant';
 
     /**
@@ -35,7 +35,6 @@ final class ReturnedApplicationEditScope
         'Education document is missing' => [self::SECTION_EDUCATION],
         'Photo is missing' => [self::SECTION_PHOTO],
         'Signature is missing' => [self::SECTION_SIGNATURE],
-        'Aadhaar document is missing' => [self::SECTION_AADHAAR_DOC],
         'PAN document is missing' => [self::SECTION_PAN_DOC],
         'Work Experience' => [self::SECTION_EXPERIENCE],
         'Personal Details' => [self::SECTION_APPLICANT],
@@ -134,7 +133,7 @@ final class ReturnedApplicationEditScope
             if ($s === self::SECTION_EDUCATION || $s === self::SECTION_EXPERIENCE) {
                 $keys['qualifications'] = true;
             }
-            if ($s === self::SECTION_PHOTO || $s === self::SECTION_SIGNATURE || $s === self::SECTION_AADHAAR_DOC || $s === self::SECTION_PAN_DOC) {
+            if ($s === self::SECTION_PHOTO || $s === self::SECTION_SIGNATURE || $s === self::SECTION_PAN_DOC) {
                 $keys['uploads'] = true;
             }
             if ($s === self::SECTION_APPLICANT) {

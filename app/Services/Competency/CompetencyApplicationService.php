@@ -335,17 +335,9 @@ class CompetencyApplicationService
         foreach ($proofRows as $proof) {
             $proofType = strtolower((string) ($proof->proof_type ?? ''));
             $proofName = strtoupper((string) ($proof->proof_name ?? ''));
-            $isAadhaar = $proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR;
             $isPan = $proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN;
 
-            if ($isAadhaar) {
-                if (! empty($proof->proof_no)) {
-                    $applicationDetails->aadhaar = $proof->proof_no;
-                }
-                if (! empty($proof->proof_doc)) {
-                    $applicationDetails->aadhaar_doc = $proof->proof_doc;
-                }
-            } elseif ($isPan) {
+            if ($isPan) {
                 if (! empty($proof->proof_no)) {
                     $applicationDetails->pancard = $proof->proof_no;
                 }
@@ -357,10 +349,6 @@ class CompetencyApplicationService
         }
 
         $proofService = app(FormSProofDocumentService::class);
-        $aadhaarPath = $this->firstExistingProofPath($proofService, $applicationIds, FormSProofDocumentService::PROOF_AADHAAR);
-        if ($aadhaarPath) {
-            $applicationDetails->aadhaar_doc = $aadhaarPath;
-        }
         $panPath = $this->firstExistingProofPath($proofService, $applicationIds, FormSProofDocumentService::PROOF_PAN);
         if ($panPath) {
             $applicationDetails->pan_doc = $panPath;

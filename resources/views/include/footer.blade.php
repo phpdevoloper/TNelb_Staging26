@@ -247,11 +247,14 @@ $(document).ready(function() {
 
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
-        new Cleave('#aadhaar', {
-            delimiter: ' ',
-            blocks: [4, 4, 4],
-            numericOnly: true
-        });
+        // Aadhaar input only exists on Form A pages; guard so competency forms don't throw.
+        if (document.getElementById('aadhaar')) {
+            new Cleave('#aadhaar', {
+                delimiter: ' ',
+                blocks: [4, 4, 4],
+                numericOnly: true
+            });
+        }
 
 
         const dobInput = document.getElementById('d_o_b');
@@ -699,20 +702,23 @@ $(document).ready(function() {
             // Aadhaar number validation
             const aadhaarnumber = document.getElementById("aadhaar");
             const aadhaarErrormsg = document.getElementById("aadhaar_error");
-            const aadhaar = aadhaarnumber.value.replace(/\s+/g, '').trim();
+            const aadhaar = aadhaarnumber ? aadhaarnumber.value.replace(/\s+/g, '').trim() : "";
             // let aadhaar = $("#aadhaar").val().trim();
             const aadhaarRegex = /^[2-9]{1}[0-9]{11}$/;
-            if (aadhaar === "") {
-                aadhaarErrormsg.textContent = "Aadhaar number is required.";
-                if (!firstErrorField) firstErrorField = aadhaar;
-                isValid = false;
-            } else if (!aadhaarRegex.test(aadhaar)) {
-                aadhaarErrormsg.textContent =
-                    "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
-                if (!firstErrorField) firstErrorField = aadhaar;
-                isValid = false;
-            } else {
-                aadhaarErrormsg.textContent = "";
+            // Competency forms (S/W/WH/P) have no Aadhaar field - skip this block there.
+            if (aadhaarnumber) {
+                if (aadhaar === "") {
+                    if (aadhaarErrormsg) aadhaarErrormsg.textContent = "Aadhaar number is required.";
+                    if (!firstErrorField) firstErrorField = aadhaar;
+                    isValid = false;
+                } else if (!aadhaarRegex.test(aadhaar)) {
+                    if (aadhaarErrormsg) aadhaarErrormsg.textContent =
+                        "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
+                    if (!firstErrorField) firstErrorField = aadhaar;
+                    isValid = false;
+                } else if (aadhaarErrormsg) {
+                    aadhaarErrormsg.textContent = "";
+                }
             }
 
 

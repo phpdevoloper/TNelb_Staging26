@@ -2410,7 +2410,6 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
                                 $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo?->upload_path);
@@ -2453,43 +2452,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            @if (!empty($application_details->aadhaar_doc))
-                                                <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                                    </a>
-                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button> --}}
-                                                </div>
-                                            @endif
-                                            <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
-                                                <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                    <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                                </div>
-                                                <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                <small class="text-danger file-error d-block"></small>
-                                            </div>
-                                            <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -2499,7 +2464,7 @@
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -2522,7 +2487,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -2862,7 +2827,7 @@
         $input.closest('.form-s-file-upload-wrap').after($preview);
     });
 
-    $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
+    $(document).on('change', '#pancard_doc', function() {
         var $input = $(this);
         clearLocalPreview($input);
 
@@ -2896,33 +2861,6 @@
             class: 'preview-link'
         }).html('<i class="fa fa-file-pdf-o" style="color:#d9534f;"></i> View Document'));
         $input.closest('.form-s-file-upload-wrap').after($preview);
-    });
-
-    $(document).on('click', '.remove-aadhaar-doc', function(e) {
-        e.preventDefault();
-        var $button = $(this);
-        Swal.fire({
-            title: 'Do you want to remove the document?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No',
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            reverseButtons: true
-        }).then((result) => {
-            if (!result.isConfirmed) return;
-
-            var $scope = $button.closest('td, .col-12, .col-md-3');
-            var $docContainer = $scope.find('.aadhaar-doc-container').first();
-            var $docInput = $scope.find('.aadhaar-doc-input').first();
-            var $fileInput = $scope.find('#aadhaar_doc').first();
-
-            $docContainer.removeClass('d-flex align-items-center justify-content-center').addClass('d-none').hide();
-            $docInput.removeClass('d-none').show();
-            $scope.find('#aadhaar_doc_removed').val('1');
-            clearLocalPreview($fileInput);
-        });
     });
 
     $(document).on('click', '.remove-pan-doc', function(e) {

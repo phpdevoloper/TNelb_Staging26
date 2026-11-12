@@ -904,14 +904,7 @@ class SupervisorController extends Controller
             foreach ($documents as $proof) {
                 $proofType = strtolower((string) ($proof->proof_type ?? ''));
                 $proofName = strtoupper((string) ($proof->proof_name ?? ''));
-                if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
-                    if (! empty($proof->proof_no) && empty($applicant->aadhaar)) {
-                        $applicant->aadhaar = $proof->proof_no;
-                    }
-                    if (! empty($proof->proof_doc)) {
-                        $applicant->aadhaar_doc = $proof->proof_doc;
-                    }
-                } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
+                if ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
                     if (! empty($proof->proof_no) && empty($applicant->pancard)) {
                         $applicant->pancard = $proof->proof_no;
                     }
@@ -920,10 +913,6 @@ class SupervisorController extends Controller
                         $applicant->pancard_doc = $proof->proof_doc;
                     }
                 }
-            }
-            $aadhaarPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_AADHAAR);
-            if ($aadhaarPath) {
-                $applicant->aadhaar_doc = $aadhaarPath;
             }
             $panPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_PAN);
             if ($panPath) {

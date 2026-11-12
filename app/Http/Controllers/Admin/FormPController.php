@@ -1629,8 +1629,6 @@ class FormPController extends Controller
                 ?? $applicant->previously_valid_to
                 ?? $applicant->scc_to_date
                 ?? null;
-            $applicant->aadhaar = $applicant->aadhaar ?? $applicant->aadhar ?? null;
-            $applicant->aadhaar_doc = $applicant->aadhaar_doc ?? null;
             $applicant->pancard = $applicant->pancard ?? $applicant->pan_no ?? $applicant->pan ?? null;
             $applicant->pancard_doc = $applicant->pancard_doc ?? $applicant->pan_doc ?? null;
             $applicant->pan_doc = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
@@ -1705,14 +1703,7 @@ class FormPController extends Controller
             foreach ($documents as $proof) {
                 $proofType = strtolower((string) ($proof->proof_type ?? ''));
                 $proofName = strtoupper((string) ($proof->proof_name ?? ''));
-                if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
-                    if (! empty($proof->proof_no) && empty($applicant->aadhaar ?? null)) {
-                        $applicant->aadhaar = $proof->proof_no;
-                    }
-                    if (! empty($proof->proof_doc)) {
-                        $applicant->aadhaar_doc = $proof->proof_doc;
-                    }
-                } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
+                if ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
                     if (! empty($proof->proof_no) && empty($applicant->pancard ?? null)) {
                         $applicant->pancard = $proof->proof_no;
                     }
@@ -1721,10 +1712,6 @@ class FormPController extends Controller
                         $applicant->pancard_doc = $proof->proof_doc;
                     }
                 }
-            }
-            $aadhaarPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_AADHAAR);
-            if ($aadhaarPath) {
-                $applicant->aadhaar_doc = $aadhaarPath;
             }
             $panPath = $proofService->resolveProofPath($applicantId, FormSProofDocumentService::PROOF_PAN);
             if ($panPath) {

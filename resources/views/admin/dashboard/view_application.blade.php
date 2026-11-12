@@ -282,28 +282,10 @@
                                             <hr>
 
                                                 @php
-                                                    $decryptedaadhar    = Crypt::decryptString($applicant->aadhaar);
                                                     $decryptedpan       = Crypt::decryptString($applicant->pancard);
-                                                    $masked     = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
                                                     $maskedPan  = strlen($decryptedpan) === 10 ? str_repeat('X', 6) . substr($decryptedpan, -4) : 'Invalid PAN';
-                                                @endphp 
+                                                @endphp
                                                 <div class="row mb-2">
-                                                    <div class="col-md-6">
-                                                        <h6 class="fw-bold mb-0">Aadhaar:</h6>
-                                                        <p class="mb-0">
-                                                            {{ $masked }}
-                                                            (
-                                                            @if(!empty($applicant->aadhaar_doc))
-                                                                <a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}" 
-                                                                   target="_blank" class="text-primary">
-                                                                    <i class="fa fa-file-pdf-o text-danger"></i>
-                                                                </a>
-                                                            @else
-                                                                <span class="text-muted">No documents</span>
-                                                            @endif
-                                                            )
-                                                        </p>
-                                                    </div>
                                                     <div class="col-md-6">
                                                         <h6 class="fw-bold mb-0">PAN:</h6>
                                                         <p class="mb-0">

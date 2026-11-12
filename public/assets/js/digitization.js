@@ -311,8 +311,8 @@ $(document).on("click", "#digitizationSubmit", function () {
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
         isValid = false;
-    } else if (!/^\d{1,5}$/.test(ccnumber)) {
-        $("#ccnumber_error").html("Certificate Number must be 1 to 5 digits only");
+    } else if (!/^\d{1,6}$/.test(ccnumber)) {
+        $("#ccnumber_error").html("Certificate Number must be 1 to 6 digits only");
         isValid = false;
     }
 
@@ -492,7 +492,7 @@ $(document).on("click", "#digitizationSubmit", function () {
 });
 
 $(document).on("input", 'input[name="ccnumber"]', function () {
-    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 5);
+    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 6);
     if ($(this).val() !== cleaned) {
         $(this).val(cleaned);
     }

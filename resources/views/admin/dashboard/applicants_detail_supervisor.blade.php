@@ -1589,45 +1589,19 @@
                                             <!-- ----------------------------------------------- -->
 
                                             @php
-                                                $decryptedAadhaar = displayProofNumber($applicant->aadhaar ?? '');
                                                 $decryptedPan = displayProofNumber($applicant->pancard ?? '');
-
-                                                $masked = strlen($decryptedAadhaar) === 12
-                                                    ? str_repeat('X', 8) . substr($decryptedAadhaar, -4)
-                                                    : ($decryptedAadhaar !== '' ? 'Invalid Aadhaar' : '—');
 
                                                 $maskedPan = strlen($decryptedPan) === 10
                                                     ? str_repeat('X', 6) . substr($decryptedPan, -4)
                                                     : ($decryptedPan !== '' ? 'Invalid PAN' : '—');
 
                                                 $panDocument = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
-                                                $aadhaarDocUrl = proof_document_url($applicant->aadhaar_doc ?? null, 'aadhaar');
                                                 $panDocUrl = proof_document_url($panDocument, 'pan');
                                             @endphp
 
                                             <div class="asp-docs-block">
                                                 <h6>Documents Uploaded</h6>
                                                 <div class="row align-items-center g-2">
-                                                    <div class="col-lg-6">
-                                                        <span class="fw-bold" style="color: #111;">Aadhaar</span>
-                                                    </div>
-                                                    <div class="col-lg-6 text-lg-end">
-                                                        <span class="fw-bold"
-                                                            style="color: #515365">{{ $masked }}</span>
-                                                        @if ($aadhaarDocUrl)
-                                                            <a href="{{ $aadhaarDocUrl }}" target="_blank"
-                                                                class="applicant-inline-doc-link ms-1"
-                                                                title="Open Aadhaar document">
-                                                                <i class="fa fa-file-pdf-o text-danger"
-                                                                    aria-hidden="true"></i>
-                                                                <span>View Document</span>
-                                                            </a>
-                                                        @else
-                                                            <span class="text-muted small ms-1">No document</span>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                                <div class="row align-items-center g-2 mt-1">
                                                     <div class="col-lg-6">
                                                         <span class="fw-bold" style="color: #111;">PAN</span>
                                                     </div>
@@ -2229,12 +2203,6 @@
                                 <input class="form-check-input return-to-applicant-query" type="checkbox"
                                     name="return_applicant_query[]" id="query_photo" value="Photo is missing">
                                 <label class="form-check-label" for="query_photo">Photo is missing</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input return-to-applicant-query" type="checkbox"
-                                    name="return_applicant_query[]" id="query_aadhaar"
-                                    value="Aadhaar document is missing">
-                                <label class="form-check-label" for="query_aadhaar">Aadhaar document is missing</label>
                             </div>
                             <div class="form-check mb-2">
                                 <input class="form-check-input return-to-applicant-query" type="checkbox"

@@ -58,30 +58,16 @@
         ];
         return $map[strtolower($raw)] ?? $raw;
     };
-    $aadhaarPlain = displayProofNumber($application_details->aadhaar ?? '');
     $panPlain = displayProofNumber($application_details->pancard ?? '');
     $previewAppId = trim((string) ($application_details->application_id ?? ''));
     $proofService = app(\App\Services\FormS\FormSProofDocumentService::class);
-    $aadhaarDocPath = trim((string) ($application_details->aadhaar_doc ?? ''));
     $panDocPath = trim((string) ($application_details->pan_doc ?? $application_details->pancard_doc ?? ''));
     if ($previewAppId !== '') {
-        if ($aadhaarDocPath === '') {
-            $aadhaarDocPath = (string) ($proofService->loadIdentityDocumentPathForView(
-                $previewAppId,
-                \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR
-            ) ?? '');
-        }
         if ($panDocPath === '') {
             $panDocPath = (string) ($proofService->loadIdentityDocumentPathForView(
                 $previewAppId,
                 \App\Services\FormS\FormSProofDocumentService::PROOF_PAN
             ) ?? '');
-        }
-        if ($aadhaarPlain === '') {
-            $aadhaarPlain = displayProofNumber($proofService->loadIdentityProofNumberForView(
-                $previewAppId,
-                \App\Services\FormS\FormSProofDocumentService::PROOF_AADHAAR
-            ));
         }
         if ($panPlain === '') {
             $panPlain = displayProofNumber($proofService->loadIdentityProofNumberForView(
@@ -90,24 +76,14 @@
             ));
         }
     }
-    $aadhaarDocUrl = null;
     $panDocUrl = null;
     if ($previewAppId !== '') {
-        if ($aadhaarDocPath !== '') {
-            $aadhaarDocUrl = route('dashboard.application.proof', [
-                'application_id' => $previewAppId,
-                'type' => 'aadhaar',
-            ]);
-        }
         if ($panDocPath !== '') {
             $panDocUrl = route('dashboard.application.proof', [
                 'application_id' => $previewAppId,
                 'type' => 'pan',
             ]);
         }
-    }
-    if (! $aadhaarDocUrl) {
-        $aadhaarDocUrl = proof_document_url($aadhaarDocPath !== '' ? $aadhaarDocPath : null, 'aadhaar');
     }
     if (! $panDocUrl) {
         $panDocUrl = proof_document_url($panDocPath !== '' ? $panDocPath : null, 'pan');
@@ -634,23 +610,6 @@
         </div>
         <div class="dash-prv-section-body">
             <div class="dash-prv-id-grid">
-                <div class="dash-prv-id-card">
-                    <div class="dash-prv-id-hd"><i class="fa fa-id-card-o" aria-hidden="true"></i> Aadhaar</div>
-                    <div class="dash-prv-field mb-0">
-                        <div class="dash-prv-label">Number</div>
-                        <div class="dash-prv-value {{ $aadhaarPlain === '' ? 'is-empty' : '' }}">{{ $aadhaarPlain !== '' ? $aadhaarPlain : '—' }}</div>
-                    </div>
-                    <div class="dash-prv-field mb-0">
-                        <div class="dash-prv-label">Document</div>
-                        <div class="dash-prv-value {{ ! $aadhaarDocUrl ? 'is-empty' : '' }}">
-                            @if ($aadhaarDocUrl)
-                                <a class="dash-prv-doc-pill" href="{{ $aadhaarDocUrl }}" target="_blank" rel="noopener"><i class="fa fa-file-pdf-o"></i> View Document</a>
-                            @else
-                                —
-                            @endif
-                        </div>
-                    </div>
-                </div>
                 <div class="dash-prv-id-card">
                     <div class="dash-prv-id-hd"><i class="fa fa-id-card-o" aria-hidden="true"></i> PAN</div>
                     <div class="dash-prv-field mb-0">

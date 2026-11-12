@@ -308,25 +308,6 @@
                                                 </div>
                                             </div>
 
-                                            <hr>
-                                            <div class="row">
-                                                <div class="col-lg-6 col-6">
-                                                    <p><strong>Aadhaar:</strong></p>
-                                                </div>
-                                                @php
-                                                    try {
-                                                        $decryptedaadhar = $applicant->aadhaar ? Crypt::decryptString($applicant->aadhaar) : null;
-                                                    } catch (\Exception $e) {
-                                                        $decryptedaadhar = null;
-                                                    }
-                                                    $masked = $decryptedaadhar && strlen($decryptedaadhar) === 12
-                                                        ? str_repeat('X', 8) . substr($decryptedaadhar, -4)
-                                                        : ($decryptedaadhar ? 'Invalid Aadhaar' : 'N/A');
-                                                @endphp
-                                                <div class="col-lg-6 col-6">
-                                                    <p>{{ $masked }}</p>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
 

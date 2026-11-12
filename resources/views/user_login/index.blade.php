@@ -836,7 +836,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p class="notice-alert__copy" id="infoModalBody">“For updating a change of employment in the competency certificates. Please submit through the Alteration form within  <span class="text-danger">30 days</span> from the change of employment.<br><br> தகுதிச் சான்றிதழில் , பணியிட மாற்ற விபரத்தை பதிவு செய்ய, வேலை மாற்றம் ஏற்பட்ட <span class="text-danger">30 நாட்களுக்குள்</span> திருத்தப் படிவத்தை (Alteration Form) சமர்ப்பிக்கவும்.”</p>
+                <p class="notice-alert__copy" id="infoModalBody">“For updating a change of employment in the competency certificates. Please submit through the Alteration form within  <span class="text-danger">30 days</span> from the change of employment.<br><br> தகுதிச் சான்றிதழில், சரியான பணியிட மாற்ற விபரத்தை பதிவு செய்ய, விண்ணப்பம் சமர்ப்பித்த <span class="text-danger">30 நாட்களுக்குள் </span>மாற்று விண்ணப்பம் (Alteration Form) மூலம் சரியான விவரங்களைச் சமர்ப்பிக்கவும்.”</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary notice-alert__ok" data-bs-dismiss="modal" data-dismiss="modal">OK</button>

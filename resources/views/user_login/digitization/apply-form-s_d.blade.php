@@ -1212,32 +1212,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;">
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                            </div>
-                                            <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                            <small class="text-danger file-error d-block"></small>
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -1247,7 +1224,7 @@
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -1260,7 +1237,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -1614,21 +1591,6 @@
                     <span class="prv-section-title">Identity &amp; Uploaded Documents</span>
                 </div>
                 <div class="prv-section-body">
-                    {{-- Aadhaar row --}}
-                    <div class="row align-items-center mb-2">
-                        <div class="col-5 col-md-3">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">Aadhaar Number</div>
-                                <div class="prv-value" id="prv_aadhaar">—</div>
-                            </div>
-                        </div>
-                        <div class="col-7 col-md-4">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">Aadhaar Document</div>
-                                <div class="prv-value" id="prv_aadhaar_doc">—</div>
-                            </div>
-                        </div>
-                    </div>
                     {{-- PAN row --}}
                     <div class="row align-items-center">
                         <div class="col-5 col-md-3">
@@ -1837,7 +1799,7 @@
             }
         });
 
-        $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
+        $(document).on('change', '#pancard_doc', function() {
             var $input = $(this);
             clearLocalPreview($input);
             var file = this.files && this.files[0] ? this.files[0] : null;
@@ -2166,11 +2128,8 @@
                 : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
         }
 
-        // Aadhaar & PAN
-        setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
+        // PAN
         setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-        var aDoc = document.getElementById('aadhaar_doc');
-        setVal('prv_aadhaar_doc', fileLabel(aDoc));
         var pDoc = document.getElementById('pancard_doc');
         setVal('prv_pan_doc', fileLabel(pDoc));
     }

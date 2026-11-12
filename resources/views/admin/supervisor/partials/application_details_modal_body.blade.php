@@ -54,17 +54,10 @@
         ? $uploadedSign->media_url
         : ($signPath ? competency_media_url($signPath) : null);
 
-    $decryptedAadhaar = displayProofNumber($applicant->aadhaar ?? '');
     $decryptedPan = displayProofNumber($applicant->pancard ?? '');
-    $maskedAadhaar = strlen($decryptedAadhaar) === 12
-        ? str_repeat('X', 8) . substr($decryptedAadhaar, -4)
-        : ($decryptedAadhaar !== '' ? 'Invalid Aadhaar' : '—');
     $maskedPan = strlen($decryptedPan) === 10
         ? str_repeat('X', 6) . substr($decryptedPan, -4)
         : ($decryptedPan !== '' ? 'Invalid PAN' : '—');
-    $aadhaarDocUrl = function_exists('proof_document_url')
-        ? proof_document_url($applicant->aadhaar_doc ?? null, 'aadhaar')
-        : null;
     $panDocUrl = function_exists('proof_document_url')
         ? proof_document_url($applicant->pan_doc ?? $applicant->pancard_doc ?? null, 'pan')
         : null;
@@ -669,17 +662,6 @@
 
             <h6 class="adm-section-title">Identity Documents</h6>
             <div class="adm-fields">
-                <div class="adm-field">
-                    <span class="adm-k">Aadhaar</span>
-                    <span class="adm-v">{{ $maskedAadhaar }}</span>
-                    @if($aadhaarDocUrl)
-                        <div class="mt-1">
-                            <a href="{{ $aadhaarDocUrl }}" target="_blank" rel="noopener noreferrer">
-                                <i class="fa fa-file-pdf-o text-danger"></i> View document
-                            </a>
-                        </div>
-                    @endif
-                </div>
                 <div class="adm-field">
                     <span class="adm-k">PAN</span>
                     <span class="adm-v">{{ $maskedPan }}</span>

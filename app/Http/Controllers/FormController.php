@@ -229,29 +229,6 @@ class FormController extends BaseController
         $appType = (string) ($workflowForm->appl_type ?? '');
         $proofService = $this->proofDocumentService();
 
-        if ($request->filled('aadhaar')) {
-            $proofService->syncProofNumber(
-                $ownerApplicationId,
-                $appType,
-                FormSProofDocumentService::PROOF_AADHAAR,
-                $request->aadhaar
-            );
-        }
-
-        if ($request->hasFile('aadhaar_doc')) {
-            $proofService->saveProofUpload(
-                $workflowForm,
-                $ownerApplicationId,
-                $appType,
-                FormSProofDocumentService::PROOF_AADHAAR,
-                $request->file('aadhaar_doc'),
-                $request->aadhaar,
-                $formName
-            );
-        } elseif ($request->input('aadhaar_doc_removed') === '1') {
-            $proofService->clearProofDocument($ownerApplicationId, FormSProofDocumentService::PROOF_AADHAAR);
-        }
-
         if ($this->isCompetencyForm($formName) && $request->filled('pancard')) {
             $proofService->syncProofNumber(
                 $ownerApplicationId,
@@ -314,13 +291,6 @@ class FormController extends BaseController
                 $signFile,
                 null,
                 $formName
-            );
-        }
-
-        if ($request->input('aadhaar_doc_removed') !== '1') {
-            $proofService->ensureProofDocumentEncryptedAtRest(
-                $ownerApplicationId,
-                FormSProofDocumentService::PROOF_AADHAAR
             );
         }
 
@@ -2472,11 +2442,6 @@ class FormController extends BaseController
         $proofAppId = $snapshot->preferredIdentityProofApplicationId($existingForm);
         $proofCrypt = app(SensitiveProofCryptService::class);
 
-        $aadhaarPlain = (string) ($proofCrypt->decryptProofNumber(
-            CC_Proof_doc::where('application_id', $proofAppId)
-                ->where('proof_name', FormSProofDocumentService::PROOF_AADHAAR)
-                ->value('proof_no')
-        ) ?? '');
         $panPlain = $proofCrypt->decryptProofNumber(
             CC_Proof_doc::where('application_id', $proofAppId)
                 ->where('proof_name', FormSProofDocumentService::PROOF_PAN)
@@ -2506,12 +2471,6 @@ class FormController extends BaseController
             ]);
         }
 
-        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
-            $request->merge([
-                'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
-            ]);
-        }
-
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
             $request->merge([
                 'pancard' => $panPlain !== null && $panPlain !== '' ? strtoupper(preg_replace('/\s+/', '', (string) $panPlain)) : null,
@@ -2534,11 +2493,6 @@ class FormController extends BaseController
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_SIGNATURE])) {
             $request->files->remove('upload_sign');
         }
-        if (! isset($editable[ReturnedApplicationEditScope::SECTION_AADHAAR_DOC])) {
-            $request->files->remove('aadhaar_doc');
-            $request->merge(['aadhaar_doc_removed' => '0']);
-        }
-
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
             $request->files->remove('pancard_doc');
         }
@@ -2817,17 +2771,9 @@ class FormController extends BaseController
         $proofService = app(FormSProofDocumentService::class);
         $startId = trim((string) ($applicationDetails->application_id ?? $masterApplicationId));
 
-        $aadhaarNo = $proofService->loadIdentityProofNumberForView($startId, FormSProofDocumentService::PROOF_AADHAAR);
-        $aadhaarDoc = $proofService->loadIdentityDocumentPathForView($startId, FormSProofDocumentService::PROOF_AADHAAR);
         $panNo = $proofService->loadIdentityProofNumberForView($startId, FormSProofDocumentService::PROOF_PAN);
         $panDoc = $proofService->loadIdentityDocumentPathForView($startId, FormSProofDocumentService::PROOF_PAN);
 
-        if ($aadhaarNo) {
-            $applicationDetails->aadhaar = $aadhaarNo;
-        }
-        if ($aadhaarDoc) {
-            $applicationDetails->aadhaar_doc = $aadhaarDoc;
-        }
         if ($panNo) {
             $applicationDetails->pancard = $panNo;
         }
@@ -3388,9 +3334,6 @@ class FormController extends BaseController
             return $this->update($request, $existingDraftId);
         }
 
-        $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
-        ]);
 
         if ($this->isCompetencyForm($request->form_name)) {
             $raw = $request->input('pancard');
@@ -3424,7 +3367,6 @@ class FormController extends BaseController
             'previously_issue_date' => 'nullable|date',
             'previously_valid_from' => 'nullable|date',
             'wireman_details'      => 'nullable|string|max:255',
-            'aadhaar'              => 'required|string|digits:12',
             'form_name'            => 'required|string|max:2',
             'license_name'         => 'required|string|max:2',
             'form_id'              => $isFormP ? 'nullable|integer' : 'required|integer',
@@ -3461,7 +3403,6 @@ class FormController extends BaseController
             // single files
             'upload_photo'         => 'required|image|mimes:jpg,jpeg,png|max:50',
             'upload_sign'          => 'required|image|mimes:jpg,jpeg,png|max:50',
-            'aadhaar_doc'          => 'required|mimes:pdf|min:10|max:250',
 
             // multiple files (arrays) — file OR pre-uploaded path via existing_document / existing_work_document
             'education_document'   => 'nullable|array',
@@ -3527,7 +3468,6 @@ class FormController extends BaseController
             'designation.*.string'          => 'Designation must be a valid string.',
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
 
-            'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
             'applicant_name.max' => 'Applicant name may not be greater than 80 characters.',
             'fathers_name.max' => 'Father\'s name may not be greater than 80 characters.',
             'applicants_address.max' => 'Address may not be greater than 255 characters.',
@@ -3651,7 +3591,6 @@ class FormController extends BaseController
 
         DB::beginTransaction();
 
-        $encrypted_aadhaar = Crypt::encryptString($request->aadhaar);
         $encrypted_pancard = ($this->isCompetencyForm($request->form_name) && $request->filled('pancard'))
             ? Crypt::encryptString($request->pancard)
             : null;
@@ -3679,8 +3618,6 @@ class FormController extends BaseController
                 }
 
             }
-
-            $aadhaarFilename = null;
 
             $form = CC_Forms_Meta::createForForm((string) ($request->form_name ?? 'S'), array_merge([
                 'login_id'            => $loginId,
@@ -3938,9 +3875,6 @@ class FormController extends BaseController
             return $dispatched;
         }
 
-        $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
-        ]);
 
         if ($this->isCompetencyForm($request->form_name ?? null)) {
             $raw = $request->input('pancard');
@@ -3967,10 +3901,6 @@ class FormController extends BaseController
             ? 'image|mimes:jpg,jpeg,png|max:50'
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
-
-        $aadhaarDocRule = ! $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR)
-            ? (FormPSchema::isFormP($request->form_name ?? '') ? 'nullable|mimes:pdf|max:250' : 'required|mimes:pdf|max:250')
-            : 'nullable|mimes:pdf|max:250';
 
         $isWorkOptional = in_array($request->form_name, ['W', 'WH', 'P'], true);
         $educationLevelRule = ($request->form_name === 'S')
@@ -4001,7 +3931,6 @@ class FormController extends BaseController
             'certificate_issue_date' => 'nullable|date',
             'certificate_valid_from' => 'nullable|date',
             'wireman_details'    => 'nullable|string|max:255',
-            'aadhaar'            => 'required|string|digits:12',
             'pancard'            => $pancardRule,
             'form_name'          => 'required|string|max:2',
             'license_name'       => 'required|string|max:2',
@@ -4028,7 +3957,6 @@ class FormController extends BaseController
 
             'upload_photo'   => $uploadPhotoRule,
             'upload_sign'    => $uploadSignRule,
-            'aadhaar_doc'    => $aadhaarDocRule,
             'pancard_doc'    => $pancardDocRule,
 
             'education_document'   => 'nullable|array',
@@ -4544,9 +4472,6 @@ class FormController extends BaseController
             return $dispatched;
         }
 
-        $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
-        ]);
 
         if ($this->isCompetencyForm($request->form_name ?? null) && $request->filled('pancard')) {
             $request->merge([
@@ -4576,13 +4501,6 @@ class FormController extends BaseController
         // must not fail the image rule or the chosen files are dropped.
         $uploadPhotoRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
-
-        $aadhaarDocRule = (FormPSchema::isFormP($request->form_name ?? '')
-            || ! $existingForm
-            || ! $masterApplicationId
-            || $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
-            ? 'nullable|mimes:pdf|max:250'
-            : 'mimes:pdf|max:250';
 
             $educationLevelRuleDraft = ($request->form_name === 'S')
                 ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
@@ -4623,7 +4541,6 @@ class FormController extends BaseController
 
                 'upload_photo'   => $uploadPhotoRule,
                 'upload_sign'    => $uploadSignRule,
-                'aadhaar_doc'    => $aadhaarDocRule,
 
                 'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
@@ -4657,7 +4574,6 @@ class FormController extends BaseController
             'designation.*.string'          => 'Designation must be a valid string.',
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
 
-            'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
             'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
 
         ]);
@@ -4912,9 +4828,6 @@ class FormController extends BaseController
             return $dispatched;
         }
 
-        $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
-        ]);
 
         if ($this->isCompetencyForm($request->form_name ?? null) && $request->filled('pancard')) {
             $request->merge([
@@ -4947,13 +4860,6 @@ class FormController extends BaseController
             ? 'image|mimes:jpg,jpeg,png|max:50'
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
-
-        $aadhaarDocRule = (FormPSchema::isFormP($request->form_name ?? '')
-            || ! $existingForm
-            || ! $masterApplicationId
-            || $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
-            ? 'nullable|mimes:pdf|max:250'
-            : 'mimes:pdf|max:250';
 
         $educationLevelRuleDraft = ($request->form_name === 'S')
             ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
@@ -4996,7 +4902,6 @@ class FormController extends BaseController
 
             'upload_photo'   => $uploadPhotoRule,
             'upload_sign'    => $uploadSignRule,
-            'aadhaar_doc'    => $aadhaarDocRule,
 
             'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
@@ -5021,7 +4926,6 @@ class FormController extends BaseController
             'designation.*.string'       => 'Designation must be a valid string.',
             'designation.*.max'          => 'Designation may not be greater than 80 characters.',
 
-            'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
             'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
         ]);
         $this->assertFormPInstituteDates($request, false);
@@ -5232,9 +5136,6 @@ public function update(Request $request, $id)
             return $dispatched;
         }
 
-        $request->merge([
-            'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
-        ]);
 
         if ($this->isCompetencyForm($request->form_name ?? null) && $request->filled('pancard')) {
             $request->merge([
@@ -5265,9 +5166,6 @@ public function update(Request $request, $id)
         // Signature is optional on edit; existing signature is kept if no new file
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
-        $aadhaarDocRule = ($existingForm && ! $proofService->hasProofDocument($masterApplicationId, FormSProofDocumentService::PROOF_AADHAAR))
-            ? 'mimes:pdf|max:250'
-            : 'nullable|mimes:pdf|max:250';
             $request->validate([
                 'login_id'           => 'nullable|string',
                 'applicant_name'     => 'nullable|string|max:255',
@@ -5303,7 +5201,6 @@ public function update(Request $request, $id)
                 'competency_certificate_no' => 'nullable|string|max:80',
                 'upload_photo'   => $uploadPhotoRule,
                 'upload_sign'    => $uploadSignRule,
-                'aadhaar_doc'    => $aadhaarDocRule,
 
                 'education_document.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
@@ -5329,7 +5226,6 @@ public function update(Request $request, $id)
             'experience.*.max'              => 'Experience may not exceed 50 years.',
             'designation.*.string'          => 'Designation must be a valid string.',
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
-            'aadhaar.digits' => 'Aadhaar number should be 12 digits.',
         ]);
         $this->assertFormPInstituteDates($request, true);
 

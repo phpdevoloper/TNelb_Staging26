@@ -41,15 +41,10 @@
     $signPath = ! empty($uploadedSign?->uploaded_doc) ? $uploadedSign->uploaded_doc : null;
     $photoUrl = ! empty($photo?->media_url) ? $photo->media_url : ($photoPath ? competency_media_url($photoPath) : null);
     $signUrl = ! empty($uploadedSign?->media_url) ? $uploadedSign->media_url : ($signPath ? competency_media_url($signPath) : null);
-    $decryptedAadhaar = displayProofNumber($applicant->aadhaar ?? '');
     $decryptedPan = displayProofNumber($applicant->pancard ?? '');
-    $maskedAadhaar = strlen($decryptedAadhaar) === 12
-        ? str_repeat('X', 8).substr($decryptedAadhaar, -4)
-        : ($decryptedAadhaar !== '' ? 'Invalid Aadhaar' : '—');
     $maskedPan = strlen($decryptedPan) === 10
         ? str_repeat('X', 6).substr($decryptedPan, -4)
         : ($decryptedPan !== '' ? 'Invalid PAN' : '—');
-    $aadhaarDocUrl = proof_document_url($applicant->aadhaar_doc ?? null, 'aadhaar');
     $panDocUrl = proof_document_url($applicant->pan_doc ?? $applicant->pancard_doc ?? null, 'pan');
     $paymentStatusRaw = strtoupper(trim((string) ($applicant->payment_status ?? '')));
     $paymentStatusLabel = match ($paymentStatusRaw) {
@@ -563,7 +558,6 @@
                         <div class="cav-info-row"><span>Application ID</span><b>{{ $applicant->application_id }}</b></div>
                         <div class="cav-info-row"><span>Father's name</span><b>{{ $applicant->fathers_name ?: '—' }}</b></div>
                         <div class="cav-info-row"><span>Date of birth</span><b>{{ format_date($applicant->d_o_b) }}@if(!empty($applicant->age)) ({{ $applicant->age }} yrs)@endif</b></div>
-                        <div class="cav-info-row"><span>Aadhaar</span><b>{{ $maskedAadhaar }}</b></div>
                         <div class="cav-info-row"><span>PAN</span><b>{{ $maskedPan }}</b></div>
                         @if($applType === 'A' && !empty($applicant->old_application))
                             <div class="cav-info-row"><span>Parent application</span><b>{{ $applicant->old_application }}</b></div>
@@ -612,14 +606,6 @@
                             </div>
                             <div class="cav-proof">
                                 <h4>ID Proof</h4>
-                                <div class="cav-proof-row">
-                                    <span class="cav-proof-ico"><i class="fa fa-id-card"></i></span>
-                                    <b>Aadhaar</b>
-                                    @if($aadhaarDocUrl)
-                                        <span class="cav-pdf">PDF</span>
-                                        <a class="cav-view" href="{{ $aadhaarDocUrl }}" target="_blank" rel="noopener">View</a>
-                                    @endif
-                                </div>
                                 <div class="cav-proof-row">
                                     <span class="cav-proof-ico pan"><i class="fa fa-credit-card"></i></span>
                                     <b>PAN</b>
@@ -1144,12 +1130,7 @@
         </div>
         <table class="info-table">
             <tr>
-                <td class="lbl"><div class="lbl-with-sno"><span class="pf-sno">{{ $docSectionNo }}</span><div class="lbl-bi"><div class="lbl-en">(ii) Aadhaar Number</div><div class="lbl-ta" lang="ta">ஆதார் எண்</div></div></div></td>
-                <td class="colon">:</td>
-                <td class="val">{{ $maskedAadhaar }}</td>
-            </tr>
-            <tr>
-                <td class="lbl"><div class="lbl-bi" style="padding-left:24px;"><div class="lbl-en">(iv) PAN Card Number</div><div class="lbl-ta" lang="ta">நிரந்தர கணக்கு எண்</div></div></td>
+                <td class="lbl"><div class="lbl-with-sno"><span class="pf-sno">{{ $docSectionNo }}</span><div class="lbl-bi"><div class="lbl-en">(ii) PAN Card Number</div><div class="lbl-ta" lang="ta">நிரந்தர கணக்கு எண்</div></div></div></td>
                 <td class="colon">:</td>
                 <td class="val">{{ $maskedPan }}</td>
             </tr>

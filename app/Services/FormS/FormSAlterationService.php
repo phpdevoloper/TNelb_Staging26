@@ -660,19 +660,12 @@ class FormSAlterationService
         $application = clone $application;
 
         $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
-            ->whereIn('proof_type', ['aadhaar', 'pan'])
+            ->where('proof_type', 'pan')
             ->get();
 
         foreach ($proofRows as $proof) {
             $proofType = strtolower((string) ($proof->proof_type ?? ''));
-            if ($proofType === 'aadhaar') {
-                if (! empty($proof->proof_no)) {
-                    $application->aadhaar = $proof->proof_no;
-                }
-                if (! empty($proof->proof_doc)) {
-                    $application->aadhaar_doc = $proof->proof_doc;
-                }
-            } elseif ($proofType === 'pan') {
+            if ($proofType === 'pan') {
                 if (! empty($proof->proof_no)) {
                     $application->pancard = $proof->proof_no;
                 }

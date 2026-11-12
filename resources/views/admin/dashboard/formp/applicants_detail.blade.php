@@ -500,10 +500,7 @@
                                                 @endif
                                             </div>
                                             @php
-                                                $aadhaarRaw = $applicant->aadhaar ?? $applicant->aadhar ?? null;
                                                 $panRaw = $applicant->pancard ?? $applicant->pan_no ?? $applicant->pan ?? null;
-                                                $decryptedaadhar = $aadhaarRaw ? safeDecrypt($aadhaarRaw) : '';
-                                                $masked          = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : ($aadhaarRaw ? 'Invalid Aadhaar' : '—');
                                                 $decryptedPanRow = $panRaw ? safeDecrypt($panRaw) : '';
                                                 $maskedPan       = strlen((string) $decryptedPanRow) === 10 ? str_repeat('X', 6) . substr($decryptedPanRow, -4) : ($panRaw ? 'Invalid PAN' : '—');
                                                 $panDocFile      = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
@@ -513,28 +510,6 @@
                                                 <div class="col-md-12 col-lg-12">
                                                     <h6 class="fw-bold mt-3">Documents Uploaded:</h6>
                                                     <div class="row align-items-center mt-1 g-1">
-                                                        <div class="col-lg-6">
-                                                            <p class="fw-bold mb-0" style="color: #000;">Aadhaar:</p>
-                                                        </div>
-                                                        <div class="col-lg-6 text-end">
-                                                            @if (!empty($applicant->aadhaar_doc))
-                                                                <div class="fw-bold mb-0" style="color: #515365">
-                                                                    {{ $masked }}
-                                                                    (<a href="{{ proof_document_url($applicant->aadhaar_doc, 'aadhaar') }}"
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        class="text-primary applicant-inline-doc-link"
-                                                                        title="Open Aadhaar document">
-                                                                        <i class="fa fa-file-pdf-o text-danger" aria-hidden="true"></i>
-                                                                        <span>View Document</span>
-                                                                    </a>)
-                                                                </div>
-                                                            @else
-                                                                <div class="mb-0 text-muted small">No document</div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                    <div class="row align-items-center mt-2 g-1">
                                                         <div class="col-lg-6">
                                                             <p class="fw-bold mb-0" style="color: #000;">PAN:</p>
                                                         </div>
@@ -993,10 +968,6 @@
                     <div class="form-check mb-2">
                         <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_signature" value="Signature is missing">
                         <label class="form-check-label" for="query_signature">Signature is missing</label>
-                    </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_aadhaar" value="Aadhaar document is missing">
-                        <label class="form-check-label" for="query_aadhaar">Aadhaar document is missing</label>
                     </div>
                     <div class="form-check mb-2">
                         <input class="form-check-input return-to-applicant-query" type="checkbox" name="return_applicant_query[]" id="query_work_exp" value="Work Experience">

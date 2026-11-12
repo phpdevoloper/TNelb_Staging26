@@ -404,21 +404,13 @@ class RegisterController extends BaseController
         $proofCrypt = app(SensitiveProofCryptService::class);
         $proofRows = CC_Proof_doc::where('application_id', $appl_id)
             ->whereIn('proof_name', [
-                FormSProofDocumentService::PROOF_AADHAAR,
                 FormSProofDocumentService::PROOF_PAN,
             ])
             ->get();
         foreach ($proofRows as $proof) {
             $proofName = strtoupper(trim((string) ($proof->proof_name ?? '')));
             $proofNo = $proofCrypt->decryptProofNumber($proof->proof_no ?? null);
-            if ($proofName === FormSProofDocumentService::PROOF_AADHAAR) {
-                if ($proofNo !== null && $proofNo !== '') {
-                    $application_details->aadhaar = $proofNo;
-                }
-                if (! empty($proof->proof_doc)) {
-                    $application_details->aadhaar_doc = $proof->proof_doc;
-                }
-            } elseif ($proofName === FormSProofDocumentService::PROOF_PAN) {
+            if ($proofName === FormSProofDocumentService::PROOF_PAN) {
                 if ($proofNo !== null && $proofNo !== '') {
                     $application_details->pancard = $proofNo;
                 }

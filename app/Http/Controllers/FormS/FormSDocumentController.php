@@ -70,7 +70,7 @@ class FormSDocumentController extends Controller
 
     protected function proofDocPathForLog(CC_Doc_Log $log): ?string
     {
-        if (! in_array((string) $log->module_type, ['photo', 'signature', 'aadhaar', 'pan'], true)) {
+        if (! in_array((string) $log->module_type, ['photo', 'signature', 'pan'], true)) {
             return null;
         }
 
