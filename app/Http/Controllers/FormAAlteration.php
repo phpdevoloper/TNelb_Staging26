@@ -349,7 +349,13 @@ class FormAAlteration extends BaseController
 
             $metaData['processed_by'] = null;
 
-            
+            $metaData['return_flag'] = '0';
+
+            // $metaData['re'] = NULL;
+            $metaData['return_reason'] = null;
+
+             $metaData['dt_submit'] = null;
+
 
             DB::table('ccl_forma_meta')->insert($metaData);
 
@@ -593,6 +599,14 @@ class FormAAlteration extends BaseController
             ->orderBy('id', 'DESC')
             ->get();
 
+              $allstaffs = DB::table('cl_staff_tbl')
+            ->where('application_id', $application_id)
+            
+            ->where('staff_flag', '1')
+            ->orderBy('id', 'ASC')
+            ->get();
+
+            // dd($allstaffs); exit;
         // -------------------------------------------------
         // Old/current licence remains linked to old application
         // -------------------------------------------------
@@ -3821,7 +3835,7 @@ class FormAAlteration extends BaseController
                 'late_fee'       => $fees_details['lateFees'] ?? 0,
                 'late_months'    => $fees_details['late_months'] ?? 0,
                 'application_fee'     => $fees_details['basic_fees'],
-                // 'qcfees'     => $qcFee,
+                'qc_fees'     => $qcFee,
                 'dbNow' => $dbNow,
                 'form_name'      => $request->form_name,
                 'license_name'   => $request->license_name,

@@ -350,7 +350,7 @@ exit; -->
                                             </td>
                                             <td>
                                                 <button class="btn btn-danger" type="button"> <i
-                                                        class="fa fa-trash-o"></i>
+                                                        class="fa fa-trash"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -1681,7 +1681,15 @@ exit; -->
                                         @foreach ($proprietors as $p)
                                             @if ($p->ownership_type === 'dr')
                                                   <tr data-id="{{ $p->id }}">
-                                                    <td>{{ $p->proprietor_name }}</td>
+                                                   <td data-managing_director="{{ strtolower($p->managing_director ?? 'no') }}">
+                                                        {{ $p->proprietor_name }}
+
+                                                        @if($p->managing_director == 'YES')
+                                                            <span class="managing-director-tag">
+                                                               {{ $p->managing_director }} Managing Director
+                                                            </span>
+                                                        @endif
+                                                    </td>
                                                     <td>{{ $p->fathers_name }}</td>
                                                     <td data-dob="{{ $p->dob }}"
                                                         data-age="{{ $p->age }}"
@@ -1995,10 +2003,10 @@ exit; -->
 
                                             <div class="col-md-12 col-12  file-link">
                                                 <!-- @if (!empty($application->educational_proof))
-<a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
-                                                    <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                                </a>
-@endif -->
+                                                        <a href="{{ asset($application->educational_proof) }}" target="_blank" class="text-primary fw-bold">
+                                                                                                            <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
+                                                                                                        </a>
+                                                        @endif -->
                                             </div>
 
 
@@ -6624,7 +6632,7 @@ function toggleCompetencyFields(type, show) {
                             <button
                                 type="button"
                                 class="btn btn-danger btn-sm remove-proprietor-row">
-                                <i class="fa fa-trash-o"></i>
+                                <i class="fa fa-trash"></i>
                             </button>
                         </td>
 
@@ -7692,7 +7700,7 @@ function toggleCompetencyFields(type, show) {
                     <button
                         type="button"
                         class="btn btn-danger btn-sm remove-partner-row">
-                        <i class="fa fa-trash-o"></i>
+                        <i class="fa fa-trash"></i>
                     </button>
                 </td>
 
@@ -8239,25 +8247,17 @@ if (qual_proof) {
             }
 
             // Check whether a managing director already exists
-            let mdExists = false;
+           let mdExists = checkManagingDirectorExists();
 
-            $tbody.find("tr").each(function () {
-                let md = $(this)
-                    .find("td.md-column")
-                    .attr("data-managing_director");
-
-                if (md === "yes") {
-                    mdExists = true;
-                }
-            });
-
-            // Preserve managing director visibility logic
             if (mdExists) {
+
                 $(".managing-director-wrapper").hide();
 
                 $("#is_managing_director")
                     .prop("checked", false);
+
             } else {
+
                 $(".managing-director-wrapper").show();
             }
 
@@ -8289,6 +8289,30 @@ if (qual_proof) {
 
             console.log("Next director row index:", nextRowIndex);
         });
+
+
+        function checkManagingDirectorExists(excludeRow = null) {
+
+                let mdExists = false;
+
+                $("#director-section table tbody tr").each(function () {
+
+                    if (excludeRow && this === excludeRow[0]) {
+                        return;
+                    }
+
+                    let md = $(this)
+                        .find("td:first")
+                        .attr("data-managing_director");
+
+                    if (String(md).toLowerCase() === "yes") {
+                        mdExists = true;
+                        return false;
+                    }
+                });
+
+                return mdExists;
+            }
 
 
 
@@ -8416,6 +8440,20 @@ if (qual_proof) {
             // ===========================
 
             $section.find(".error").text("");
+
+            let mdExists = checkManagingDirectorExists();
+
+            if (mdExists) {
+
+                $(".managing-director-wrapper").hide();
+
+                $("#is_managing_director")
+                    .prop("checked", false);
+
+            } else {
+
+                $(".managing-director-wrapper").show();
+            }
 
             let isValid = true;
 
@@ -8937,7 +8975,7 @@ if (qual_proof) {
                         type="button"
                         class="btn btn-danger btn-sm remove-director-row"
                     >
-                        <i class="fa fa-trash-o"></i>
+                        <i class="fa fa-trash"></i>
                     </button>
                 </td>
 
@@ -9035,6 +9073,38 @@ if (qual_proof) {
             }
         });
 
+        $(document).on('change', '#is_managing_director', function () {
+
+            let isManagingDirector = $(this).is(':checked');
+
+            // Get the currently edited director row
+            let editId = $('#directorfill-section').attr('data-edit-id');
+
+            if (editId) {
+                let $row = $('#director-section table tbody tr[data-id="' + editId + '"]');
+
+                if ($row.length) {
+
+                    if (isManagingDirector) {
+                        $row.find('td:first')
+                            .attr('data-managing_director', 'yes');
+
+                        if ($row.find('.managing-director-tag').length === 0) {
+                            $row.find('td:first').append(
+                                ' <span class="managing-director-tag">Managing Director</span>'
+                            );
+                        }
+
+                    } else {
+                        $row.find('td:first')
+                            .attr('data-managing_director', 'no');
+
+                        $row.find('.managing-director-tag').remove();
+                    }
+                }
+            }
+        });
+
         $(document).on("click", ".update-director-row", function() {
 
             let $row = $(this).closest("tr");
@@ -9122,12 +9192,32 @@ if (qual_proof) {
 
             // ================= MANAGING DIRECTOR =================
 
+            // let managingDirector =
+            //     ($tds.eq(0).attr("data-managing_director") || "no")
+            //     .toLowerCase();
+
+            // if (managingDirector === "yes") {
+
+            //     $(".managing-director-wrapper").show();
+
+            //     $("#is_managing_director")
+            //         .prop("checked", true);
+
+            // } else {
+
+            //     $("#is_managing_director")
+            //         .prop("checked", false);
+
+            //     $(".managing-director-wrapper").show();
+            // }
+
             let managingDirector =
                 ($tds.eq(0).attr("data-managing_director") || "no")
                 .toLowerCase();
 
             if (managingDirector === "yes") {
 
+                // Show checkbox section and check it
                 $(".managing-director-wrapper").show();
 
                 $("#is_managing_director")
@@ -9135,10 +9225,11 @@ if (qual_proof) {
 
             } else {
 
+                // Hide checkbox section and uncheck it
+                $(".managing-director-wrapper").hide();
+
                 $("#is_managing_director")
                     .prop("checked", false);
-
-                $(".managing-director-wrapper").show();
             }
 
 

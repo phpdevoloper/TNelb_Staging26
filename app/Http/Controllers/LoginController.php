@@ -1076,7 +1076,8 @@ class LoginController extends BaseController
 
     public function dashboard()
     {
-
+//  $login_user = Auth::user();
+//  dd($login_user); exit;
         $sessionId = session()->getId();
         $loginId = session('login_id'); // Get login_id from session
 
@@ -1107,7 +1108,7 @@ foreach ($tables as $formCode => $tableName) {
     $records = DB::table("$tableName as ta")
         ->where('ta.login_id', $loginId)
         ->whereIn('ta.appl_type', ['N', 'D', 'A', 'R', 'RET', 'RETD'])
-        ->orderByDesc('ta.created_at')
+        ->orderByDesc('ta.updated_at')
         ->get()
         ->map(function ($workflow) use ($formCode, $applicationTables) {
 

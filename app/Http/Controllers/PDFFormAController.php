@@ -219,7 +219,12 @@ public function generateaPDF($newApplicationId)
 
         // $equipmentlist = Equipment_storetmp_A::where('application_id', $newApplicationId)->first();
         // $documents = Mst_documents::where('application_id', $newApplicationId)->first();
-        $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+       $payment = DB::table('payments')
+            ->where('application_id', $newApplicationId)
+            ->orderByDesc('id')
+            ->first();
+
+            // dd($payment); exit;
 
 
         if (!$form) {
@@ -257,7 +262,7 @@ public function generateaPDF($newApplicationId)
 
                 // $equipmentlist = Equipment_storetmp_A::where('application_id', $newApplicationId)->first();
                 // $documents = Mst_documents::where('application_id', $newApplicationId)->first();
-                $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+                $payment = DB::table('payments')->where('application_id', $newApplicationId)->orderByDesc('id')->first();
 
                 // dd($payment); exit;
 

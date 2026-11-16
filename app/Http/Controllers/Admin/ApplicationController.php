@@ -1198,7 +1198,7 @@ class ApplicationController extends Controller
 
 
 
-        EA_Application_model::where('application_id', $request->application_id)
+       $applicant_status = EA_Application_model::where('application_id', $request->application_id)
             ->update([
                 'application_status' =>  'RET',
                 'return_flag' => '1',
@@ -1208,6 +1208,8 @@ class ApplicationController extends Controller
                 'remarks_return' => $request->remarks_return,
                 'updated_at' => DB::raw('NOW()'),
             ]);
+
+            // dd($applicant_status); exit;
 
 
         //Get Role

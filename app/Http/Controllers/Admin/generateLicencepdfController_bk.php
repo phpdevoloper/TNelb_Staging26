@@ -227,23 +227,16 @@ class generateLicencepdfController extends Controller
     </tr>
 </table>';
 
-        $proprietors = DB::table('cl_ownership_table')
-            ->where('application_id', $application_id)
-            ->where('proprietor_flag', '1')
-            ->orderBy('id')
-            ->get();
-        $proprietorNames = '';
+       $proprietors = DB::table('cl_ownership_table')
+    ->where('application_id', $application_id)
+    ->where('proprietor_flag', '1')
+    ->orderBy('id')
+    ->pluck('proprietor_name')
+    ->toArray();
 
-        if ($proprietors->count() > 0) {
-            foreach ($proprietors as $proprietor) {
-                $proprietorNames .= strtoupper($proprietor->proprietor_name) . ', ';
-            }
-
-            // Remove last comma
-            $proprietorNames = rtrim($proprietorNames, ', ');
-        } else {
-            $proprietorNames = '—';
-        }
+$proprietorNames = !empty($proprietors)
+    ? implode('<br>', array_map('strtoupper', $proprietors))
+    : '—';
 
         $html .= '
 <table style="width:100%; border-collapse:collapse;" class="mt-1 mb-1">

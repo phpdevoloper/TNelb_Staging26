@@ -1285,7 +1285,7 @@ class LoginController extends Controller
                         "UPPER(TRIM(COALESCE(ta.appl_type, ''))) as appl_type"
                     ),
 
-                    'ta.created_at',
+                    'ta.dt_submit as created_at',
 
                     DB::raw("'A' as status"),
 
@@ -2238,10 +2238,14 @@ class LoginController extends Controller
         return view('admin.dashboard.applicants_detail_forma', $this->formADetailData($applicant_id));
     }
 
-    public function applicants_detail_forma_preview($applicant_id)
-    {
-        return view('admin.dashboard.applicants_detail_forma_preview', $this->formADetailData($applicant_id));
-    }
+   public function applicants_detail_forma_preview($applicant_id)
+{
+    $data = $this->formADetailData($applicant_id);
+
+    $data['applicant_id'] = $applicant_id;
+
+    return view('admin.dashboard.applicants_detail_forma_preview', $data);
+}
 
     private function formADetailData(string $applicant_id): array
     {
@@ -2979,7 +2983,7 @@ class LoginController extends Controller
             'Secretary'  => 'admin.completedappls.applicants_forma_completed',
             'Supervisor' => 'admin.completedappls.applicants_forma_completed',
             // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-            'Assistant Secretary'    => 'admin.completedappls.applicants_detail_auditor_forma_completed',
+            'Assistant Secretary'    => 'admin.completedappls.applicants_forma_completed',
 
             default      => abort(403, 'Unauthorized'),
         };

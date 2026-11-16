@@ -969,7 +969,7 @@
                                         <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For
                                         : <span style="color:#098501;"> {{ $applicant->form_name }} | License
                                             {{ $applicant->license_name }}</span>
-                                        @if (trim($applicant->appl_type) == 'A')
+                                        @if (trim($applicant->appl_type) == 'A' || trim($applicant->appl_type) == 'R' )
                                             Parent Application ID: <span
                                                 style="color:#098501;">{{ $applicant->old_application }}
                                             </span>
@@ -2049,7 +2049,7 @@
                                                     <p><strong>Appication Fees</strong></p>
                                                 </div>
                                                 <div class="col-lg-6">
-                                                    <p>{{ $applicant->amount }}</p>
+                                                    <p>{{ $applicant->application_fee }}</p>
                                                 </div>
 
                                                 <div class="col-lg-6">
@@ -2156,9 +2156,11 @@
 
                 <div class="row align-items-center">
 
-                    <div class="col-lg-12">
+
+                    <div class="col-lg-12" style="display: none">
                         <div class="statbox widget box box-shadow mb-2">
-                            <div class="row align-items-center">
+                         
+                            <div class="row align-items-center" >
 
                                 <div class="col-lg-12">
                                     {{-- <div class="form-check form-switch">
@@ -2206,6 +2208,8 @@
                         <div class="statbox widget box box-shadow">
 
                             <div class="widget-header">
+                                {{-- text-align: center; --}}
+                                 <h5 style="color: red; padding-top:10px;  ">Action Taken</h5>
                                 <h4>Remarks</h4>
 
 

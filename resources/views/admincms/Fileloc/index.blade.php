@@ -168,13 +168,27 @@
                                 </div>
 
                                 <div class="row mt-3">
-                                    <div class="col-md-2 offset-md-2 mt-3">
+                                    <div class="col-md-2  mt-3">
                                         <label><strong>Filter by Licence</strong></label>
                                     </div>
 
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <select class="form-select licenseFilter" data-table="style-3">
                                             <option value="">All Licences</option>
+                                        </select>
+                                    </div>
+
+                                     <div class="col-md-2  mt-3">
+                                        <label><strong>Application Type</strong></label>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <select class="form-select appl_type" data-table="style-3">
+                                            <option value="">Application Type</option>
+                                            <option value="N">New</option>
+                                            <option value="R">Renewal</option>
+                                            <option value="D">Digitisation</option>
+                                            <option value="A">Alteration</option>
                                         </select>
                                     </div>
                                 </div>
@@ -188,7 +202,7 @@
                                             <th>Application <br> Type</th>
 
                                             <th>Module Name</th>
-                                            <th>Temp Filepath</th>
+                                            {{-- <th>Temp Filepath</th> --}}
                                             <th>Production Filepath</th>
 
                                             <th class="text-center">Created At</th>
@@ -210,18 +224,21 @@
                                             <!-- Category Name -->
                                             <td>{{ $row->licence_name }}</td>
 
-                                            <td>
-                                                @if($row->appl_type == 'N')
-                                                New
-                                                @else
-                                                Renewal
+                                            <td data-order="{{ trim($row->appl_type) }}">
+                                                @if(trim($row->appl_type) == 'N')
+                                                    New
+                                                @elseif(trim($row->appl_type) == 'R')
+                                                    Renewal
+                                                @elseif(trim($row->appl_type) == 'D')
+                                                    Digitisation
+                                                @elseif(trim($row->appl_type) == 'A')
+                                                    Alteration
                                                 @endif
-
                                             </td>
 
                                             <td>{{ $row->form_module }}</td>
 
-                                            <td>{{ $row->filepath_temp }}</td>
+                                            {{-- <td>{{ $row->filepath_temp }}</td> --}}
 
 
                                             <td>{{ $row->filepath_pro }}</td>
@@ -469,7 +486,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-lg-12 mb-2">
+                        <div class="col-lg-12 mb-2" style="display: none">
                             <label for="inputEmail4" class="form-label">Temporary Filepath <span class="text-danger">*</span> </label>
                             <input type="text" class="form-control" name="filepath_temp" id="filepath_temp">
 

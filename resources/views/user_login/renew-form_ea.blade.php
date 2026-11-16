@@ -658,7 +658,7 @@ exit; -->
                                                     <td>
                                                         <button type="button"
                                                             class="btn btn-primary btn-sm update-proprietor-row"
-                                                            data-id="{{ $p->id }}">
+                                                            data-id="{{ $p->id }}" >
                                                             <i class="fa fa-pencil"></i>
                                                         </button>
                                                     </td>
@@ -677,8 +677,7 @@ exit; -->
                                 </table>
                             </div>
 
-
-                            <p class="text-red">Change of Proprietorship is not permitted under the existing application. Kindly submit a New Application to proceed with the change.</p>
+                            <p>Change of Proprietorship is not permitted under the existing application. Kindly submit a New Application to proceed with the change </p>
 
 
 
@@ -3042,13 +3041,22 @@ exit; -->
                                                 <tr class="staff-fields" data-id="{{ $staff->id ?? '' }}"
                                                     data-row-index="{{ $rowIndex }}">
 
-                                                    <td>
+                                                 <td>
                                                         {{ $i + 1 }}
 
                                                         <input type="hidden"
                                                             name="row_index[{{ $i }}]"
                                                             value="{{ $staff->row_index ?? $rowIndex }}"
                                                             class="form-control row_index">
+
+                                                        <input type="hidden"
+                                                            name="staff_id[{{ $i }}]"
+                                                            value="{{ $staff->id ?? '' }}"
+                                                            class="staff_id">
+
+                                                        <input type="hidden"
+                                                            name="staff_flag[{{ $i }}]"
+                                                            value="1">
                                                     </td>
 
                                                    <td>
@@ -5845,78 +5853,84 @@ function toggleCompetencyFields(type, show) {
         }
 
 
-        function removeStaffRow(button) {
+        
+function removeStaffRow(button) {
 
-            let $row = $(button).closest('tr');
+    let $row = $(button).closest('tr');
 
-            let staffId = $row.find('input[name^="staff_id["]').val() || '';
-            let rowIndex = $row.find('input[name^="row_index["]').val() || '';
+    let staffId = $row.find('input[name^="staff_id["]').val() || '';
+    let rowIndex = $row.find('input[name^="row_index["]').val() || '';
 
-            // Existing database record
-            if (staffId && rowIndex) {
+    // Existing database record
+    if (staffId) {
 
-                if ($('#deleted_staff_ids').length === 0) {
+        if ($('#deleted_staff_ids').length === 0) {
 
-                    $('#staff-container').after(`
+            $('#staff-container').after(`
                 <input type="hidden"
                        id="deleted_staff_ids"
                        name="deleted_staff_ids"
                        value="">
             `);
-                }
+        }
 
-                let deletedStaff = [];
+        let deletedStaff = [];
 
-                let existingValue =
-                    $('#deleted_staff_ids').val();
+        let existingValue = $('#deleted_staff_ids').val();
 
-                if (existingValue) {
-                    try {
-                        deletedStaff = JSON.parse(existingValue);
-                    } catch (e) {
-                        deletedStaff = [];
-                    }
-                }
-
-                deletedStaff.push({
-                    id: staffId,
-                    row_index: rowIndex
-                });
-
-                $('#deleted_staff_ids').val(
-                    JSON.stringify(deletedStaff)
-                );
+        if (existingValue) {
+            try {
+                deletedStaff = JSON.parse(existingValue);
+            } catch (e) {
+                deletedStaff = [];
             }
+        }
 
-            // Remove row from UI
-            $row.remove();
+        // Avoid duplicate IDs
+        let alreadyExists = deletedStaff.some(function(item) {
+            return String(item.id) === String(staffId);
+        });
 
-            // Re-index display S.NO only
-            $('#staff-container tr.staff-fields').each(function(index) {
-
-                $(this)
-                    .find('td:first')
-                    .text(index + 1);
+        if (!alreadyExists) {
+            deletedStaff.push({
+                id: staffId,
+                row_index: rowIndex
             });
+        }
 
-            // Add button only to last row
-            $('#staff-container tr.staff-fields .btn-success')
-                .remove();
+        $('#deleted_staff_ids').val(
+            JSON.stringify(deletedStaff)
+        );
+    }
 
-            let $lastRow =
-                $('#staff-container tr.staff-fields').last();
+    // Remove row from UI
+    $row.remove();
 
-            if ($lastRow.length) {
+    // Re-index display S.NO only
+    $('#staff-container tr.staff-fields').each(function(index) {
 
-                $lastRow.find('td:last').prepend(`
+        $(this)
+            .find('td:first')
+            .text(index + 1);
+    });
+
+    // Add button only to last row
+    $('#staff-container tr.staff-fields .btn-success').remove();
+
+    let $lastRow = $('#staff-container tr.staff-fields').last();
+
+    if ($lastRow.length) {
+
+        $lastRow.find('td:last').prepend(`
             <button type="button"
                     class="btn btn-success"
                     onclick="addStaffRows()">
                 + Add
             </button>
         `);
-            }
-        }
+    }
+}
+
 
         // ------instrumrnts report 1----------------------
         $('input[name="tested_documents"]').on('change', function() {
@@ -6693,286 +6707,17 @@ function toggleCompetencyFields(type, show) {
 
 
         // Edit row
-        $(document).on("click", ".update-proprietor-row", function() {
-            alert('111');
-          let $row = $(this).closest("tr");
-            let $tds = $row.find("td");
-
-            let id = $row.attr("data-id") || $(this).attr("data-id");
-            editIndex = $row.index();
-
-            // Read row_index from the row's hidden input first
-            let rowIndexValue = $row.find("input[name='row_index[]']").val()
-                || $row.attr("data-row-index")
-                || "1";
-
-            rowIndexValue = parseInt(rowIndexValue, 10);
-
-            if (isNaN(rowIndexValue) || rowIndexValue < 1) {
-                rowIndexValue = 1;
-            }
-
-            let ownershipValue = $row.find("input[name='ownership_type[]']").val();
-
-            let $section = $("#proprietor-sectionfresh");
-
-            // Store the index on the form section
-            $section.attr("data-row-index", rowIndexValue);
-
-            // Pass it to the hidden input
-            $section.find("input[name='row_index[]']")
-                .val(rowIndexValue);
-
-            // Pass it to both upload buttons
-            $section.find(".upload-btn")
-                .attr("data-row-index", rowIndexValue)
-                .data("rowIndex", rowIndexValue);
-
-
-
-            // let ownership_type = $section.find("input[name='ownership_type[]']").val().trim();
-            // $section.find("input[name='ownership_type[]']").val($row.find("td").eq(9).text());
-            // Fill form with row data
-            $section.find("input[name='proprietor_name[]']").val($row.find("td").eq(0).text());
-            $section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text());
-
-            let tdDobAge = $row.find("td").eq(2);
-
-
-            $section.find("input[name='dob[]']").val(tdDobAge.data("dob"));
-            $section.find("input[name='age[]']").val(tdDobAge.data("age"));
-
-
-            $ageproofdata = $row.find("td").eq(2);
-            // alert(tdDobAge.data("age"));
-
-            let age_proof = $ageproofdata.attr("data-age_proof");
-
-            // alert(age_proof);
-
-
-
-            $section.attr("data-existing-age-file", age_proof || "");
-
-            // 🔥 SHOW FILE IN FORM
-            if (age_proof) {
-
-
-                $section.find(".age-file-link").html(`
-                    <a href="${age_proof}" target="_blank" class="text-primary fw-bold">
-                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                    </a>
-                `);
-            } else {
-                $section.find(".age-file-link").html("");
-            }
-
-            // Get present file from TABLE (important)
-            let presentFileage = $ageproofdata.attr("data-age_proof");
-
-            $section.attr("data-present-age-file", presentFileage || "");
-            // Show present file below input box (only for table edit)
-            if (presentFileage) {
-                $section.find(".age-file-link").html(`
-                    <a href="${presentFileage}" target="_blank" class="text-primary fw-bold">
-                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                    </a>
-                `);
-            }
-
-
-
-
-            // alert($section.find("input[name='fathers_name[]']").val($row.find("td").eq(1).text()));
-            // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
-            // let qualification = $section.find("input[name='qualification[]']").val().trim();
-            //  $section.find("select[name='qualification[]']").val();
-
-            // qual_proof
-            // let qual_proof = $section.find("input[name='qual_proof[]']").val().trim();
-            // $section.find("input[name='age[]']").val($row.find("td").eq(2).text());
-            $section.find("textarea[name='proprietor_address[]']").val($row.find("td").eq(3).text());
-
-            let tdqualification = $row.find("td").eq(4);
-
-            let qualificationValue = tdqualification.attr("data-qualification");
-            let qualTextValue = tdqualification.attr("data-qual_text");
-
-            let $qualificationSelect = $section.find("select[name='qualification[]']");
-            let $qualTextInput = $section.find("input[name='qual_text[]']");
-            let $wrapper = $section.find(".qualTextWrapper");
-
-            // Set select value
-            $qualificationSelect.val(qualificationValue).trigger("change");
-
-            $qualificationSelect.val(qualificationValue);
-
-            // If not selected, try matching manually
-            if ($qualificationSelect.val() === null) {
-                $qualificationSelect.find("option").each(function() {
-                    if ($(this).val().trim().toLowerCase() === qualificationValue.toLowerCase()) {
-                        $(this).prop("selected", true);
-                    }
-                });
-            }
-            // Set text value
-            $qualTextInput.val(qualTextValue);
-
-            // If qualification is not 8TH PASS AND text exists → show wrapper
-            if (qualificationValue && qualificationValue !== '8TH PASS') {
-                $wrapper.show();
-            }
-            // let $tr = $(this).closest("tr");
-
-
-            /////update
-            // Qualification
-            let $qualTd = $tds.eq(4);
-
-            let qualification = $qualTd.attr("data-qualification");
-            let qual_text = $qualTd.attr("data-qual_text");
-            let qual_proof = $qualTd.attr("data-qual_proof");
-
-            // Set qualification
-            $section.find(".qualification").val(qualification).trigger("change");
-            $section.find("input[name='qual_text[]']").val(qual_text);
-
-            // 🔥 STORE FILE URL INSIDE FORM
-            $section.attr("data-existing-file", qual_proof || "");
-
-            // 🔥 SHOW FILE IN FORM
-            if (qual_proof) {
-                $section.find(".file-link").html(`
-                    <a href="${qual_proof}" target="_blank" class="text-primary fw-bold">
-                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                    </a>
-                `);
-            } else {
-                $section.find(".file-link").html("");
-            }
-
-            // Get present file from TABLE (important)
-            // let presentFile = $qualTd.attr("data-qual_proof");
-
-            let presentFile = $qualTd.attr("data-qual_proof");
-
-            $section.attr("data-present-file", presentFile || "");
-            // Show present file below input box (only for table edit)
-            if (presentFile) {
-                $section.find(".file-link").html(`
-                    <a href="${presentFile}" target="_blank" class="text-primary fw-bold">
-                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                    </a>
-                `);
-            }
-            // Mark edit mode
-            $section.attr("data-edit-id", id);
-
-
-            // $section.find("input[name='qualification[]']").val($row.find("td").eq(4).text());
-            // $section.find("input[name='qual_text[]']").val($row.find("td").eq(4).text());
-            $section.find("input[name='present_business[]']").val($row.find("td").eq(5).text());
-            $section.find("input[name='ownership_type[]']").val(ownershipValue);
-
-
-            // === Competency Section ===
-            // ================= COMPETENCY =================
-
-            let tdCompetency = $row.find("td").eq(6);
-
-            // Get values from row
-            let competency = tdCompetency.attr("data-competency") || "no";
-            let certNo = tdCompetency.attr("data-certno") || "";
-            let ccFirstIssue = tdCompetency.attr("data-ccfirstissue") || "";
-            let ccValidityFrom = tdCompetency.attr("data-ccvalidityfrom") || "";
-            let ccValidityTo = tdCompetency.attr("data-ccvalidityto") || "";
-
-            // Set radio
-            $section.find(
-                "input[name='competency_certificate_holding[]'][value='" + competency + "']"
-            ).prop("checked", true);
-
-            // Show / Hide competency fields
-            toggleCompetencyFields("proprietor", competency === "yes");
-
-            // Fill values
-            $section.find("input[name='competency_certificate_number[]']").val(certNo);
-
-            function convertDDMMYYYYtoYMD(date) {
-
-                if (!date) {
-                    return "";
-                }
-
-                date = $.trim(date);
-
-                // Already YYYY-MM-DD
-                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                    return date;
-                }
-
-                // DD-MM-YYYY
-                if (/^\d{2}-\d{2}-\d{4}$/.test(date)) {
-
-                    let parts = date.split("-");
-
-                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
-
-                // DD/MM/YYYY
-                if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
-
-                    let parts = date.split("/");
-
-                    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-                }
-
-                return date;
-            }
-
-            let firstIssueYMD = convertDDMMYYYYtoYMD(ccFirstIssue);
-            let validityFromYMD = convertDDMMYYYYtoYMD(ccValidityFrom);
-            let validityToYMD = convertDDMMYYYYtoYMD(ccValidityTo);
-
-           $section.find("input[name='competency_certificate_first_issue[]']")
-                .val(firstIssueYMD);
-
-            $section.find("input[name='competency_certificate_validity_from[]']")
-                .val(validityFromYMD);
-
-            $section.find("input[name='competency_certificate_validity_to[]']")
-                .val(validityToYMD);
-
-            console.log("CC First Issue from table:", ccFirstIssue);
-            console.log("CC First Issue for date input:", firstIssueYMD);
-            console.log("Input actual value:",
-                $section.find("input[name='competency_certificate_first_issue[]']").val()
-            );
-
-            // Clear previous verification result
-            $section.find("#competency_exp_result").empty();
-
-            // Re-check certificate and load experience table
-            if (
-                competency === "yes" &&
-                certNo &&
-                ccFirstIssue &&
-                ccValidityFrom &&
-                ccValidityTo
-            ) {
-                // checkCompetencyCertificate();
-            }
-
-            // Show form
-            $section.slideDown();
-
-            // Change Save button to Update + Add Cancel button
-            $("#save_proprietor").text("Update");
-            if ($("#cancel_update").length === 0) {
-                $("#save_proprietor").after(`
-            <button type="button" id="cancel_proprietor" class="btn btn-danger ms-2">Cancel</button>
-        `);
-            }
+    $(document).on('click', '.update-proprietor-row', function (e) {
+            e.preventDefault();
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Information',
+                html: '<p style="line-height: 30px;">Change of Proprietorship is not permitted under the existing application. Kindly submit a New Application to proceed with the change.</p>',
+                confirmButtonText: 'OK',
+                width: 650,
+                confirmButtonColor: '#3085d6'
+            });
         });
 
         // Delete row

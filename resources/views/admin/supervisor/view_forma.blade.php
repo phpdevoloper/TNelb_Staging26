@@ -191,7 +191,7 @@
 
                                   <td class="return-cell text-center">
                                         {{ $key + 1 }}
- @if($application->return_flag == '1' )
+                                        @if($application->return_flag == '1' )
                                                <span class="corner-ribbon corner-ribbon-resubmitted">Resubmitted</span>
                                              @endif
 

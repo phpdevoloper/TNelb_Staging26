@@ -402,10 +402,22 @@
     </div>
 </div>
 
+{{-- @php
+    
+    var_dump($applicant_id); exit;
+@endphp --}}
+
 <div class="preview-sheet">
     <div class="pv-topbar">
         <h1 class="pv-title">Application Preview</h1>
-        <button type="button" class="pv-print" onclick="window.print()"><i class="fa fa-print" style="color: #fff;margin-top: 4px;"></i> Print</button>
+        {{-- <button type="button" class="pv-print" onclick="window.print()"><i class="fa fa-print" style="color: #fff;margin-top: 4px;"></i> Print</button> --}}
+
+            <a href="{{ route('admin.application_preview.pdf', ['applicant_id' => $applicant_id]) }}" target="_blank">
+                <button type="button" class="pv-print">
+                    <i class="fa fa-print" style="color: #fff;margin-top: 4px;"></i> Print
+                </button>
+            </a>
+
     </div>
     @include('admin.dashboard.partials.applicants_detail_forma_body')
 </div>

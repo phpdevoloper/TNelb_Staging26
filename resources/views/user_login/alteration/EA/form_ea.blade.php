@@ -239,44 +239,7 @@ exit; -->
 
                 @endphp
 
-                @if ($application->return_flag == '1')
-
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="mb-3" role="alert"
-                                style="background-color:#fff3e0;border-left:5px solid #ff9800;color:#4e342e;padding:12px 16px;border-radius:4px;">
-                                <h6 class="alert-heading font-weight-bold mb-2" style="margin:0 0 4px 0;">
-                                    Query raised by
-                                    @if ($application->processed_by == 'SE')
-                                        Secretary
-                                    @else
-                                        President
-                                    @endif
-                                </h6>
-                                <p class="mb-1" style="margin-bottom:6px;">
-                                    The following issue(s) were reported. Please correct and submit again:
-                                </p>
-                                <ul class="mb-0 pl-4 query-list" style="margin:0;padding-left:20px;">
-                                    @foreach ($returnSections as $reasons)
-                                        <li class="text-danger"><i
-                                                class="fa fa-exclamation-triangle text-danger query-item-blink"
-                                                style="padding-right: 5px;"></i> {{ Str::upper($reasons) }}</li>
-                                    @endforeach
-                                </ul>
-
-
-                                <div class="mt-2 border_return">
-                                    <div class="border_return2">
-                                        <span class="fw-semibold">REMARKS :</span>
-                                        <span>{{ $application->remarks_return }}</span>
-                                    </div>
-                                </div>
-
-
-                            </div>
-                        </div>
-                    </div>
-                @endif
+                
                 <nav class="tab-nav">
                     <!-- <button class="tab-btn active">Basic Details</button>
                     <button class="tab-btn">Proprietor Details</button>

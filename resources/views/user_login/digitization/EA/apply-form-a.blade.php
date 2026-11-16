@@ -232,6 +232,8 @@ exit; -->
             <input type="hidden" class="form-control text-box single-line" id="form_name" name="form_name"
                 value="A">
 
+                <input type="hidden" name="temp_app_id" id="digitization_cl_temp_app_id">
+
 
             <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name"
                 value="EA">

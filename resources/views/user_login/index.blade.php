@@ -1054,10 +1054,11 @@
                                        <tr>
                                            <th>S.No</th>
                                            <th>Form / Licence Name</th>
+                                           <th>Application Type </th>
                                            <th>Application ID</th>
                                            <th>Applied On</th>
                                            <th>Application<br> Status</th>
-                                           <th>Payment <br> Status</th>
+                                           <th width="10%">Payment <br> Status</th>
                                            {{-- <th>Payment <br> Receipt</th> --}}
                                            <th>Acknowledgement<br> Download</th>
                                            <th>Licence Status</th>
@@ -1101,6 +1102,24 @@
 
                                                         </td>
 
+                                                         {{-- APPLICATION Type --}}
+                                                         <td>
+                                                           @php
+                                                                $applType = strtoupper(trim((string) ($workflow->appl_type ?? '')));
+
+                                                                $applTypeLabel = match ($applType) {
+                                                                    'N' => '<span class="text-primary">New</span>',
+                                                                    'R' => '<span class="text-success">Renewal</span>',
+                                                                    'D' => '<span class="text-info">Digitisation</span>',
+                                                                    'A' => '<span class="text-warning">Alteration</span>',
+                                                                    default => $workflow->appl_type ?? 'NA',
+                                                                };
+                                                            @endphp
+
+                                                            {!! $applTypeLabel !!}
+                                                         
+                                                        </td>
+
                                                         {{-- APPLICATION ID --}}
                                                         <td>
 
@@ -1111,6 +1130,13 @@
                                                                 {{ $workflow->application_id ?? 'N/A' }}
 
                                                             </a>
+
+                                                             @if (strtoupper(trim((string) ($workflow->appl_type ?? ''))) === 'A' && !empty($workflow->old_application))
+                                                          
+                                                            <br>
+                                                            <span class="text-muted" style="font-size:12px;">Parent (Licence):</span>
+                                                            <span style="font-size:12px;">{{ $workflow->old_application }}</span>
+                                                        @endif
 
                                                         </td>
 
@@ -1416,7 +1442,7 @@
                                                                 <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}"
                                                                 target="_blank">
 
-                                                                    <span class="badge badge-info" style="font-size: 15px;">
+                                                                    <span class="badge badge-info" style="font-size: 13px;">
                                                                         {{ $workflow->license_number }}
                                                                     </span>
 
@@ -1435,73 +1461,8 @@
                                                                 @endif
 
                                                                 {{-- EXISTING RENEWAL APPLICATION --}}
-                                                                @if (!empty($workflow->renewal_application_id) && $workflow->appl_type == 'R')
-
-                                                                    <strong>Renewal Application</strong>
-
-                                                                    <br>
-
-                                                                    ID :
-
-                                                                    <a href="{{ route('generate.pdf', ['login_id' => $workflow->renewal_application_id]) }}"
-                                                                    target="_blank"
-                                                                    class="text-success">
-
-                                                                        {{ $workflow->renewal_application_id }}
-
-                                                                    </a>
-
-                                                                @else
-
-                                                                    {{-- APPLY RENEWAL ONLY FOR LATEST VALID_TO APPLICATION --}}
-                                                                    @if (
-                                                                        $workflow->is_under_validity_period
-                                                                        && $workflow->is_latest_validity_application
-                                                                    )
-
-                                                                        @if($workflow->form_name == 'SA')
-
-                                                                            <a href="{{ route('renew-form_esa', ['application_id' => $workflow->application_id]) }}"
-                                                                            class="text-primary">
-
-                                                                                (Apply for renewal)
-
-                                                                            </a>
-
-                                                                        @elseif($workflow->form_name == 'SB')
-
-                                                                            <a href="{{ route('renew-form_esb', ['application_id' => $workflow->application_id]) }}"
-                                                                            class="text-primary">
-
-                                                                                (Apply for renewal)
-
-                                                                            </a>
-
-                                                                        @elseif($workflow->form_name == 'B')
-
-                                                                            <a href="{{ route('renew-form_eb', ['application_id' => $workflow->application_id]) }}"
-                                                                            class="text-primary">
-
-                                                                                (Apply for renewal)
-
-                                                                            </a>
-
-                                                                        @else
-
-                                                                            <a href="{{ route('renew-form_ea', ['application_id' => $workflow->application_id]) }}"
-                                                                            class="text-primary">
-
-                                                                                (Apply for renewal)
-
-                                                                            </a>
-
-                                                                        @endif
-
-                                                                    @endif
-
-                                                                @endif
-
-                                                            @elseif (!empty($workflow->renewal_application_id))
+                                                                                                                            
+                                                            @if (!empty($workflow->renewal_application_id))
 
                                                                 <strong>Renewal Application</strong>
 
@@ -1509,9 +1470,93 @@
 
                                                                 ID :
 
-                                                                <span class="text-success">
+                                                                <a href="{{ route('contractor.application.preview', [
+                                                                    'application_id' => $workflow->renewal_application_id
+                                                                ]) }}"
+                                                                target="_blank"
+                                                                class="text-success">
+
                                                                     {{ $workflow->renewal_application_id }}
-                                                                </span>
+
+                                                                </a>
+
+                                                            @else
+
+                                                                {{-- APPLY RENEWAL ONLY FOR LATEST VALID_TO APPLICATION --}}
+                                                                @if (
+                                                                    $workflow->is_under_validity_period
+                                                                    && $workflow->is_latest_validity_application
+                                                                )
+
+                                                                    @if($workflow->form_name == 'SA')
+
+                                                                        <a href="{{ route('renew-form_esa', ['application_id' => $workflow->application_id]) }}"
+                                                                        class="text-primary">
+                                                                            (Apply for renewal)
+                                                                        </a>
+
+                                                                    @elseif($workflow->form_name == 'SB')
+
+                                                                        <a href="{{ route('renew-form_esb', ['application_id' => $workflow->application_id]) }}"
+                                                                        class="text-primary">
+                                                                            (Apply for renewal)
+                                                                        </a>
+
+                                                                    @elseif($workflow->form_name == 'B')
+
+                                                                        <a href="{{ route('renew-form_eb', ['application_id' => $workflow->application_id]) }}"
+                                                                        class="text-primary">
+                                                                            (Apply for renewal)
+                                                                        </a>
+
+                                                                    @else
+
+                                                                        <a href="{{ route('renew-form_ea', ['application_id' => $workflow->application_id]) }}"
+                                                                        class="text-primary">
+                                                                            (Apply for renewal)
+                                                                        </a>
+
+                                                                    @endif
+
+                                                                @endif
+
+                                                            @endif
+
+                                                            @elseif (!empty($workflow->renewal_application_id))
+
+    
+                                                                    @if (!empty($workflow->license_number))
+
+                                                                        <a href="{{ route('admin.licencepdf_cl.pdf', [
+                                                                            'application_id' => $workflow->application_id
+                                                                        ]) }}"
+                                                                        target="_blank">
+
+                                                                            <span class="badge badge-info" style="font-size: 15px;">
+                                                                                {{ $workflow->license_number }}
+                                                                            </span>
+
+                                                                        </a>
+
+                                                                        <br>
+
+                                                                    @endif
+
+                                                                    <strong>Renewal Application</strong>
+
+                                                                    <br>
+
+                                                                    ID :
+
+                                                                    <a href="{{ route('generate.pdf', [
+                                                                        'login_id' => $workflow->renewal_application_id
+                                                                    ]) }}"
+                                                                    target="_blank"
+                                                                    class="text-success">
+
+                                                                        {{ $workflow->renewal_application_id }}
+
+                                                                    </a>
 
                                                             @elseif($workflow->application_status == 'RET')
 

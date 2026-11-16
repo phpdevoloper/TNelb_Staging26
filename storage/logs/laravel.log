@@ -241047,3 +241047,41 @@ LINE 1: ...etail_adminstore\" where \"application_id\" = $1 and \"staff_cat...
 [stacktrace]
 #0 {main}
 "} 
+[2026-10-31 15:30:23] local.ERROR: Cannot redeclare class App\Models\MstLicence (previously declared in D:\Tnelb_project\TNelb_Staging26\app\Models\Admin\MstLicence.php:8) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class App\\Models\\MstLicence (previously declared in D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\Admin\\MstLicence.php:8) at D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\MstLicence.php:8)
+[stacktrace]
+#0 {main}
+"} 
+[2026-11-02 14:51:07] local.ERROR: Maximum execution time of 30 seconds exceeded {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Maximum execution time of 30 seconds exceeded at D:\\Tnelb_project\\TNelb_Staging26\\app\\Http\\Controllers\\Admin\\LoginController.php:54)
+[stacktrace]
+#0 {main}
+"} 
+[2026-11-03 15:54:08] local.ERROR: Cannot redeclare class App\Models\MstLicence (previously declared in D:\Tnelb_project\TNelb_Staging26\app\Models\Admin\MstLicence.php:8) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class App\\Models\\MstLicence (previously declared in D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\Admin\\MstLicence.php:8) at D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\MstLicence.php:8)
+[stacktrace]
+#0 {main}
+"} 
+[2026-11-04 16:07:25] local.ERROR: Cannot redeclare class App\Models\MstLicence (previously declared in D:\Tnelb_project\TNelb_Staging26\app\Models\Admin\MstLicence.php:8) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class App\\Models\\MstLicence (previously declared in D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\Admin\\MstLicence.php:8) at D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\MstLicence.php:8)
+[stacktrace]
+#0 {main}
+"} 
+[2026-11-06 14:53:46] local.ERROR: class@anonymous::loadConfig(): Return value must be of type ?PHPUnit\TextUI\XmlConfiguration\LoadedFromFileConfiguration, PHPUnit\TextUI\XmlConfiguration\Configuration returned {"exception":"[object] (TypeError(code: 0): class@anonymous::loadConfig(): Return value must be of type ?PHPUnit\\TextUI\\XmlConfiguration\\LoadedFromFileConfiguration, PHPUnit\\TextUI\\XmlConfiguration\\Configuration returned at D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59449a6d1d875e0b.php:166)
+[stacktrace]
+#0 D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59449a6d1d875e0b.php(128): class@anonymous->loadConfig()
+#1 D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59449a6d1d875e0b.php(75): class@anonymous->getTestSuites()
+#2 D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59449a6d1d875e0b.php(294): class@anonymous->all()
+#3 {main}
+"} 
+[2026-11-11 11:15:03] local.ERROR: class@anonymous::loadConfig(): Return value must be of type ?PHPUnit\TextUI\XmlConfiguration\LoadedFromFileConfiguration, PHPUnit\TextUI\XmlConfiguration\Configuration returned {"exception":"[object] (TypeError(code: 0): class@anonymous::loadConfig(): Return value must be of type ?PHPUnit\\TextUI\\XmlConfiguration\\LoadedFromFileConfiguration, PHPUnit\\TextUI\\XmlConfiguration\\Configuration returned at D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59051ac7a22d4855.php:166)
+[stacktrace]
+#0 D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59051ac7a22d4855.php(128): class@anonymous->loadConfig()
+#1 D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59051ac7a22d4855.php(75): class@anonymous->getTestSuites()
+#2 D:\\Tnelb_project\\TNelb_Staging26\\storage\\framework\\lsp-59051ac7a22d4855.php(294): class@anonymous->all()
+#3 {main}
+"} 
+[2026-11-11 18:30:57] local.ERROR: Cannot redeclare class App\Models\MstLicence (previously declared in D:\Tnelb_project\TNelb_Staging26\app\Models\Admin\MstLicence.php:8) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class App\\Models\\MstLicence (previously declared in D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\Admin\\MstLicence.php:8) at D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\MstLicence.php:8)
+[stacktrace]
+#0 {main}
+"} 
+[2026-11-16 14:55:53] local.ERROR: Cannot redeclare class App\Models\MstLicence (previously declared in D:\Tnelb_project\TNelb_Staging26\app\Models\Admin\MstLicence.php:8) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class App\\Models\\MstLicence (previously declared in D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\Admin\\MstLicence.php:8) at D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\MstLicence.php:8)
+[stacktrace]
+#0 {main}
+"} 

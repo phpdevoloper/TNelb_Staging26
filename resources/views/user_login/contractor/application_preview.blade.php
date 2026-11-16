@@ -772,6 +772,41 @@
             </div>
         </section>
 
+         @if(!empty($clDigitization))
+            <section class="apd-panel">
+                <header class="apd-panel-hd">
+                    <i class="fa fa-id-card" aria-hidden="true"></i>
+                 Digitisation - Existing Licence 
+                </header>
+                <div class="apd-panel-body">
+                    <dl class="apd-basic apd-basic-wide">
+                        <div>
+                            <dt>Licence Number</dt>
+                            <dd><span>:</span> {{ $dash($clDigitization->clnumber ?? '') }}</dd>
+                        </div>
+                        <div>
+                            <dt>First Issue</dt>
+                            <dd><span>:</span> {{ $fmtDate($clDigitization->fissue ?? null) ?: '—' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Validity</dt>
+                            <dd><span>:</span> {{ $fmtDate($clDigitization->from_date ?? null) ?: '—' }} to {{ $fmtDate($clDigitization->to_date ?? null) ?: '—' }}</dd>
+                        </div>
+                        @if(!empty($clDigitization->cl_doc))
+                            <div>
+                                <dt>Licence Document</dt>
+                                <dd><span>:</span>
+                                    <a href="{{ asset($clDigitization->cl_doc) }}" class="apd-view" target="_blank" rel="noopener">
+                                        <i class="fa fa-eye" aria-hidden="true"></i> View
+                                    </a>
+                                </dd>
+                            </div>
+                        @endif
+                    </dl>
+                </div>
+            </section>
+        @endif
+
         <section class="apd-panel">
             <header class="apd-panel-hd">
                 <i class="fa fa-user" aria-hidden="true"></i>
@@ -796,6 +831,17 @@
                             <dt><span>3.</span> Ownership Type</dt>
                             <dd><span>:</span> {{ $ownershipLabel }}</dd>
                         </div>
+
+                         <div>
+                            <dt><span>3.</span> Ownership Document</dt>
+                             @if(!empty($applicant_data->ownership_doc))
+                                <a href="{{ $applicant_data->ownership_doc }}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
+                                    <i class="fa fa-file-pdf-o" aria-hidden="true"></i>
+                                </a>
+                            @else
+                                <p>- </p>
+                            @endif
+                        </div>
                        
                         @if(!empty($applicant_data->old_application))
                             <div>
@@ -811,8 +857,10 @@
                     <header class="apd-box-hd">
                         <i class="fa fa-users" aria-hidden="true"></i>
                         Ownership / Partners / Directors Details
-                        @if(!empty($applicant_data->ownership_doc_url))
-                            <a href="{{ $applicant_data->ownership_doc_url }}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
+
+                       
+                        @if(!empty($applicant_data->ownership_doc))
+                            <a href="{{ $applicant_data->ownership_doc }}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
                                 <i class="fa fa-file-pdf-o" aria-hidden="true"></i>
                             </a>
                         @endif
@@ -933,40 +981,8 @@
             </div>
         </section>
 
-        @if(!empty($clDigitization))
-            <section class="apd-panel">
-                <header class="apd-panel-hd">
-                    <i class="fa fa-id-card" aria-hidden="true"></i>
-                    Existing Licence (Digitisation)
-                </header>
-                <div class="apd-panel-body">
-                    <dl class="apd-basic apd-basic-wide">
-                        <div>
-                            <dt>Licence Number</dt>
-                            <dd><span>:</span> {{ $dash($clDigitization->clnumber ?? '') }}</dd>
-                        </div>
-                        <div>
-                            <dt>First Issue</dt>
-                            <dd><span>:</span> {{ $fmtDate($clDigitization->fissue ?? null) ?: '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt>Validity</dt>
-                            <dd><span>:</span> {{ $fmtDate($clDigitization->from_date ?? null) ?: '—' }} to {{ $fmtDate($clDigitization->to_date ?? null) ?: '—' }}</dd>
-                        </div>
-                        @if(!empty($clDigitization->cl_doc))
-                            <div>
-                                <dt>Licence Document</dt>
-                                <dd><span>:</span>
-                                    <a href="{{ asset($clDigitization->cl_doc) }}" class="apd-view" target="_blank" rel="noopener">
-                                        <i class="fa fa-eye" aria-hidden="true"></i> View
-                                    </a>
-                                </dd>
-                            </div>
-                        @endif
-                    </dl>
-                </div>
-            </section>
-        @endif
+   
+       
 
         <section class="apd-panel">
             <header class="apd-panel-hd">
@@ -1104,10 +1120,6 @@
                                 <span class="apd-badge apd-badge-success">{{ Str::upper($applicant_data->criminal_offence) }}</span>
                             </dt>
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 7d8ee5c1ab26bcf14ecbab75915fce1f1338f9cb
                             @if (!empty($attachmentByType['criminaloffence']->file_doc_url))
                                 <dd>
                                     <span>:</span>
@@ -1264,25 +1276,57 @@
                     <dl class="apd-basic apd-basic-wide">
                         <div>
                             <dt>Payment status</dt>
-                            <dd><span>:</span> <span class="apd-badge apd-badge-success">{{ $dash($payment->payment_status ?? $applicant_data->payment_status ?? '') }}</span></dd>
+                            <dd>
+                                <span>:</span>
+                                <span class="apd-badge apd-badge-success">
+                                    {{ $dash(
+                                        empty($payment->application_fee)
+                                            ? 'No Fees'
+                                            : ($payment->payment_status ?? $applicant_data->payment_status ?? '')
+                                    ) }}
+                                </span>
+                            </dd>
                         </div>
                         <div>
                             <dt>Transaction ID</dt>
-                            <dd><span>:</span> {{ $dash($payment->transaction_id ?? '') }}</dd>
+                            <dd><span>:</span>
+                                
+                                     {{ $dash(
+                                        empty($payment->application_fee)
+                                            ? '—'
+                                            : ($payment->transaction_id ?? $applicant_data->transaction_id ?? '')
+                                    ) }}
+                                </dd>
+                        </div>
+                         <div>
+                            <dt>Application fee</dt>
+                            <dd><span>:</span> 
+                                {{ $dash($payment->application_fee ?? '') }}
+                            </dd>
                         </div>
                         <div>
-                            <dt>Application fee</dt>
+                            <dt>Total Amount</dt>
                             <dd><span>:</span> {{ $dash($payment->amount ?? '') }}</dd>
                         </div>
                         
-                        <div>
-                            <dt>Late fee</dt>
-                            <dd><span>:</span> {{ $payment->late_fee == 0 ? '—' : $payment->late_fee }}</dd>
-                        </div>
+                    <div>
+                        <dt>Late fee</dt>
+                        <dd>
+                            <span>:</span>
+                            {{ ($payment->late_fee ?? 0) == 0 ? '—' : $payment->late_fee }}
+                        </dd>
+                    </div>
 
                         <div>
                             <dt>Payment mode</dt>
-                            <dd><span>:</span> {{ $dash($payment->payment_mode ?? '') }}</dd>
+                            <dd><span>:</span> 
+                                {{ $dash(
+                                        empty($payment->application_fee)
+                                            ? '—'
+                                            : ($payment->payment_mode ?? $applicant_data->payment_mode ?? '')
+                                    ) }}
+                                
+                            </dd>
                         </div>
                         @if(!empty($payment->created_at) || !empty($payment->transaction_date))
                             <div>

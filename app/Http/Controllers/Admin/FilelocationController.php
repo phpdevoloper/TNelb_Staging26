@@ -182,7 +182,7 @@ class FilelocationController extends Controller
             'form_module'         => 'required|string|min:2|max:50',
             'appl_type'         => 'required|string|min:1|max:20',
 
-            'filepath_temp'         => 'required|string|min:2|max:255',
+            // 'filepath_temp'         => 'required|string|min:2|max:255',
             'filepath_pro'         => 'required|string|min:2|max:255',
 
 
@@ -190,7 +190,7 @@ class FilelocationController extends Controller
             'cert_license_id.required' => 'Choose the Licence Name',
             'form_module.required'         => 'Choose the Module Name',
             'appl_type.required'         => 'Choose the Module Name',
-            'filepath_temp.required'         => 'Fill the Module Name',
+            // 'filepath_temp.required'         => 'Fill the Module Name',
             'filepath_pro.required'         => 'Fill the Module Name',
 
         ]);
@@ -206,7 +206,7 @@ class FilelocationController extends Controller
             'cert_license_id' => $request->cert_license_id,
             'form_module'         => $request->form_module,
             'appl_type'    => $request->appl_type,
-            'filepath_temp'    => $request->filepath_temp,
+            'filepath_temp'    => '0',
             'filepath_pro'    => $request->filepath_pro,
             'created_by'        => $this->userId,
             'updated_by'        => $this->userId,
@@ -226,7 +226,7 @@ class FilelocationController extends Controller
                 'id' => $filepath->id,
                 'form_module' => $filepath->form_module,
                 'appl_type' => $filepath->appl_type,
-                'filepath_temp' => $filepath->filepath_temp,
+                // 'filepath_temp' => $filepath->filepath_temp,
                 'filepath_pro' => $filepath->filepath_pro,
 
                 'licence_name' => $licence->licence_name ?? 'N/A',

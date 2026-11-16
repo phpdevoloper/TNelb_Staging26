@@ -1131,6 +1131,21 @@ partners.forEach((p, index) => {
             });
         });
 
+        if (directors.length > 0) {
+
+            let lastIndex = directors.length - 1;
+
+            if (
+                String(directors[lastIndex].managing_director).toLowerCase() === "yes"
+            ) {
+                directors.forEach((director, index) => {
+                    if (index !== lastIndex) {
+                        director.managing_director = "no";
+                    }
+                });
+            }
+        }
+
         // Append directors JSON
         formData.append(
             "directors",
@@ -1384,9 +1399,10 @@ partners.forEach((p, index) => {
         // -----------------------------------------
 
         let ownershipType = $("#ownership_type_select").val();
-
+// alert(ownershipType);
         // Validate ONLY if not draft
         if (ownershipType === "1") {
+            
             $("#ownership_type_error").text("Please select an ownership type");
 
             $(".nav-item").each(function () {
@@ -1447,7 +1463,7 @@ partners.forEach((p, index) => {
         $("#director_mom_error").text("");
 
         // Get file link container
-        let ownershipFileLink = $(".file-link a").length; // check if any file link exists
+        let ownershipFileLink = $("#ownership-doc-link a").length; // check if any file link exists
 
         // ================= PARTNERSHIP =================
         if (ownershipType === "pt") {
@@ -1467,6 +1483,8 @@ partners.forEach((p, index) => {
 
         // ================= PRIVATE / LTD =================
         else if (ownershipType === "pvt" || ownershipType === "ltd") {
+
+            // alert(ownershipFileLink);
             if (ownershipFileLink === 0) {
                 activateBasicDetailsTab();
 
@@ -7902,18 +7920,10 @@ partners.forEach((p, index) => {
 
         formData.append("form_action", actionType);
 
-        // formData.append("form_action", actionType);
 
         let applType = $("#appl_type").val()?.trim();
         let postUrl = BASE_URL + "/forma/storereturn";
-            // applType === "R"
-            //     ? BASE_URL + "/forma/storerenewalreturn"
-            //     : BASE_URL + "/forma/storereturn";
-        //  let amount = formData.get("fees") || 0;
-
-        // let amount = formData.get("total_fees") || 0;
-
-        // alert(amount);
+      
 
         $.ajax({
             url: postUrl,

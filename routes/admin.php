@@ -182,6 +182,10 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
         Route::get('/applicants_detail_forma/{applicant_id}', [LoginController::class, 'applicants_detail_forma'])->name('applicants_detail_forma');
         Route::get('/applicants_detail_forma_preview/{applicant_id}', [LoginController::class, 'applicants_detail_forma_preview'])->name('applicants_detail_forma_preview');
 
+
+        Route::get('/application-preview-pdf/{applicant_id}', [generateLicencepdfController::class, 'application_preview'])
+    ->name('application_preview.pdf');
+
         //form A Completed
         Route::get('/applicants_detail_forma_completed/{applicant_id}', [LoginController::class, 'applicants_detail_forma_completed'])->name('applicants_detail_forma_completed');
 

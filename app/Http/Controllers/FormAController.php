@@ -3873,7 +3873,7 @@ class FormAController extends BaseController
                 'late_fee'       => $fees_details['lateFees'] ?? 0,
                 'late_months'    => $fees_details['late_months'] ?? 0,
                 'application_fee'     => $fees_details['basic_fees'],
-                // 'qcfees'     => $qcFee,
+                'qc_fees'     => $qcFee,
                 'form_name'      => $request->form_name,
                 'license_name'   => $request->license_name,
             ]);
@@ -4177,6 +4177,7 @@ class FormAController extends BaseController
             }
         }
 
+
         if ($request->has('cc_number') || $request->filled('designation')) {
 
             $processedStaffIds = [];
@@ -4218,25 +4219,52 @@ class FormAController extends BaseController
                 ->pluck('id')
                 ->toArray();
 
+                // dd($existingStaffIds); exit;
+
+
+            // ==========================================================
+            // SUBMITTED STAFF IDS
+            // ==========================================================
+
+            $submittedStaffIds = [];
+
+            foreach ($staffIdsFromForm as $staffId) {
+
+                if (
+                    $staffId !== null &&
+                    $staffId !== '' &&
+                    strtolower(trim((string) $staffId)) !== 'undefined' &&
+                    strtolower(trim((string) $staffId)) !== 'null'
+                ) {
+                    $submittedStaffIds[] = (int) $staffId;
+                }
+            }
+
+            $submittedStaffIds = array_values(
+                array_unique($submittedStaffIds)
+            );
+
 
             // ==========================================================
             // MARK REMOVED B / C / OTHERS STAFF AS staff_flag = 0
+            // USING STAFF ID INSTEAD OF ROW INDEX
             // QC / QSC WILL NOT BE UPDATED
             // ==========================================================
 
             DB::table('cl_staff_tbl')
                 ->where('application_id', $applicationId)
                 ->whereIn('staff_category', ['B', 'C', 'OTHERS'])
+                ->where('staff_flag', '1')
                 ->when(
-                    !empty($submittedRowIndexes),
-                    function ($query) use ($submittedRowIndexes) {
+                    !empty($submittedStaffIds),
+                    function ($query) use ($submittedStaffIds) {
                         $query->whereNotIn(
-                            'row_index',
-                            $submittedRowIndexes
+                            'id',
+                            $submittedStaffIds
                         );
                     },
                     function ($query) {
-                        $query->whereNotNull('row_index');
+                        $query->whereNotNull('id');
                     }
                 )
                 ->update([
@@ -4302,7 +4330,6 @@ class FormAController extends BaseController
                 $staffId = $staffIdsFromForm[$index] ?? null;
 
                 $rowIndex = $rowIndexesFromForm[$index] ?? null;
-
 
 
                 if (
@@ -4376,14 +4403,10 @@ class FormAController extends BaseController
                     'staff_cc_validity_to' =>
                     $validityTo,
 
-
-
                     'staff_name' =>
                     !empty($ccName)
                         ? trim((string) $ccName)
                         : null,
-
-
 
                     'staff_status' =>
                     'N',
@@ -4431,8 +4454,19 @@ class FormAController extends BaseController
                     in_array($staffId, $existingStaffIds, true)
                 ) {
 
-                    // Existing row MUST retain its own row_index
-                    $staffData['row_index'] = $rowIndex;
+                    // Retain existing row_index if available
+                    if ($rowIndex !== null) {
+
+                        $staffData['row_index'] = $rowIndex;
+                    } else {
+
+                        // Generate row_index if existing record
+                        // has NULL/empty index
+
+                        $staffData['row_index'] = $nextRowIndex;
+
+                        $nextRowIndex++;
+                    }
 
                     DB::table('cl_staff_tbl')
                         ->where('id', $staffId)
@@ -4470,7 +4504,6 @@ class FormAController extends BaseController
                 }
             }
         }
-
 
 
 
@@ -6814,12 +6847,14 @@ class FormAController extends BaseController
             $issued_licence = $request->issued_licence ?? 0;
 
             if ($appl_type === 'D') {
+
+
                 EA_Application_model::where('application_id', $applicationId)
                     ->update([
                         'dt_submit'  => $this->dbNow,
                         'updated_at' => $this->dbNow,
                     ]);
-
+                $this->datastore_history($applicationId);
                 return response()->json([
                     'draft_status'    => false,
                     'message'         => 'Application Submitted Successfully!',
@@ -6830,38 +6865,18 @@ class FormAController extends BaseController
                 ]);
             }
 
-            if ($appl_type === 'R') {
 
-
-
-
-                $paymentDetails = DB::select("
-                SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
-                ", [
-                    'appl_type' => $appl_type,
-                    'licence_id' => $form->id,
-                    'issued_licence' => $issued_licence,
-                ]);
-
-
-                // dd($paymentDetails);
-                // exit;
-
-            } else {
-                // dd($form->id);
-                //        exit;
-
-                $paymentDetails = DB::select("
+            $paymentDetails = DB::select("
                     SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
                 ", [
-                    'appl_type' => $appl_type,
-                    'licence_id' => $form->id,
-                    'issued_licence' => null,
-                ]);
+                'appl_type' => $appl_type,
+                'licence_id' => $form->id,
+                'issued_licence' => null,
+            ]);
 
-                //         dd($paymentDetails);
-                // exit;
-            }
+            //         dd($paymentDetails);
+            // exit;
+
 
             if (!empty($paymentDetails)) {
 
@@ -6948,9 +6963,19 @@ class FormAController extends BaseController
 
     private function formaMetaSubmitDate(string $applicationId): string
     {
+
+            EA_Application_model::where('application_id', $applicationId)
+                    ->update([
+                        'dt_submit'  => DB::raw('NOW()'),
+                        'updated_at' => DB::raw('NOW()'),
+                    ]);
+
+                    
         $dtSubmit = DB::table('ccl_forma_meta')
             ->where('application_id', $applicationId)
             ->value('dt_submit');
+
+
 
         if (!empty($dtSubmit)) {
             try {
@@ -7087,7 +7112,7 @@ class FormAController extends BaseController
     public function storerenewal(Request $request)
     {
 
-       $sessionId = session()->getId();
+        $sessionId = session()->getId();
 
         $request->merge([
             'aadhaar' => preg_replace('/\D/', '', $request->aadhaar)
@@ -7352,7 +7377,7 @@ class FormAController extends BaseController
             }
         }
 
-        if ($request->has('cc_number') || $request->filled('designation')) {
+         if ($request->has('cc_number') || $request->filled('designation')) {
 
             $processedStaffIds = [];
 
@@ -7393,25 +7418,52 @@ class FormAController extends BaseController
                 ->pluck('id')
                 ->toArray();
 
+                // dd($existingStaffIds); exit;
+
+
+            // ==========================================================
+            // SUBMITTED STAFF IDS
+            // ==========================================================
+
+            $submittedStaffIds = [];
+
+            foreach ($staffIdsFromForm as $staffId) {
+
+                if (
+                    $staffId !== null &&
+                    $staffId !== '' &&
+                    strtolower(trim((string) $staffId)) !== 'undefined' &&
+                    strtolower(trim((string) $staffId)) !== 'null'
+                ) {
+                    $submittedStaffIds[] = (int) $staffId;
+                }
+            }
+
+            $submittedStaffIds = array_values(
+                array_unique($submittedStaffIds)
+            );
+
 
             // ==========================================================
             // MARK REMOVED B / C / OTHERS STAFF AS staff_flag = 0
+            // USING STAFF ID INSTEAD OF ROW INDEX
             // QC / QSC WILL NOT BE UPDATED
             // ==========================================================
 
             DB::table('cl_staff_tbl')
                 ->where('application_id', $applicationId)
                 ->whereIn('staff_category', ['B', 'C', 'OTHERS'])
+                ->where('staff_flag', '1')
                 ->when(
-                    !empty($submittedRowIndexes),
-                    function ($query) use ($submittedRowIndexes) {
+                    !empty($submittedStaffIds),
+                    function ($query) use ($submittedStaffIds) {
                         $query->whereNotIn(
-                            'row_index',
-                            $submittedRowIndexes
+                            'id',
+                            $submittedStaffIds
                         );
                     },
                     function ($query) {
-                        $query->whereNotNull('row_index');
+                        $query->whereNotNull('id');
                     }
                 )
                 ->update([
@@ -7477,7 +7529,6 @@ class FormAController extends BaseController
                 $staffId = $staffIdsFromForm[$index] ?? null;
 
                 $rowIndex = $rowIndexesFromForm[$index] ?? null;
-
 
 
                 if (
@@ -7551,14 +7602,10 @@ class FormAController extends BaseController
                     'staff_cc_validity_to' =>
                     $validityTo,
 
-
-
                     'staff_name' =>
                     !empty($ccName)
                         ? trim((string) $ccName)
                         : null,
-
-
 
                     'staff_status' =>
                     'N',
@@ -7606,8 +7653,19 @@ class FormAController extends BaseController
                     in_array($staffId, $existingStaffIds, true)
                 ) {
 
-                    // Existing row MUST retain its own row_index
-                    $staffData['row_index'] = $rowIndex;
+                    // Retain existing row_index if available
+                    if ($rowIndex !== null) {
+
+                        $staffData['row_index'] = $rowIndex;
+                    } else {
+
+                        // Generate row_index if existing record
+                        // has NULL/empty index
+
+                        $staffData['row_index'] = $nextRowIndex;
+
+                        $nextRowIndex++;
+                    }
 
                     DB::table('cl_staff_tbl')
                         ->where('id', $staffId)
@@ -7645,6 +7703,7 @@ class FormAController extends BaseController
                 }
             }
         }
+
 
 
 
@@ -9954,7 +10013,7 @@ class FormAController extends BaseController
                 ->where('status', '1')
                 ->first();
 
-        
+
 
             $appl_type = $request->appl_type;
 
@@ -9963,7 +10022,7 @@ class FormAController extends BaseController
                 // ->where('status', '1')
                 ->first();
 
-       
+
 
             $today = Carbon::today()->toDateString();
 
@@ -10003,18 +10062,18 @@ class FormAController extends BaseController
                 ]);
             }
 
-            
-
-                // dd($appl_type,  $form->id, $issued_licence); exit;
 
 
-                $paymentDetails = DB::select("
+            // dd($appl_type,  $form->id, $issued_licence); exit;
+
+
+            $paymentDetails = DB::select("
                 SELECT * FROM calc_fees(:appl_type, :licence_id, :issued_licence)
                 ", [
-                    'appl_type' => $appl_type,
-                    'licence_id' => $form->id,
-                    'issued_licence' => $issued_licence,
-                ]);
+                'appl_type' => $appl_type,
+                'licence_id' => $form->id,
+                'issued_licence' => $issued_licence,
+            ]);
 
 
 
@@ -10080,16 +10139,16 @@ class FormAController extends BaseController
 
                 // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
-                // dd($fees_details['qcfee']);
+                // dd($fees_details['basic_fees']);
                 // exit;
 
             }
 
             // dd($form->license_name);
             // exit;
- $transactionId = 'TXN' . rand(100000, 999999);
+            $transactionId = 'TXN' . rand(100000, 999999);
 
-        $payment = $isDraft ? 'draft' : 'success';
+            $payment = $isDraft ? 'draft' : 'success';
 
             Payment::create([
                 'login_id'       => $request->login_id_store,
@@ -10101,7 +10160,7 @@ class FormAController extends BaseController
                 'late_fee'       => $fees_details['lateFees'] ?? 0,
                 'late_months'    => $fees_details['late_months'] ?? 0,
                 'application_fee'     => $fees_details['basic_fees'],
-                // 'qcfees'     => $qcFee,
+                'qc_fees'     => $qcFee,
                 'form_name'      => $request->form_name,
                 'license_name'   => $request->license_name,
             ]);
@@ -10124,6 +10183,7 @@ class FormAController extends BaseController
                 'login_id' => $applicationId,
                 'transaction_id' => $transactionId,
                 'qcfees'     => $qcFee,
+                'dbNow'      => $this->formaMetaSubmitDate($applicationId),
 
             ]);
         }

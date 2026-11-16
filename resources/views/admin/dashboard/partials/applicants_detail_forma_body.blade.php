@@ -11,7 +11,7 @@
                                         <span style="color:#098501;">{{ $applicant->applicant_name }}</span> Applied For
                                         : <span style="color:#098501;"> {{ $applicant->form_name }} | License
                                             {{ $applicant->license_name }}</span>
-                                        @if (trim($applicant->appl_type) == 'A')
+                                        @if (trim($applicant->appl_type) == 'A' || trim($applicant->appl_type) == 'R')
                                             Parent Application ID: <span
                                                 style="color:#098501;">{{ $applicant->old_application }}
                                             </span>
@@ -138,14 +138,27 @@
                                                             <p class="text-info"><strong>1. Name of the
                                                                     Applicant:</strong></p>
 
+                                                           
+                                                        </div>
+                                                        <div class="col-lg-8">
+
+
+                                                            <p>{{ $applicant->applicant_name }}</p>
+
+
+                                                        </div>
+
+                                                    </div>
+
+                                                    <div class="row">
+                                                        <div class="col-lg-3">
+
                                                             <p class="text-info"><strong>2. Business address:</strong>
                                                             </p>
 
                                                         </div>
                                                         <div class="col-lg-8">
 
-
-                                                            <p>{{ $applicant->applicant_name }}</p>
 
                                                             <p>{{ $applicant->business_address }}</p>
 
@@ -1055,15 +1068,23 @@
                                                     <p><strong>Appication Fees</strong></p>
                                                 </div>
                                                 <div class="col-lg-6">
-                                                    <p>{{ $applicant->amount }}</p>
+                                                    <p>
+                                                        @if(!empty($applicant->application_fee))
+                                                        {{ $applicant->application_fee }}</p>
+                                                        @else
+                                                        -
+                                                        @endif
                                                 </div>
 
                                                 <div class="col-lg-6">
                                                     <p><strong>Total Amount</strong></p>
                                                 </div>
                                                 <div class="col-lg-6">
-
+                                                    @if(!empty($applicant->application_fee))
                                                     <p>{{ $applicant->amount }}.00</p>
+                                                    @else
+                                                    -
+                                                    @endif
 
                                                 </div>
 
@@ -1086,6 +1107,7 @@
 
                                             </div>
                                         </div>
+                                         @if(!empty($applicant->application_fee))
                                         <div class="col-lg-6">
                                             <div class="row ">
                                                 <h6 class="fw-bold text-primary">Transaction Instruments</h6>
@@ -1126,6 +1148,7 @@
 
                                             </div>
                                         </div>
+                                        @endif
 
 
 
