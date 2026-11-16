@@ -72,6 +72,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
     Route::get('/licencepdf_cl/{application_id}', [generateLicencepdfController::class, 'licencepdf_cl'])->name('licencepdf_cl.pdf');
 
     Route::get('/licencepdf_cl_tamil/{application_id}', [generateLicencepdfController::class, 'licencepdf_cl_tamil'])->name('licencepdf_cl_tamil.pdf');
+    Route::get('/licencepdf_cl_stored/{application_id}/{lang?}', [generateLicencepdfController::class, 'streamStoredLicenceA'])->name('licencepdf_cl.stored');
     // ----------------------------------------------------------
 
     // -------------------full license---------------------------------------

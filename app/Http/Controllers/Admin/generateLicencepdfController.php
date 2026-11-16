@@ -10,6 +10,7 @@ use App\Models\MstLicence;
 use App\Models\Tnelb_banksolvency_a;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 use Illuminate\Support\Facades\Auth;
@@ -1381,7 +1382,7 @@ class generateLicencepdfController extends Controller
         }
 
         if (!$application) {
-            return back()->with('error', 'Application ID not found.');
+            return $returnBinary ? null : back()->with('error', 'Application ID not found.');
         }
 
         // dd($application->license_name);exit;
@@ -1865,6 +1866,10 @@ class generateLicencepdfController extends Controller
         </table>
         ');
 
+        if ($returnBinary) {
+            return $mpdf->Output('', 'S');
+        }
+
         return response($mpdf->Output('License_A_approval.pdf', 'I'))
             ->header('Content-Type', 'application/pdf');
     }
@@ -1873,7 +1878,7 @@ class generateLicencepdfController extends Controller
 
     // ----------------------Tamil-----------------------------------------
 
-    public function licencepdf_cl_tamil($application_id)
+    public function licencepdf_cl_tamil($application_id, bool $returnBinary = false)
     {
 
         // dd('111');exit;
@@ -1903,7 +1908,7 @@ class generateLicencepdfController extends Controller
         }
 
         if (!$application) {
-            return back()->with('error', 'Application ID not found.');
+            return $returnBinary ? null : back()->with('error', 'Application ID not found.');
         }
 
         $licence_id = DB::table('mst_licences')
@@ -2304,7 +2309,55 @@ class generateLicencepdfController extends Controller
         </table>
         ');
 
+        if ($returnBinary) {
+            return $mpdf->Output('', 'S');
+        }
+
         return response($mpdf->Output('License_A_approval.pdf', 'I'))
             ->header('Content-Type', 'application/pdf');
+    }
+
+    public function streamStoredLicenceA(string $application_id, string $lang = 'en')
+    {
+        $row = DB::table('cl_forma_lic')
+            ->where('application_id', $application_id)
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$row) {
+            return back()->with('error', 'Licence not found.');
+        }
+
+        $column = $lang === 'ta' ? 'lic_pdf' : 'cert_pdf';
+        $binary = null;
+
+        if (!empty($row->{$column})) {
+            try {
+                $binary = Crypt::decryptString($row->{$column});
+            } catch (\Throwable $e) {
+                $binary = null;
+            }
+        }
+
+        if (!$binary) {
+            $binary = $lang === 'ta'
+                ? $this->licencepdf_cl_tamil($application_id, true)
+                : $this->licencepdf_cl($application_id, true);
+
+            if (!$binary) {
+                return back()->with('error', 'Licence not found.');
+            }
+
+            DB::table('cl_forma_lic')
+                ->where('id', $row->id)
+                ->update([
+                    $column      => Crypt::encryptString($binary),
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return response($binary)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="licence_' . $application_id . '.pdf"');
     }
 }
