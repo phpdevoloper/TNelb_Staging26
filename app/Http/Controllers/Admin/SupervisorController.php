@@ -2058,7 +2058,7 @@ class SupervisorController extends Controller
 
                         'license_number' => $application->license_number,
 
-                        'issued_by' => $request->roleid,
+                        'issued_by' => Auth::user()->roles_id,
 
                         'dateof_issue' => $issuedAt,
 
@@ -2111,7 +2111,7 @@ class SupervisorController extends Controller
                         'application_id' => $request->application_id,
                         'old_cl_no'      => $oldCLNumber,
                         'new_cl_no'      => $newSerial,
-                        'updated_by'     => $request->roleid,
+                        'updated_by'     => Auth::user()->roles_id,
                         'created_at'     => $now,
                         'updated_at'     => $now,
                     ]);
@@ -2126,7 +2126,7 @@ class SupervisorController extends Controller
 
                     'application_id' => $request->application_id,
                     'license_number' => $newSerial,
-                    'issued_by'      => $request->roleid,
+                    'issued_by'      => Auth::user()->roles_id,
                     'dateof_issue'   => $digitisationCL->fissue,
                     'valid_from'     => $digitisationCL->from_date,
                     'valid_to'       => $digitisationCL->to_date,
@@ -2297,7 +2297,7 @@ class SupervisorController extends Controller
 
                         'license_number' => $newSerial,
 
-                        'issued_by' => $request->roleid,
+                        'issued_by' => Auth::user()->roles_id,
 
                         'dateof_issue' => $issuedAt,
 
@@ -2371,7 +2371,7 @@ class SupervisorController extends Controller
 
                             'application_id' => $request->application_id,
                             'license_number' => $application->license_number,
-                            'issued_by'      => $request->roleid,
+                            'issued_by'      => Auth::user()->roles_id,
 
                             'dateof_issue' =>
                             $previousLicense->dateof_issue ?? $issuedAt,
@@ -2428,7 +2428,8 @@ class SupervisorController extends Controller
 
             DB::commit();
 
-            $pdfStored = $this->storeFormALicencePdfs($request->application_id);
+            $applicationIdForPdf = $request->application_id;
+            app()->terminating(fn () => $this->storeFormALicencePdfs($applicationIdForPdf));
 
             // ======================================================
             // SUCCESS RESPONSE
@@ -2450,7 +2451,6 @@ class SupervisorController extends Controller
                 'issued_at'      => $issuedAt,
                 'expires_at'     => $expiresAt,
                 'digitisation'   => $digitisationMapping,
-                'pdf_stored'     => $pdfStored,
 
             ], 200);
         } catch (\Exception $e) {
@@ -3411,12 +3411,14 @@ class SupervisorController extends Controller
     }
 
     /**
-     * Resolve application for secretary/president approval — CC meta first, legacy fallback.
+     * Build the English and Tamil Form A licence PDFs and store them encrypted
+     * on the latest cl_forma_lic row. Runs after the approval response is sent,
+     * so a slow or failing PDF never delays or breaks the approval.
      */
     private function storeFormALicencePdfs(string $applicationId): bool
     {
+        @set_time_limit(180);
 
-    // dd($applicationId); exit;
         $rowId = DB::table('cl_forma_lic')
             ->where('application_id', $applicationId)
             ->orderByDesc('id')
@@ -3426,36 +3428,39 @@ class SupervisorController extends Controller
             return false;
         }
 
-        try {
-            $licence = app(generateLicencepdfController::class);
-            $english = $licence->licencepdf_cl($applicationId, true);
-            $tamil   = $licence->licencepdf_cl_tamil($applicationId, true);
+        $licence = app(generateLicencepdfController::class);
+        $columns = [];
 
-            if (!$english) {
-                return false;
-            }
+        foreach (['cert_pdf' => 'licencepdf_cl', 'lic_pdf' => 'licencepdf_cl_tamil'] as $column => $method) {
+            try {
+                $binary = $licence->{$method}($applicationId, true);
 
-            // dd($english); exit;
-
-            DB::table('cl_forma_lic')
-                ->where('id', $rowId)
-                ->update([
-                    'cert_pdf'   => Crypt::encryptString($english),
-                    'lic_pdf'    => $tamil ? Crypt::encryptString($tamil) : null,
-                    'updated_at' => now(),
+                if ($binary) {
+                    $columns[$column] = Crypt::encryptString($binary);
+                }
+            } catch (\Throwable $e) {
+                Log::error('Form A licence PDF generation failed', [
+                    'application_id' => $applicationId,
+                    'method'         => $method,
+                    'error'          => $e->getMessage(),
                 ]);
+            }
+        }
 
-            return true;
-        } catch (\Throwable $e) {
-            Log::error('Form A licence PDF generation failed', [
-                'application_id' => $applicationId,
-                'error'          => $e->getMessage(),
-            ]);
-
+        if (!$columns) {
             return false;
         }
+
+        DB::table('cl_forma_lic')
+            ->where('id', $rowId)
+            ->update($columns + ['updated_at' => now()]);
+
+        return true;
     }
 
+    /**
+     * Resolve application for secretary/president approval — CC meta first, legacy fallback.
+     */
     private function resolveCompetencyApplicationForApproval(string $applicationId): ?object
     {
         $metaService = app(CompetencyMetaService::class);
