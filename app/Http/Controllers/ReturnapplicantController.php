@@ -349,7 +349,7 @@ class ReturnapplicantController extends BaseController
                 $request->input('business_address');
         }
 
-        $dataToSave['previous_application_number'] =
+       $dataToSave['previous_application_number'] =
             $request->input('previous_application_number');
 
         $dataToSave['previous_validity_first_issue'] =

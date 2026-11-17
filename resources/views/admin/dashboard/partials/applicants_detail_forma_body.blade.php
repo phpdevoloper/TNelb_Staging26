@@ -1076,6 +1076,31 @@
                                                         @endif
                                                 </div>
 
+
+                                                <div class="col-lg-6">
+                                                    <p><strong>QC Fees</strong></p>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <p>
+                                                        @if(!empty($applicant->qc_fees))
+                                                        {{ $applicant->qc_fees }}</p>
+                                                        @else
+                                                        -
+                                                        @endif
+                                                </div>
+
+                                                 <div class="col-lg-6">
+                                                    <p><strong>Late Fees</strong></p>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <p>
+                                                        @if(!empty($applicant->late_fee))
+                                                        {{ $applicant->late_fee }}</p>
+                                                        @else
+                                                        -
+                                                        @endif
+                                                </div>
+
                                                 <div class="col-lg-6">
                                                     <p><strong>Total Amount</strong></p>
                                                 </div>

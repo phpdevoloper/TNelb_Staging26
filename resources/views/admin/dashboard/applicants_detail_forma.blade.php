@@ -870,7 +870,10 @@
     /* =========================================
    OK BUTTON
 ========================================= */
-
+.red-warning-popup {
+    border: 2px solid #dc2626 !important;
+    border-radius: 10px !important;
+}
     .approval-ok-button {
 
         min-width: 110px !important;
@@ -1508,13 +1511,16 @@
                                                                     </span>
 
                                                                     <div class="form-check form-switch">
-                                                                        <input
-                                                                            class="form-check-input staff-status-switch"
-                                                                            type="checkbox"
-                                                                            id="staff_status_{{ $staff->id }}"
-                                                                            data-id="{{ $staff->id }}"
-                                                                            data-cc-no="{{ $staff->staff_cc_no }}"
-                                                                            {{ $verifyFlag == 1 ? 'checked' : '' }}>
+                                                                           <input
+                                                                                class="form-check-input staff-status-switch"
+                                                                                type="checkbox"
+                                                                                id="staff_status_{{ $staff->id }}"
+                                                                                data-id="{{ $staff->id }}"
+                                                                                data-cc-no="{{ $staff->staff_cc_no }}"
+                                                                                data-check-relevant="1"
+                                                                                data-staff-category="{{ $staff->staff_category }}"
+                                                                                {{ $verifyFlag == 1 ? 'checked' : '' }}
+                                                                            >
                                                                     </div>
                                                                 </div>
                                                             @endif
@@ -1545,24 +1551,38 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @php
-                                                    $otherstaffdetails = collect($otherstaffdetails)
-                                                        ->sortBy(function ($staff) {
-                                                            $order = [
-                                                                'B' => 1,
-                                                                'C' => 2,
-                                                                'OTHERS' => 3,
-                                                            ];
+                                              @php
+                                                $otherStaffDetails = collect($otherstaffdetails ?? [])
+                                                    ->sortBy(function ($staff) {
+                                                        $order = [
+                                                            'B'      => 1,
+                                                            'C'      => 2,
+                                                            'OTHERS' => 3,
+                                                        ];
 
-                                                            return sprintf(
-                                                                '%d-%010d',
-                                                                $order[$staff->staff_category ?? ''] ?? 4,
-                                                                (int) ($staff->row_index ?? 0),
-                                                            );
-                                                        })
-                                                        ->values();
-                                                @endphp
+                                                        return sprintf(
+                                                            '%d-%010d-%010d',
+                                                            $order[$staff->staff_category ?? ''] ?? 4,
+                                                            (int) ($staff->row_index ?? 0),
+                                                            (int) ($staff->id ?? 0)
+                                                        );
+                                                    })
+                                                    ->values();
+
+                                                $bStaffIndex = 0;
+                                            @endphp
                                                 @forelse ($otherstaffdetails as $index => $staff)
+                                               
+                                                        @php
+                                                            $isFirstTwoB = false;
+
+                                                            if ($staff->staff_category === 'B' && $bStaffIndex < 2) {
+                                                                $isFirstTwoB = true;
+                                                                $bStaffIndex++;
+                                                            }
+
+                                                            $verifyFlag = $staffVerifyList[$staff->staff_cc_no] ?? 0;
+                                                        @endphp
                                                     <tr>
 
 
@@ -1632,7 +1652,10 @@
                                                                             id="staff_status_{{ $staff->id }}"
                                                                             data-id="{{ $staff->id }}"
                                                                             data-cc-no="{{ $staff->staff_cc_no }}"
-                                                                            {{ $verifyFlag == 1 ? 'checked' : '' }}>
+                                                                            data-check-relevant="{{ $isFirstTwoB ? '1' : '0' }}"
+                                                                            data-staff-category="{{ $staff->staff_category }}"
+                                                                            {{ $verifyFlag == 1 ? 'checked' : '' }}
+                                                                        >
                                                                     </div>
 
                                                                 </div>
@@ -2049,8 +2072,18 @@
                                                     <p><strong>Appication Fees</strong></p>
                                                 </div>
                                                 <div class="col-lg-6">
-                                                    <p>{{ $applicant->application_fee }}</p>
+                                                    <p>{{ $applicant->application_fee ?? '' }}.00</p>
                                                 </div>
+
+
+                                                 <div class="col-lg-6">
+                                                    <p><strong>QC Fees</strong></p>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <p>{{ $applicant->qc_fees ?? '' }}.00</p>
+                                                </div>
+
+                                                
 
                                                 <div class="col-lg-6">
                                                     <p><strong>Total Amount</strong></p>
@@ -2066,7 +2099,7 @@
                                                         <p><strong>Late fees</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->late_fee }}</p>
+                                                        <p>{{ $applicant->late_fee ?? '' }}.00</p>
                                                     </div>
                                                 @endif
 
@@ -3344,174 +3377,308 @@
         });
 
 
-        confirmForwardPres.click(function() {
-            var applicationId = @json($applicant->application_id);
-            var role_id = @json(Auth::user()->roles_id);
-            var forwardedTo = @json($nextForwardUser->roles_id);
-            var processedBy = @json(Auth::user()->name);
-            var role = @json($nextForwardUser->name);
-            var remarks = $("#remarks").val().trim();
-            $("#remarks_error").text("");
+   
+confirmForwardPres.click(function() {
 
-            if (remarks === "") {
-                $("#remarks_error").text("Remarks is required");
-                $("#remarks").focus();
-                return;
-            }
-            var queryswitch = $("#Queryswitch").prop("checked");
-            var checkboxStatus = "Yes";
+    var applicationId = @json($applicant->application_id);
+    var role_id = @json(Auth::user()->roles_id);
+    var forwardedTo = @json($nextForwardUser->roles_id);
+    var processedBy = @json(Auth::user()->name);
+    var role = @json($nextForwardUser->name);
 
-            var queryType = null;
-            var query_status = "No";
-            var returnflag = @json($applicant->return_flag);
-            var application_status = @json($applicant->application_status);
+    var remarks = $("#remarks").val().trim();
 
-            if (queryswitch) {
-                queryType = $("#queryType").val() || null;
-                query_status = 'Yes';
-            }
+    $("#remarks_error").text("");
 
-            // ===============================
-            // Checklist Data
-            // ===============================
-            let checklists = {};
-            let status = {};
-            let check_id = {};
+    if (remarks === "") {
+        $("#remarks_error").text("Remarks is required");
+        $("#remarks").focus();
+        return;
+    }
 
-            $("#specific-class tbody tr").each(function() {
+    var queryswitch = $("#Queryswitch").prop("checked");
+    var checkboxStatus = "Yes";
 
-                let checkbox = $(this).find("input[name^='checklists']");
-                let switchBtn = $(this).find("input[name^='status']");
-                let checkid = $(this).find("input[name^='check_id']");
+    var queryType = null;
+    var query_status = "No";
 
-                let name = checkbox.attr("name");
+    var returnflag = @json($applicant->return_flag);
+    var application_status = @json($applicant->application_status);
 
-                if (!name) {
-                    return; // skip this row
-                }
+    if (queryswitch) {
+        queryType = $("#queryType").val() || null;
+        query_status = 'Yes';
+    }
 
-                let match = name.match(/\d+/);
 
-                if (!match) {
-                    return; // skip if no number found
-                }
+    // ===============================
+    // Checklist Data
+    // ===============================
 
-                let id = match[0];
+    let checklists = {};
+    let status = {};
+    let check_id = {};
 
-                checklists[id] = checkbox.is(":checked") ? 1 : 0;
-                status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
-                check_id[id] = checkid.val();
-            });
+    $("#specific-class tbody tr").each(function() {
 
-            Swal.fire({
-                title: "Declaration",
-                text: 'I confirm that have been verified by me as a secretary.',
-                showCancelButton: true,
-                confirmButtonText: "Forward to President",
-                cancelButtonText: "Cancel",
-                focusConfirm: false,
-            }).then((result) => {
-                if (result.isConfirmed) {
+        let checkbox = $(this).find("input[name^='checklists']");
+        let switchBtn = $(this).find("input[name^='status']");
+        let checkid = $(this).find("input[name^='check_id']");
 
-                    let staffVerification = [];
+        let name = checkbox.attr("name");
 
-                    $('.staff-status-switch').each(function() {
+        if (!name) {
+            return;
+        }
 
-                        let staffId = $(this).data('id');
+        let match = name.match(/\d+/);
 
-                        let verifyFlag = $(this).is(':checked') ? 1 : 0;
+        if (!match) {
+            return;
+        }
 
-                        staffVerification.push({
-                            staff_id: staffId,
-                            verify_flag: verifyFlag
-                        });
+        let id = match[0];
+
+        checklists[id] = checkbox.is(":checked") ? 1 : 0;
+
+        status[id] = $(this).find('.status-switch').prop('checked') ? 1 : 0;
+
+        check_id[id] = checkid.val();
+
+    });
+
+
+    // ===============================
+    // Staff Verification
+    // QC / QSC + First Two B Staff
+    // ===============================
+
+    let staffVerification = [];
+    let incorrectStaff = [];
+
+    $('.staff-status-switch[data-check-relevant="1"]').each(function() {
+
+        let staffId = $(this).data('id');
+        let category = $(this).data('staff-category');
+        let ccNo = $(this).data('cc-no');
+
+        let verifyFlag = $(this).is(':checked') ? 1 : 0;
+
+        let staffData = {
+            staff_id: staffId,
+            staff_category: category,
+            cc_no: ccNo,
+            verify_flag: verifyFlag
+        };
+
+        staffVerification.push(staffData);
+
+        if (verifyFlag === 0) {
+            incorrectStaff.push(staffData);
+        }
+
+    });
+
+    console.log("STAFF VERIFICATION:", staffVerification);
+    console.log("INCORRECT STAFF:", incorrectStaff);
+
+
+    // ===============================
+    // Forward Application AJAX
+    // ===============================
+
+    function forwardApplication() {
+
+        $.ajax({
+
+            url: '{{ route('admin.forwardApplicationforma', ['role' => '__ROLE__']) }}'
+                .replace('__ROLE__', role),
+
+            type: 'POST',
+
+            headers: {
+                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
+            },
+
+            data: {
+
+                application_id: applicationId,
+
+                processed_by: processedBy,
+
+                forwarded_to: forwardedTo,
+
+                role_id: role_id,
+
+                remarks: remarks || "No remarks provided",
+
+                checkboxes: checkboxStatus,
+
+                application_status: application_status,
+
+                queryswitch: queryswitch ? "Yes" : "No",
+
+                returnflag: returnflag,
+
+                "queryType[]": queryType,
+
+                // Existing staff verification parameter
+                staff_verification: JSON.stringify(staffVerification),
+
+                checklists: checklists,
+
+                status: status,
+
+                check_id: check_id
+
+            },
+
+            success: function(response) {
+
+                if (response.status == "success") {
+
+                    Swal.fire({
+
+                        icon: "success",
+
+                        title: "Success",
+
+                        text: response.message,
+
+                        confirmButtonText: "OK",
+
+                        allowOutsideClick: false
+
+                    }).then(() => {
+
+                        window.location.href = "{{ url('admin/dashboard') }}";
 
                     });
 
-                    console.log("STAFF VERIFICATION:", staffVerification);
-
-                    $.ajax({
-                        url: '{{ route('admin.forwardApplicationforma', ['role' => '__ROLE__']) }}'
-                            .replace('__ROLE__', role),
-                        type: 'POST',
-                        headers: {
-                            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content")
-                        },
-                        data: {
-
-                            application_id: applicationId,
-
-                            processed_by: processedBy,
-
-                            forwarded_to: forwardedTo,
-
-                            role_id: role_id,
-
-                            remarks: remarks || "No remarks provided",
-
-                            checkboxes: checkboxStatus,
-
-                            application_status: application_status,
-
-                            queryswitch: queryswitch ? "Yes" : "No",
-
-                            returnflag: returnflag,
-
-                            "queryType[]": queryType,
-
-                            // IMPORTANT
-                            staff_verification: JSON.stringify(staffVerification),
-                            checklists: checklists,
-                            status: status,
-                            check_id: check_id
-
-                        },
-
-                        success: function(response) {
-
-                            // if (response.status == "success") {
-
-                            //     $('#forwardmodal').modal('hide');
-
-                            //     $('#successModalForward').modal('show');
-
-                            //     $('#successModalForward .modal-body').html(`<p>${response.message}</p>`);
-
-                            //     $('#successModalForward').on('hidden.bs.modal', function () {
-                            //         window.location.href = '/admin/dashboard';
-                            //     });
-                            // }
-
-                            if (response.status == "success") {
-                                Swal.fire({
-                                    icon: "success",
-                                    title: "Success",
-                                    text: response.message,
-                                    confirmButtonText: "OK",
-                                    allowOutsideClick: false
-                                }).then(() => {
-                                    window.location.href =
-                                        "{{ url('admin/dashboard') }}";
-                                });
-                            }
-
-                        },
-                        error: function(xhr) {
-                            let errorMessage = xhr.responseJSON && xhr.responseJSON
-                                .error ?
-                                xhr.responseJSON.error :
-                                "An unexpected error occurred.";
-                            Swal.fire({
-                                icon: "error",
-                                title: "Error",
-                                text: errorMessage
-                            });
-                        }
-                    });
                 }
-            });
+
+            },
+
+            error: function(xhr) {
+
+                let errorMessage = xhr.responseJSON && xhr.responseJSON.error
+                    ? xhr.responseJSON.error
+                    : "An unexpected error occurred.";
+
+                Swal.fire({
+
+                    icon: "error",
+
+                    title: "Error",
+
+                    text: errorMessage
+
+                });
+
+            }
 
         });
+
+    }
+
+
+    // ===============================
+    // Secretary Declaration Popup
+    // ===============================
+
+    function showDeclaration() {
+
+        Swal.fire({
+
+            title: "Declaration",
+
+            text: 'I confirm that have been verified by me as a secretary.',
+
+            showCancelButton: true,
+
+            confirmButtonText: "Forward to President",
+
+            cancelButtonText: "Cancel",
+
+            focusConfirm: false,
+
+            allowOutsideClick: false
+
+        }).then((result) => {
+
+            if (result.isConfirmed) {
+
+                forwardApplication();
+
+            }
+
+        });
+
+    }
+
+
+    // ===============================
+    // Incorrect Staff Warning Popup
+    // ===============================
+
+    if (incorrectStaff.length > 0) {
+
+        let incorrectCategories = [...new Set(
+            incorrectStaff.map(staff => staff.staff_category)
+        )].join(', ');
+
+        Swal.fire({
+    icon: "warning",
+    iconColor: "#dc2626",
+    title: "Staff Verification Warning",
+
+    html: `
+        <p>Some of the staff details are incorrect.</p>
+        <p>
+            <strong style="color:#dc2626;">Incorrect Staff Category:</strong>
+            <span style="color:#dc2626;">${incorrectCategories}</span>
+        </p>
+        <p>Do you want to proceed?</p>
+    `,
+
+    showCancelButton: true,
+    confirmButtonText: "Proceed",
+    cancelButtonText: "Cancel",
+
+    confirmButtonColor: "#dc2626",
+    cancelButtonColor: "#64748b",
+
+    allowOutsideClick: false,
+    focusCancel: true,
+
+    customClass: {
+        popup: "red-warning-popup"
+    }
+}).then((result) => {
+
+            if (result.isConfirmed) {
+
+                // Proceed to declaration
+                showDeclaration();
+
+            } else {
+
+                // Cancel - Stay on current page
+                return;
+
+            }
+
+        });
+
+    } else {
+
+        // All relevant staff are correct
+        showDeclaration();
+
+    }
+
+});
+
 
 
         $('#confirmReturnBtn').on('click', function() {

@@ -2276,7 +2276,8 @@ class LoginController extends Controller
             'payments.payment_mode',
             'payments.created_at as payment_date',
             'payments.application_fee',
-            'payments.late_fee'
+            'payments.late_fee',
+            'payments.qc_fees'
         );
 
     $applicant = $applicantQuery1

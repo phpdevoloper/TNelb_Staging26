@@ -25,5 +25,6 @@ class Payment extends Model
         'late_months',
         'application_fee',
         'transaction_date',
+        'qc_fees'
     ];
 }

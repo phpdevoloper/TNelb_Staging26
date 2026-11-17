@@ -3789,8 +3789,12 @@ partners.forEach((p, index) => {
 
                 let basic_fees = formData.get("basic_fees") || 0;
 
-                let lateFees = formData.get("lateFees") || 0;
+                let lateFees_amt = formData.get("lateFees") || 0;
                 let lateMonths = formData.get("late_months") || 0;
+
+                let lateFees = lateFees_amt * lateMonths;
+
+                // alert(lateFees);
 
                 let dbNow = response.dbNow || "";
                 
@@ -3815,7 +3819,7 @@ partners.forEach((p, index) => {
                 if (lateFees > 0) {
                     lateFeeRow = `
                  <tr>
-                    <th style="text-align: left; padding: 6px 10px; color: #555;">Late Fees (${lateMonths} Months)</th>
+                    <th style="text-align: left; padding: 6px 10px; color: #555;">Late Fees (${lateMonths} Months x ${lateFees_amt})</th>
                     <td style="text-align: right; padding: 6px 10px; font-weight: bold; color: #0d6efd;">Rs. ${lateFees} </td>
                 </tr>
                             `;

@@ -2307,7 +2307,7 @@ exit; -->
                                 <input class="form-control previous_application_number"
                                     type="text"
                                     id="previous_application_number"
-                                    name="previous_licence_no"
+                                    name="previous_application_number"
                                     maxlength="15"
                                     placeholder="Previous License Number"
                                     value="{{ old('previous_application_number', $application->previous_application_number ?? '') }}"

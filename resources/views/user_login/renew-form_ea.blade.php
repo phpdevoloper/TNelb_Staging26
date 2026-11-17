@@ -234,6 +234,9 @@ exit; -->
 
             <input type="hidden" id="application_id" name="application_id"
                 value="{{ $application->application_id ?? '' }}">
+
+            <input type="hidden" name="old_application" id="old_application" value="{{ $application->old_application ?? $application->application_id }}">
+
             <input type="hidden" class="form-control text-box single-line" id="license_name" name="license_name"
                 value="EA">
             <input type="hidden" class="form-control text-box single-line" id="license_number" name="license_number"
@@ -254,6 +257,13 @@ exit; -->
                 <div class="row">
                     <div class="col-12 col-md-12 text-md-right text-head">
                         <p class="text-black f-s-14"> <span style="color: red;">*</span> Fields are Mandatory </p>
+                    </div>
+
+                </div>
+
+                 <div class="row">
+                    <div class="col-12 col-md-12 text-center text-head pb-1">
+                        <p class="text-black f-s-18 font-weight-bold"> Renewal Application for {{ $application->old_application ?? $application->application_id }} / License Number : {{ $old_license_number->license_number ?? $application->license_number }}</p>
                     </div>
 
                 </div>
