@@ -1,8 +1,8 @@
 ---
 name: reviewer
 description: Security, correctness, and consistency review before commit
-tools: All
-model: claude-opus-5
+tools: Glob, Grep, Read, Bash
+model: opus
 ---
 
 # Reviewer Agent
@@ -87,6 +87,12 @@ When reviewing a new form (FormA/B/P/S/W/WH), ensure:
 - Views follow the naming convention (`create.blade.php`, `show.blade.php`, `pdf.blade.php`)
 
 ### Hygiene Rules
+
+**Judge only what this diff adds or changes** (`git diff` / `git status`). Pre-existing offenders (existing
+`*_bk.php` files, `db/` dumps, `public/` upload folders, PSR-4 case mismatches) are NOT a FAIL for this change;
+at most mention them once as a WARN "pre-existing". A FAIL requires that the diff itself introduces or worsens
+the problem (e.g. adds a new backup file, writes new uploads under `public/`).
+
 - No `*_bk.php`, `*_edit.php`, or dated-suffix backup files committed
 - No raw SQL dumps under `db/` (use migrations only)
 - User uploads stored under `storage/app/uploads/`, not `public/`

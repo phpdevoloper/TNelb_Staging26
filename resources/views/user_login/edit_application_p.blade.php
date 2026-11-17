@@ -502,8 +502,15 @@
                                 <div class="col-12 col-md-6 mb-3 mb-md-0">
                                     <div class="fs-field-label">3. Address of the applicant <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
                                     <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருக்க வேண்டும்)</span></div>
-                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ isset($application_details) ? $application_details->applicants_address : Auth::user()->address }}</textarea>
-                                    <span id="applicants_address_error" class="text-danger error"></span>
+                                    {{-- Structured address; applicant_address.js composes it into hidden #applicants_address.
+                                         Locked (partial returned edit without the applicant section): parts disabled and
+                                         the saved address is posted unchanged (the server re-merges it from the DB anyway). --}}
+                                    @include('user_login.partials.applicant-address-fields', [
+                                        'addressSaved' => isset($application_details)
+                                            ? trim((string) ($application_details->applicants_address ?? $application_details->applicant_address ?? ''))
+                                            : '',
+                                        'addressLocked' => $returnedIsPartial && ! $retCanEdit('applicant'),
+                                    ])
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="row">
@@ -1169,6 +1176,8 @@
 <footer class="main-footer">
     @include('include.footer')
 </footer>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
 
 <script>
     window.returnApplicationQueryReasons = @json(isset($queryReasonsForValidation) ? $queryReasonsForValidation : []);
@@ -1574,7 +1583,9 @@
         $sections.each(function(){
             total++;
             var $sec = $(this);
-            var requiredEls = $sec.find('input[required], select[required], textarea[required], input.form-control[name="applicant_name"], input.form-control[name="fathers_name"], textarea[name="applicants_address"], input[name="d_o_b"]');
+            // Structured address: its parts carry [required]; District is disabled (not needed)
+            // outside Tamil Nadu, so skip it there. The hidden #applicants_address is not checked.
+            var requiredEls = $sec.find('input[required], select[required], textarea[required], input.form-control[name="applicant_name"], input.form-control[name="fathers_name"], input[name="d_o_b"]').not('#district:disabled');
             // If section has no explicit required, count it complete if any visible input has a value
             if (!requiredEls.length) {
                 var $any = $sec.find('input.form-control:not([type=hidden]), select.form-control, textarea.form-control').filter(':visible').first();
@@ -1586,6 +1597,7 @@
             requiredEls.each(function(){
                 var v = ($(this).val() || '').toString().trim();
                 if (!v) { allFilled = false; return false; }
+                if (this.id === 'pincode' && !/^[0-9]{6}$/.test(v)) { allFilled = false; return false; }
             });
             // Doc table sections: check at least one non-hidden file or existing-doc indicator
             var $docTables = $sec.find('#education-table, #institute-table, #work-table');

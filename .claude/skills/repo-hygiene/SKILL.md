@@ -7,6 +7,10 @@ description: Code repository hygiene rules - what NOT to commit
 
 This skill encodes the specific **hygiene problems found in the TNelb_Staging26 codebase** and establishes rules to prevent them from recurring. If you see these patterns, **stop and fix them before committing**.
 
+> **Scope:** these rules apply to what a change *adds or modifies*. The offenders listed below already exist
+> in the repo; they are cleanup debt, not a reason to fail an unrelated change. Only block when the diff
+> introduces a new violation.
+
 ## Rule 1: No Backup Controller Files
 
 **What to avoid:**

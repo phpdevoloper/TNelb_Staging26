@@ -4079,10 +4079,10 @@
                 } else if (eduLevel.length) {
                     let formName = ($('#form_name').val() || '').toString().toUpperCase();
                     if (formName === 'S') {
-                        const allowed = ['DEE', 'BEE', 'MEE', 'AMIE'];
+                        const allowed = ['DEE', 'BEE', 'MEE', 'AMIE', 'EX'];
                         const val = (eduLevel.val() || '').toString().toUpperCase();
                         if (val !== '' && !allowed.includes(val)) {
-                            eduLevel.after('<span class="error-message text-danger d-block mt-1">For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.</span>');
+                            eduLevel.after('<span class="error-message text-danger d-block mt-1">For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE, or Ex Serviceman options are allowed.</span>');
                             if (!firstErrorField) firstErrorField = eduLevel;
                             isValid = false;
                         }

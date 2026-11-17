@@ -171,6 +171,7 @@
                 '<option value="BEE">B.E(Electrical Engineering)</option>' +
                 '<option value="MEE">M.E(Electrical Engineering)</option>' +
                 '<option value="AMIE">A pass in AMIE</option>' +
+                '<option value="EX">Ex Serviceman</option>' +
                 '</select></td>' +
                 '<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" required></td>' +
                 '<td><select name="month_of_passing[]" class="form-control" required>' +
@@ -368,7 +369,8 @@ var EDU_LEVEL_MAP = {
     DEE: 'Diploma(Electrical Engineering)',
     BEE: 'B.E(Electrical Engineering)',
     MEE: 'M.E(Electrical Engineering)',
-    AMIE: 'A pass in AMIE'
+    AMIE: 'A pass in AMIE',
+    EX: 'Ex Serviceman'
 };
 var MONTH_MAP = {
     '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun',
@@ -499,6 +501,9 @@ function populatePreview() {
     setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
     var emailEl = document.getElementById('applicant_email');
     setVal('prv_email', emailEl ? emailEl.value : '');
+    if (typeof window.fsComposeApplicantAddress === 'function') {
+        window.fsComposeApplicantAddress();
+    }
     setVal('prv_address', document.getElementById('applicants_address').value);
     setVal('prv_dob', document.getElementById('d_o_b').value);
     setVal('prv_age', document.getElementById('age').value);

@@ -2,7 +2,7 @@
 name: blade-ui
 description: Frontend views, layouts, Blade components, and jQuery/CSS for the admin theme
 tools: Glob, Grep, Read, Edit, Write, Bash
-model: claude-opus-5
+model: opus
 ---
 
 # Blade UI Agent
@@ -15,7 +15,15 @@ You are a frontend developer for the TNELB portal's Blade-based views and jQuery
 
 **DO NOT touch:** Controllers, models, services, migrations, routes, or any backend logic — the `laravel-backend` agent handles that.
 
-## Project Context
+## Project Context (read first)
+
+**Authoritative layout: `.claude/skills/laravel-module-pattern/SKILL.md`.** Real locations:
+- User form views: `resources/views/user_login/` (`apply-form-*`, `edit_*`, `renew-*`, `alteration/`, `digitization/`). There is no `form-a/` folder and no `layouts/app.blade.php`.
+- Shared parts: `resources/views/include/` (`header`, `footer`, `user_header`, `user_footer`). Reusable inputs: `resources/views/components/` (`x-form-input`, `x-form-select`, `x-form-field`).
+- JS: `public/assets/js/` — `custom.js` is global (loaded by `include/footer`); `register.js` drives the registration wizard; per-form scripts are `forma.js`, `form_s.js`, `form_p_script.js`, `competency_form_ws.js`, etc.
+- The same input (e.g. `fathers_name`) is repeated across apply/edit/renew/alteration/digitization views. Grep `name="<field>"` and prefer a delegated handler in `custom.js` over editing every view.
+- Ignore dead copies (`*_bk*`, `*_old*`, dated, `copy`); never edit or create them.
+- Readonly/hidden inputs don't fire `input` events — check before assuming a field is editable.
 
 This is a **server-rendered Blade + jQuery/Bootstrap** frontend (NOT a modern SPA). The admin dashboard uses:
 - jQuery 3.6.0

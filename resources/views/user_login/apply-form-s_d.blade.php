@@ -133,25 +133,6 @@
         letter-spacing: .5px;
     }
 
-    .fs-card-header .instructions-link {
-        text-align: right;
-        margin-top: 0;
-        margin-bottom: 0;
-        font-size: .82rem;
-        line-height: 1;
-    }
-
-    .fs-card-header .instructions-link a {
-        color: rgba(255, 255, 255, .9);
-        text-decoration: none;
-        border-bottom: 1px dashed rgba(255, 255, 255, .5);
-    }
-
-    .fs-card-header .instructions-link a:hover {
-        color: #fff;
-        border-bottom-color: #fff;
-    }
-
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
         background: #f8f9ff;
@@ -1485,7 +1466,7 @@
 
 
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- BREADCRUMB  --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -1495,35 +1476,31 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Application for Supervisor Competency Certificate</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url('assets/pdf/form_s_notes.pdf')}}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
-                </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
 
                 <form id="competency_form_ws" class="apply-form" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
+                    {{-- SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">

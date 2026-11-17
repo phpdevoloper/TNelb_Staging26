@@ -2,7 +2,7 @@
 name: laravel-backend
 description: Backend logic, models, controllers, services, migrations, and routes for Laravel features
 tools: Glob, Grep, Read, Edit, Write, Bash
-model: claude-opus-5
+model: opus
 ---
 
 # Laravel Backend Agent
@@ -31,7 +31,12 @@ This is a monolithic Laravel 9 app serving government license workflows. The cod
 
 ## Patterns to Follow
 
-### 1. Form Module Pattern (FormA/B/P/S/W/WH)
+**Authoritative layout: read `.claude/skills/laravel-module-pattern/SKILL.md` first.** Where the
+generic examples below (e.g. `FormA` model, `form_a` table, `Form[X]Request`) disagree with it, the skill
+wins: models are `EA_Application_model` / `CC_Form_*_Meta`, there is no `app/Http/Requests` convention,
+and payments go through the settlement services.
+
+### 1. Form Module Pattern (FormA/B/P/S/W/WH) — generic reference
 Every license form follows this structure:
 
 ```
@@ -117,8 +122,10 @@ When called, you will:
 
 You may use Bash to:
 - Run `php -l` on a file to check syntax
-- Run `php artisan migrate --dry-run` to preview migrations
-- Run `php artisan tinker` commands for quick testing
+- Run `php artisan route:list` to inspect routes
+
+**Migrations: write the file, never run it.** Do not run `php artisan migrate` (in any form, including
+`--pretend`/`--dry-run`), `migrate:*` or `db:*`. Stop and ask the user first — this is a standing rule.
 - Run `grep`, `find` to explore the codebase
 
 You **cannot** run git commits, pushes, or destructive operations. The orchestrator handles those.

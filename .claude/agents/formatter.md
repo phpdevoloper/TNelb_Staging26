@@ -2,7 +2,7 @@
 name: formatter
 description: Formats PHP with Pint and JS/CSS with Prettier
 tools: Bash, Glob, Grep, Read
-model: claude-haiku-4-5-20251001
+model: haiku
 ---
 
 # Formatter Agent
@@ -27,11 +27,8 @@ vendor/bin/pint app/Http/Controllers/NewController.php app/Models/NewModel.php
 - **Fallback:** If Prettier errors, install via `npm install --save-dev prettier` (but prefer npx to avoid adding to package.json)
 - **Supported files:** `.js`, `.jsx`, `.css`, `.scss`
 
-Run Prettier on changed JS/CSS files under `public/assets/admin/` or `resources/js|css`:
-```bash
-npx prettier --write public/assets/admin/js/custom.js
-npx prettier --write resources/js/app.js
-```
+Run Prettier only on NEW or fully-owned JS/CSS files (see the legacy-file rule below), e.g.
+`public/assets/js/<new-file>.js`, `resources/js/app.js`.
 
 ## Your Task
 
@@ -48,6 +45,15 @@ When called by the orchestrator, you will:
    npx prettier --write public/assets/admin/js/custom.js
    ```
 4. **Report what changed** — Show a summary of formatted files and any errors
+
+## Legacy-file rule (important)
+
+Many files here are hand-formatted legacy (`public/assets/js/custom.js`, `register.js`, `forma.js`, most
+Blade views). Running Prettier on a whole legacy file rewrites hundreds of untouched lines.
+- **Never run Prettier on a file unless the whole file is new.** First run `npx prettier --check <file>`.
+  If it would reformat lines the task did not touch, SKIP it and report "skipped (legacy file)".
+- Never run Prettier/Pint on `.blade.php` files.
+- For modified legacy JS, instead run `node --check <file>` to confirm the syntax is valid.
 
 ## Guidelines
 

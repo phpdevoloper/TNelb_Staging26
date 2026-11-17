@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | { read -r f; [[ \"$f\" == *.php ]] && php -l \"$f\" > /dev/null || true; }",
+            "command": "node .claude/hooks/php-lint.js",
             "timeout": 10,
             "statusMessage": "Checking PHP syntax..."
           }
@@ -17,10 +17,17 @@
   "permissions": {
     "allow": [
       "Bash(composer *)",
-      "Bash(php artisan *)",
+      "Bash(php -l *)",
+      "Bash(php artisan test *)",
+      "Bash(php artisan route:list *)",
       "Bash(vendor/bin/phpunit *)",
       "Bash(vendor/bin/pint *)",
-      "Bash(npx *)"
+      "Bash(npx prettier *)",
+      "Bash(node --check *)"
+    ],
+    "ask": [
+      "Bash(php artisan migrate*)",
+      "Bash(php artisan db:*)"
     ]
   }
 }

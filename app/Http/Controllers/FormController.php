@@ -3349,7 +3349,7 @@ class FormController extends BaseController
         $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
         $isFormP = FormPSchema::isFormP($request->form_name ?? '');
         $educationLevelRule = ($request->form_name === 'S')
-            ? 'required|string|in:DEE,BEE,MEE,AMIE|max:50'
+            ? 'required|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
             : 'required|string|max:50';
 
         $rules = [
@@ -3904,7 +3904,7 @@ class FormController extends BaseController
 
         $isWorkOptional = in_array($request->form_name, ['W', 'WH', 'P'], true);
         $educationLevelRule = ($request->form_name === 'S')
-            ? 'required|string|in:DEE,BEE,MEE,AMIE|max:50'
+            ? 'required|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
             : 'required|string|max:50';
 
         $pancardRule = $this->isCompetencyForm($request->form_name)
@@ -4503,7 +4503,7 @@ class FormController extends BaseController
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
             $educationLevelRuleDraft = ($request->form_name === 'S')
-                ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
+                ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
                 : 'nullable|string|max:50';
 
             $request->validate([
@@ -4862,7 +4862,7 @@ class FormController extends BaseController
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
         $educationLevelRuleDraft = ($request->form_name === 'S')
-            ? 'nullable|string|in:DEE,BEE,MEE,AMIE|max:50'
+            ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
             : 'nullable|string|max:50';
 
 

@@ -25,6 +25,22 @@ This is your **daily entrypoint** for building features. The orchestrator runs a
 8. [PAUSE] → Final review before you commit manually
 ```
 
+## Task types and shortcuts
+
+The plan step must first classify the task and pick the matching path:
+
+| Task type | Path |
+|---|---|
+| **UI/JS-only** (field formatting, validation text, layout) | Skip `laravel-backend`. `blade-ui` builds. Formatter only runs `node --check` on legacy JS (no Prettier on legacy files). Tester returns a **manual browser checklist** instead of PHPUnit tests. Reviewer checks XSS, regressions on readonly/hidden fields, and that dead `_bk` copies were not touched. |
+| **Backend-only** | Skip `blade-ui`. Full format/test/review. |
+| **Full-stack** | Both agents, as described below. |
+
+Rules that apply to every path:
+- **Migrations: the agents may write migration files but must never run them.** Ask the user first (standing rule).
+- State assumptions and open questions in the plan and wait at the first pause; do not build on a guess.
+- Read `.claude/skills/laravel-module-pattern/SKILL.md` before planning; it describes the real file layout.
+- Review judges the diff only; pre-existing hygiene problems are WARN, not FAIL.
+
 ## How It Works
 
 ### Phase 1: Plan

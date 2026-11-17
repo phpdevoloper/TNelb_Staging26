@@ -114,20 +114,6 @@
         margin-top: 4px;
         letter-spacing: .5px;
     }
-    .fs-card-header .instructions-link {
-        text-align: right;
-        margin-top: 0;
-        margin-bottom: 0;
-        font-size: .82rem;
-        line-height: 1;
-    }
-    .fs-card-header .instructions-link a {
-        color: rgba(255,255,255,.9);
-        text-decoration: none;
-        border-bottom: 1px dashed rgba(255,255,255,.5);
-    }
-    .fs-card-header .instructions-link a:hover { color: #fff; border-bottom-color: #fff; }
-
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
         background: #f8f9ff;
@@ -811,35 +797,31 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{--  PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Application for Supervisor Competency Certificate - Digitisation</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - கணினிமயமாக்கல்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url('assets/pdf/form_s_notes.pdf')}}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
-                </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
 
                 <form id="competency_form_ws" class="apply-form" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
+                    {{-- SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -935,7 +917,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Education ═══ --}}
+                    {{-- SECTION 6 — Education --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">6</span>
@@ -1030,7 +1012,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Work Experience ═══ --}}
+                    {{-- SECTION 7 — Work Experience --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
@@ -1052,7 +1034,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 8 — Previous License ═══ --}}
+                    {{-- SECTION 8 — Previous License --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
@@ -1113,7 +1095,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 9 — Wireman Certificate ═══ --}}
+                    {{-- SECTION 9 — Wireman Certificate --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">9</span>
@@ -1177,7 +1159,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 10 — Upload Documents ═══ --}}
+                    {{-- SECTION 10 — Upload Documents --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">10</span>
@@ -1263,7 +1245,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ Declaration ═══ --}}
+                    {{-- Declaration --}}
                     <div class="fs-declaration">
                         <label class="container">
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
@@ -1277,7 +1259,7 @@
                         <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
-                    {{-- Hidden fields --}}
+                    {{-- Hidden Fields --}}
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ $user['user_id'] }}">
                     <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? '' }}">
                     <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
@@ -1289,7 +1271,7 @@
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
 
-                    {{-- ── Action buttons ── --}}
+                    {{-- Action buttons --}}
                     <div class="fs-action-bar">
                         @if(! isset($application))
                         <button type="button" class="btn-fs-draft" id="saveDraftBtn"
@@ -1309,7 +1291,7 @@
     </div>{{-- /container --}}
 </div>{{-- /fs-page-wrap --}}
 
-{{-- ── Draft saved modal ── --}}
+{{-- Draft saved modal --}}
 <div id="draftModal" class="overlay-bg" style="display:none;">
     <div class="otp-modal">
         <h5><i class="fa fa-check-circle"></i> Your Application Details Saved Successfully</h5>
@@ -1317,11 +1299,11 @@
     </div>
 </div>
 
-{{-- ── Application Preview Modal ── --}}
+{{-- Application Preview Modal --}}
 <div id="appPreviewModal" class="prv-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Application Preview">
     <div class="prv-panel">
 
-        {{-- Header --}}
+        {{-- Card Header --}}
         <div class="prv-header">
             <div class="prv-header-left">
                 <h5><i class="fa fa-file-text-o"></i> Application Preview <span class="prv-badge">FORM - S / Certificate C</span></h5>
@@ -1330,10 +1312,10 @@
             <button class="prv-close" onclick="closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}" title="Close preview">&times;</button>
         </div>
 
-        {{-- Scrollable body --}}
+        {{-- Scrollable Body --}}
         <div class="prv-body" id="prvBody">
 
-            {{-- Section 1&2: Personal Info --}}
+            {{-- SECTION 1&2: Personal Info --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
                     <span class="prv-section-num">1</span>
@@ -1341,7 +1323,7 @@
                 </div>
                 <div class="prv-section-body">
                     <div class="row">
-                        {{-- Photo & Signature alongside personal details --}}
+                        {{-- Photo & Signature Alongside Personal Details --}}
                         <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex align-items-start" style="gap:12px;">
                             <div class="prv-thumb text-center">
                                 <div id="prv_photo_wrap"><div class="prv-no-img">No Photo</div></div>
@@ -1396,7 +1378,7 @@
                 </div>
             </div>
 
-            {{-- Section 6: Education --}}
+            {{-- SECTION 6: Education --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
                     <span class="prv-section-num">6</span>
@@ -1424,7 +1406,7 @@
                 </div>
             </div>
 
-            {{-- Section 7a: Previous Work Experience --}}
+            {{-- SECTION 7a: Previous Work Experience --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
                     <span class="prv-section-num prv-section-num--sub">7a</span>

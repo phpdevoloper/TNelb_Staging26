@@ -1131,6 +1131,9 @@
                                 ?? $application_details->applicant_address
                                 ?? ''));
                         }
+                        // Saved application address only; the structured-address partial parses it
+                        // (or shows it as legacy text) and falls back to the registration profile when empty.
+                        $addressSavedVal = $addressVal;
                         if ($addressVal === '') {
                             $addressVal = trim((string) (Auth::user()->address ?? ''));
                         }
@@ -1271,8 +1274,11 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                             </div>
                                         </div>
-                                        <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ $addressVal }}</textarea>
-                                        <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
+                                        {{-- Structured address; applicant_address.js composes it into hidden #applicants_address. --}}
+                                        @include('user_login.partials.applicant-address-fields', [
+                                            'addressSaved' => $addressSavedVal,
+                                            'addressLocked' => false,
+                                        ])
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1367,6 +1373,7 @@
                                                                         <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
                                                                         <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
                                                                         <option value="AMIE" {{ $edu_details->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
+                                                                        <option value="EX" {{ $edu_details->educational_level == 'EX' ? 'selected' : '' }}>Ex Serviceman</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
                                                                         <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
@@ -1490,6 +1497,7 @@
                                                                         <option value="BEE">B.E(Electrical Engineering)</option>
                                                                         <option value="MEE">M.E(Electrical Engineering)</option>
                                                                         <option value="AMIE">A pass in AMIE</option>
+                                                                        <option value="EX">Ex Serviceman</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC">NTC</option>
                                                                         <option value="Provisional">Provisional</option>
@@ -2169,6 +2177,8 @@
     @include('include.footer')
 </footer>
 </div>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
 <script>
     window.toggleSectionEdit = function(btn) {
         var section = btn.closest('.fs-section');
@@ -2452,7 +2462,7 @@
                     <select class="form-control" name="educational_level[]" required>
                         <option value="">Select Education</option>
                         ${isSForm
-                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option><option value="AMIE">A pass in AMIE</option>'
+                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option><option value="AMIE">A pass in AMIE</option><option value="EX">Ex Serviceman</option>'
                             : (isWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
                                 : (isWOrWHForm

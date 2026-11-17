@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Mpdf\Mpdf;
 use Illuminate\Support\Facades\Auth;
 
+
 class generateLicencepdfController extends Controller
 {
 

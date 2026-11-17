@@ -2,11 +2,11 @@ $(document).ready(function () {
 
     // License verfication for FORM -w , FORM - WH ----------------------
 
-    const regexRules = {
-        license: /^(C|LC)\d+$/,
-        certificate: /^(B|H|LWH|LB)\d+$/,
-        supervisor:/^(B|C|LC|LB)\d+$/,
-        helper:/^(H|LWH)\d+$/,
+   const regexRules = {
+        license: /^\d+$/,
+        certificate: /^\d+$/,
+        supervisor: /^\d+$/,
+        helper: /^\d+$/,
     };
 
     // ✅ Toggle Yes/No for all sections
@@ -22,11 +22,12 @@ $(document).ready(function () {
     });
 
     // ✅ Common Keyup Validation
-    $(document).on("keyup", ".verify-input", function () {
-        let value = $(this).val()?.trim().toUpperCase() || "";
+    $(document).on("input", ".verify-input", function () {
+        let value = ($(this).val() || "").replace(/\D/g, "");
         $(this).val(value);
 
         let type = $(this).data("type");
+
         let errorBox = $($(this).data("error"));
         let msgBox = $($(this).data("msg"));
 
@@ -39,7 +40,7 @@ $(document).ready(function () {
         }
 
         if (!regexRules[type].test(value)) {
-            errorBox.text("Invalid Certificate Number");
+            errorBox.text("Number should contain only digits");
         }
     });
 
@@ -184,8 +185,6 @@ $(document).ready(function () {
             data: verifyPayload,
             success: function (response) {
                 let $licenseNumber = type === 'license' ? $('#l_verify') : $('#cert_verify');
-
-                console.log($licenseNumber);
 
                 if (response.exists) {
                     $licenseNumber.val('1');
@@ -774,3 +773,57 @@ $(document).ready(function () {
 
 
 });
+
+
+/* ------------------------------------------------------------------
+ * Global Father's Name formatter (Title Case while typing)
+ * Applies to every <input name="fathers_name"> (also added dynamically)
+ * "ARUN srinivasakannan g" -> "Arun Srinivasakannan G"
+ * ------------------------------------------------------------------ */
+(function () {
+    'use strict';
+
+    // First letter of each whitespace-separated word upper, the rest lower.
+    function toNameCase(str) {
+        return String(str == null ? '' : str)
+            .toLocaleLowerCase()
+            .replace(/(^|\s)(\S)/g, function (m, sp, ch) {
+                return sp + ch.toLocaleUpperCase();
+            });
+    }
+    window.formatFathersName = toNameCase;
+
+    function applyFormat(el) {
+        var oldVal = el.value;
+        var newVal = toNameCase(oldVal);
+        if (oldVal === newVal) return;
+
+        // Only letter case changes, so length is identical and the caret
+        // index stays valid. Save/restore it so typing is not disturbed.
+        var start = el.selectionStart, end = el.selectionEnd, dir = el.selectionDirection;
+        el.value = newVal;
+        try {
+            if (start !== null) el.setSelectionRange(start, end, dir || 'none');
+        } catch (e) { /* input types without selection support */ }
+    }
+
+    // Father's Name + Applicant Name (Forms S/W/WH/P). Form A / EA firm-name
+    // inputs use the "text-box" class and are excluded (e.g. "ABC PVT LTD").
+    // Registration form: first_name / last_name.
+    var SELECTOR = 'input[name="fathers_name" i], input[name="applicant_name" i]:not(.text-box), ' +
+        'input[name="first_name" i], input[name="last_name" i], input[data-titlecase]';
+
+    // Delegated: works for fields present now and added later.
+    document.addEventListener('input', function (e) {
+        var el = e.target;
+        if (!el || !el.matches || !el.matches(SELECTOR)) return;
+        if (e.isComposing) return; // don't break IME composition
+        applyFormat(el);
+    }, true);
+
+    // Finish formatting after IME composition ends.
+    document.addEventListener('compositionend', function (e) {
+        var el = e.target;
+        if (el && el.matches && el.matches(SELECTOR)) applyFormat(el);
+    }, true);
+})();
