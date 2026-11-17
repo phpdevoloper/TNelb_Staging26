@@ -2319,16 +2319,23 @@ class generateLicencepdfController extends Controller
 
     public function streamStoredLicenceA(string $application_id, string $lang = 'en')
     {
+        $column = $lang === 'ta' ? 'lic_pdf' : 'cert_pdf';
+
         $row = DB::table('cl_forma_lic')
             ->where('application_id', $application_id)
+            ->whereNotNull($column)
+            ->where($column, '!=', '')
             ->orderByDesc('id')
-            ->first();
+            ->first()
+            ?? DB::table('cl_forma_lic')
+                ->where('application_id', $application_id)
+                ->orderByDesc('id')
+                ->first();
 
         if (!$row) {
             return back()->with('error', 'Licence not found.');
         }
 
-        $column = $lang === 'ta' ? 'lic_pdf' : 'cert_pdf';
         $binary = null;
 
         if (!empty($row->{$column})) {
