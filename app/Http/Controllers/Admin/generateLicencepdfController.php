@@ -1350,7 +1350,7 @@ class generateLicencepdfController extends Controller
             );
     }
 
-    public function licencepdf_cl($application_id)
+    public function licencepdf_cl($application_id, bool $returnBinary = false)
     {
 
         // dd($application_id); exit;

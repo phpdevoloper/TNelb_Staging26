@@ -3336,6 +3336,15 @@
                                     });
 
                                 }
+                            },
+                            error: function (xhr) {
+                                let message = (xhr.responseJSON && (xhr.responseJSON.msg || xhr.responseJSON.error || xhr.responseJSON.message))
+                                    || "Unable to approve the application. Please try again.";
+                                Swal.fire({
+                                    icon: "error",
+                                    title: "Approval failed",
+                                    text: message
+                                });
                             }
                         });
                     }
