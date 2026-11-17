@@ -1439,7 +1439,7 @@
 
                                                             @if (!empty($workflow->license_number) && $workflow->application_status == 'A')
 
-                                                                <a href="{{ route('admin.licencepdf_cl.stored', ['application_id' => $workflow->application_id]) }}"
+                                                                <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}"
                                                                 target="_blank">
 
                                                                     <span class="badge badge-info" style="font-size: 13px;">
@@ -1548,9 +1548,8 @@
 
                                                                     ID :
 
-                                                                    <a href="{{ route('generate.pdf', [
-                                                                        'login_id' => $workflow->renewal_application_id
-                                                                    ]) }}"
+                                                                 <a href="{{ route('generate.pdf', $workflow->renewal_application_id) }}"
+
                                                                     target="_blank"
                                                                     class="text-success">
 

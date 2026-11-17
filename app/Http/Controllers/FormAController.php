@@ -783,6 +783,8 @@ class FormAController extends BaseController
         $dataToSave['application_id'] = $applicationId;
         $dataToSave['login_id'] = $request->login_id_store;
 
+
+
         $dataToSave['previous_application_number'] =
             $request->input('previous_application_number');
 
@@ -4044,6 +4046,8 @@ class FormAController extends BaseController
         $dataToSave['previous_application_number'] =
             $request->input('previous_application_number');
 
+            // dd($dataToSave['previous_application_number']); exit;
+
         $dataToSave['application_ownershiptype'] =
             $request->input('application_ownershiptype');
 
@@ -4219,7 +4223,7 @@ class FormAController extends BaseController
                 ->pluck('id')
                 ->toArray();
 
-                // dd($existingStaffIds); exit;
+            // dd($existingStaffIds); exit;
 
 
             // ==========================================================
@@ -6930,7 +6934,33 @@ class FormAController extends BaseController
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
+
+          
             }
+
+            // dd($qcFee); exit;
+// --------temp added-------------
+             $transactionId = 'TXN' . rand(100000, 999999);
+
+            $payment = $isDraft ? 'draft' : 'paid';
+
+            Payment::create([
+                'login_id'       => $request->login_id_store,
+                'application_id' => $applicationId,
+                'transaction_id' => $transactionId,
+                'payment_status' => $payment,
+                'payment_mode' => 'UPI',
+                'amount'         => $fees_details['total_fees'],
+                'late_fee'       => $fees_details['lateFees'] ?? 0,
+                'late_months'    => $fees_details['late_months'] ?? 0,
+                'application_fee'     => $fees_details['basic_fees'],
+                'qc_fees'     => $qcFee,
+                'form_name'      => $request->form_name,
+                'license_name'   => $request->license_name,
+            ]);
+
+            // ------------------
+  
 
             $existingDtSubmit = DB::table('ccl_forma_meta')
                 ->where('application_id', $applicationId)
@@ -6942,6 +6972,8 @@ class FormAController extends BaseController
                     'updated_at' => $this->dbNow,
                 ]);
             }
+
+            
 
             return response()->json([
                 'draft_status' => $isDraft,
@@ -6964,13 +6996,13 @@ class FormAController extends BaseController
     private function formaMetaSubmitDate(string $applicationId): string
     {
 
-            EA_Application_model::where('application_id', $applicationId)
-                    ->update([
-                        'dt_submit'  => DB::raw('NOW()'),
-                        'updated_at' => DB::raw('NOW()'),
-                    ]);
+        EA_Application_model::where('application_id', $applicationId)
+            ->update([
+                'dt_submit'  => DB::raw('NOW()'),
+                'updated_at' => DB::raw('NOW()'),
+            ]);
 
-                    
+
         $dtSubmit = DB::table('ccl_forma_meta')
             ->where('application_id', $applicationId)
             ->value('dt_submit');
@@ -7112,6 +7144,10 @@ class FormAController extends BaseController
     public function storerenewal(Request $request)
     {
 
+        // dd($request->old_application); exit;
+
+        // dd($request->all()); exit;
+
         $sessionId = session()->getId();
 
         $request->merge([
@@ -7235,6 +7271,10 @@ class FormAController extends BaseController
         $dataToSave = $validatedData;
         $dataToSave['application_id'] = $applicationId;
         $dataToSave['login_id'] = $request->login_id_store;
+
+        $dataToSave['old_application'] = $request->old_application;
+
+        //   $old_application_id = $request->old_application;
 
         // $dataToSave['application_ownershiptype'] =
         //     $request->input('application_ownershiptype');
@@ -7377,7 +7417,7 @@ class FormAController extends BaseController
             }
         }
 
-         if ($request->has('cc_number') || $request->filled('designation')) {
+        if ($request->has('cc_number') || $request->filled('designation')) {
 
             $processedStaffIds = [];
 
@@ -7418,7 +7458,7 @@ class FormAController extends BaseController
                 ->pluck('id')
                 ->toArray();
 
-                // dd($existingStaffIds); exit;
+            // dd($existingStaffIds); exit;
 
 
             // ==========================================================
@@ -10044,23 +10084,6 @@ class FormAController extends BaseController
 
             $issued_licence = $request->license_number ?? 0;
 
-            // dd($issued_licence);
-            // exit;
-            if ($appl_type === 'D') {
-                EA_Application_model::where('application_id', $applicationId)
-                    ->update([
-                        'dt_submit'  => DB::raw('NOW()'),
-                        'updated_at' => DB::raw('NOW()'),
-                    ]);
-
-                return response()->json([
-                    'draft_status'    => false,
-                    'message'         => 'Application Submitted Successfully!',
-                    'login_id'        => $applicationId,
-                    'transaction_id'  => null,
-                    'application_type' => 'D',
-                ]);
-            }
 
 
 
@@ -10081,40 +10104,140 @@ class FormAController extends BaseController
 
                 // $qclicence = DB::table('mst_licences')->where('cert_licence_code', $request->staffqc_category)->first();
 
-                $applicantqfees = DB::table('cl_staff_tbl')
-                    ->where('application_id', $applicationId)
-                    ->whereIn('staff_category', ['QC', 'QSC'])
-                    ->where('staff_flag', '1')
-                    ->get();
+              $form = DB::table('tnelb_forms')
+                ->where('form_code', $request->form_name)
+                ->where('status', '1')
+                ->first();
+
+            // if (!$form) {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'Form not found or inactive.'
+            //     ]);
+            // }
+
+            $appl_type = $request->appl_type;
+
+            $form = DB::table('mst_licences')
+                ->where('form_code', $request->form_name)
+                // ->where('status', '1')
+                ->first();
+
+            $today = Carbon::today()->toDateString();
+
+            $fees_form = DB::table('tnelb_fees')
+                ->where('cert_licence_id', $form->id)
+                ->where('fees_type', $appl_type)
+                ->whereDate('start_date', '<=', $today)
+                ->orderBy('start_date', 'desc')
+                ->first();
+
+            if (!$form) {
+                return response()->json([
+                    'instructions' => null,
+                    'fees'         => null
+                ], 404);
+            }
+            $formName  = $request->get('form_name');
+            $appl_type = $request->get('appl_type');
+
+            $issued_licence = $request->issued_licence ?? 0;
 
 
-                // dd($applicantqfees); exit;
+            $qcFee = 0;
 
-                $qcFee = 0;
 
-                foreach ($applicantqfees as $staff) {
+            // ==========================================================
+            // OLD APPLICATION QC / QSC
+            // ==========================================================
 
-                    // Get QC / QSC licence
-                    $qclicence = DB::table('mst_licences')
-                        ->where('cert_licence_code', $staff->staff_category)
-                        ->first();
+            $qc_old = DB::table('cl_staff_tbl')
+                ->where('application_id', $request->old_application)
+                ->where('staff_flag', '1')
+                ->whereIn('staff_category', ['QC', 'QSC'])
+                ->orderBy('row_index', 'asc')
+                ->get();
 
-                    if (!$qclicence) {
-                        continue;
-                    }
 
-                    // Get applicable fee for this QC / QSC
-                    $fee = DB::table('tnelb_fees')
-                        ->where('cert_licence_id', $qclicence->id)
-                        ->where('fees_type', $appl_type)
-                        ->whereDate('start_date', '<=', $today)
-                        ->orderBy('start_date', 'desc')
-                        ->value('fees');
+            // ==========================================================
+            // NEW APPLICATION QC / QSC
+            // ==========================================================
 
-                    if ($fee !== null) {
-                        $qcFee += (float) $fee;
-                    }
+            $qc_new = DB::table('cl_staff_tbl')
+                ->where('application_id', $applicationId)
+                ->where('staff_flag', '1')
+                ->whereIn('staff_category', ['QC', 'QSC'])
+                ->orderBy('row_index', 'asc')
+                ->get();
+
+
+            // ==========================================================
+            // OLD QC/QSC LOOKUP
+            // ==========================================================
+
+            $oldQCQSC = [];
+
+            foreach ($qc_old as $oldStaff) {
+
+                $category = strtoupper(trim($oldStaff->staff_category));
+                $ccNo     = strtoupper(trim($oldStaff->staff_cc_no));
+
+                $key = $category . '|' . $ccNo;
+
+                $oldQCQSC[$key] = true;
+            }
+
+
+            // ==========================================================
+            // FIND NEW QC/QSC NOT PRESENT IN OLD
+            // ==========================================================
+
+            foreach ($qc_new as $newStaff) {
+
+                $category = strtoupper(trim($newStaff->staff_category));
+                $ccNo     = strtoupper(trim($newStaff->staff_cc_no));
+
+                $key = $category . '|' . $ccNo;
+
+
+                // ------------------------------------------------------
+                // Existing QC/QSC
+                // No fee
+                // ------------------------------------------------------
+
+                if (isset($oldQCQSC[$key])) {
+                    continue;
                 }
+
+
+                // ------------------------------------------------------
+                // New QC/QSC
+                // Calculate fee
+                // ------------------------------------------------------
+
+                $qclicence = DB::table('mst_licences')
+                    ->where('cert_licence_code', $category)
+                    ->first();
+
+                if (!$qclicence) {
+                    continue;
+                }
+
+
+                $fee = DB::table('tnelb_fees')
+                    ->where('cert_licence_id', $qclicence->id)
+                    // ->where('fees_type', $appl_type)
+                    ->whereDate('start_date', '<=', $today)
+                    ->orderBy('start_date', 'desc')
+                    ->value('fees');
+
+                // dd($fee); exit;
+
+
+                if ($fee !== null) {
+                    $qcFee += (float) $fee;
+                }
+            }
 
 
                 // dd($qcFee); exit;
@@ -10129,7 +10252,7 @@ class FormAController extends BaseController
                 // HH24:MI:SS
                 $dbNow  = DB::selectOne("SELECT TO_CHAR(NOW(), 'DD-MM-YYYY ') AS db_now")->db_now;
                 $fees_details['dbNow'] = $dbNow;
-                $fees_details['qcfee'] = $qcFee;
+                // $fees_details['qcfee'] = $qcFee;
 
                 $fees_details['total_fees'] =
                     (float) $paymentDetails[0]->total_fee + $qcFee;
@@ -10137,6 +10260,10 @@ class FormAController extends BaseController
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
+                $calculatedLateFee = (float) $fees_details['lateFees']
+                                * (int) $fees_details['late_months'];
+
+                $fees_details['lateFees'] = $calculatedLateFee;
                 // $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
 
                 // dd($fees_details['basic_fees']);
@@ -10157,7 +10284,8 @@ class FormAController extends BaseController
                 'payment_status' => $payment,
                 'payment_mode' => 'UPI',
                 'amount'         => $fees_details['total_fees'],
-                'late_fee'       => $fees_details['lateFees'] ?? 0,
+                // 'late_fee'       => $fees_details['lateFees'] ?? 0,
+                'late_fee'          => $calculatedLateFee,
                 'late_months'    => $fees_details['late_months'] ?? 0,
                 'application_fee'     => $fees_details['basic_fees'],
                 'qc_fees'     => $qcFee,
@@ -10183,6 +10311,8 @@ class FormAController extends BaseController
                 'login_id' => $applicationId,
                 'transaction_id' => $transactionId,
                 'qcfees'     => $qcFee,
+                'late_fee'        => $calculatedLateFee,
+                 'late_months'     => $fees_details['late_months'],
                 'dbNow'      => $this->formaMetaSubmitDate($applicationId),
 
             ]);
@@ -10293,9 +10423,14 @@ class FormAController extends BaseController
                 $fees_details['dbNow'] = $dbNow;
 
                 $fees_details['total_fees'] = $paymentDetails[0]->total_fee;
-                $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
+                // $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
+
+                $calculatedLateFee = (float) $fees_details['lateFees']
+                   * (int) $fees_details['late_months'];
+
+                $fees_details['lateFees'] = $calculatedLateFee;
 
                 // $fees_details['qcfee'] = $paymentDetails[0]->qcfee;
 
@@ -11145,6 +11280,8 @@ class FormAController extends BaseController
     // forma datachange------------
     public function updateLicenseValidTo(Request $request)
     {
+
+        // dd($request->all()); exit;
         $validator = Validator::make($request->all(), [
             'licence_number' => 'required|string',
             'valid_to'       => 'required|date_format:Y-m-d',
@@ -11159,7 +11296,13 @@ class FormAController extends BaseController
         }
 
         $updated = DB::table('cl_forma_lic')
-            ->where('license_number', $request->licence_number)
+            ->where('id', function ($query) use ($request) {
+                $query->select('id')
+                    ->from('cl_forma_lic')
+                    ->where('license_number', $request->licence_number)
+                    ->orderByDesc('id')
+                    ->limit(1);
+            })
             ->update([
                 'valid_to' => $request->valid_to,
                 'updated_at' => now(),

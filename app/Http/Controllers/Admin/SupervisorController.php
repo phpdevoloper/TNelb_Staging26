@@ -2287,6 +2287,7 @@ class SupervisorController extends Controller
                 $alreadyExists = DB::table('cl_forma_lic')
                     ->where('application_id', $request->application_id)
                     ->exists();
+                    // dd($alreadyExists); exit;
 
                 if (!$alreadyExists) {
 

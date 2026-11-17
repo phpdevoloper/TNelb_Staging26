@@ -1305,17 +1305,26 @@
                             </dd>
                         </div>
                         <div>
-                            <dt>Total Amount</dt>
-                            <dd><span>:</span> {{ $dash($payment->amount ?? '') }}</dd>
+                            <dt>QC fee</dt>
+                            <dd><span>:</span> 
+                                {{ $dash($payment->qc_fees ?? '') }}
+                            </dd>
                         </div>
-                        
-                    <div>
+                         <div>
                         <dt>Late fee</dt>
                         <dd>
                             <span>:</span>
                             {{ ($payment->late_fee ?? 0) == 0 ? '—' : $payment->late_fee }}
                         </dd>
                     </div>
+                        <div>
+                            <dt>Total Amount</dt>
+                            <dd><span>:</span> {{ $dash($payment->amount ?? '') }}</dd>
+                        </div>
+
+                        
+                        
+                   
 
                         <div>
                             <dt>Payment mode</dt>

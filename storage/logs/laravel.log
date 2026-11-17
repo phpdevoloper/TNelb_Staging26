@@ -241085,3 +241085,7 @@ LINE 1: ...etail_adminstore\" where \"application_id\" = $1 and \"staff_cat...
 [stacktrace]
 #0 {main}
 "} 
+[2026-11-16 17:44:38] local.ERROR: Cannot redeclare class App\Models\MstLicence (previously declared in D:\Tnelb_project\TNelb_Staging26\app\Models\Admin\MstLicence.php:8) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class App\\Models\\MstLicence (previously declared in D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\Admin\\MstLicence.php:8) at D:\\Tnelb_project\\TNelb_Staging26\\app\\Models\\MstLicence.php:8)
+[stacktrace]
+#0 {main}
+"} 

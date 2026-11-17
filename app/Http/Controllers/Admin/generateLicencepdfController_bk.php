@@ -243,7 +243,7 @@ $proprietorNames = !empty($proprietors)
 
     <tr>
         <td style="width:40%;"><b>Licence No</b></td>
-        <td>: ' . $applicant->license_number . '</td>
+        <td>: ' . format_date($applicant->license_number) . '</td>
     </tr>
 
     <tr>

@@ -510,7 +510,7 @@ Route::get('/noticeboardcontent/{news_id}', [LoginController::class, 'noticeboar
 
 Route::get('/form/get-form-cost', [FormController::class, 'getFormCost'])->name('getFormCost');
 # fees
-
+Route::get('/generate-pdf/{application_id}', [LicensepdfController::class, 'generatePDF'])->name('generate.pdf');
 
 # Form P submit Routes
 Route::post('/form_p/store', [FormPController::class, 'store'])->name('form_p.store');

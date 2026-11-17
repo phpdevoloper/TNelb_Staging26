@@ -1353,7 +1353,7 @@ class generateLicencepdfController extends Controller
     public function licencepdf_cl($application_id, bool $returnBinary = false)
     {
 
-        // dd($application_id); exit;
+        // dd('111'); exit;
         // ---------------------------------------
         // 1. DETECT WHICH TABLE HAS THE APPLICATION
         // ---------------------------------------
