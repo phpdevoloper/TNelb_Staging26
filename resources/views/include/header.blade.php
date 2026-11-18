@@ -1555,6 +1555,8 @@ use Illuminate\Support\Facades\Auth;
                                                 <option value="0">---Select Type---</option>
                                                 <option value="EA">EA</option>
                                                 <option value="ESA">ESA</option>
+                                                <option value="EB">EB</option>
+                                                <option value="ESB">ESB</option>
                                             </select>
                                             <span class="error text-danger" id="cl_type_error"></span>
                                         </div>

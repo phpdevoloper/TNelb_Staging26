@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Casts\CalendarDate;
 use App\Helpers\RoleHelper;
+use App\Models\CC_Board_Details;
 use App\Models\CC_Doc_Log;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
@@ -38,6 +39,7 @@ use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Services\Competency\FormPSchema;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
+use App\Services\FormS\FormSSubmissionGuard;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
@@ -544,6 +546,8 @@ class FormController extends BaseController
 
     private const FORM_S_BOARD_MEMBER_EMP_TYPE = 'board_member_tnelb';
 
+    private const BOARD_MEETING_MISMATCH_MESSAGE = 'Date of Meeting and Meeting details do not match the Board records.';
+
     private function isFormSBoardMemberSwitchYes(Request $request): bool
     {
         if (strtoupper((string) ($request->form_name ?? '')) !== 'S') {
@@ -615,9 +619,217 @@ class FormController extends BaseController
             if (trim((string) ($request->work_board_member_name[$key] ?? '')) === '') {
                 return 'Name of member is required when Board member employment type is selected.';
             }
+
+            $masterErr = $this->validateFormSBoardRowAgainstMaster($request, $key);
+            if ($masterErr !== null) {
+                return $masterErr;
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Form S §7b: the typed meeting date + number must exist in the board meeting master
+     * (`cc_board_details`), and the organisation / member must belong to that meeting.
+     * Rows already on the user's record and posted unchanged (renewal / alteration / digitisation /
+     * returned) are exempt; see FormSSubmissionGuard.
+     *
+     * @param  array|false|null  $carried  false = work it out from the request; null = strict
+     */
+    private function validateFormSBoardRowAgainstMaster(Request $request, $key, $carried = false): ?string
+    {
+        if (strtoupper(trim((string) ($request->form_name ?? ''))) !== 'S') {
+            return null;
+        }
+
+        $scalar = static fn ($v): string => is_string($v) || is_numeric($v) ? trim((string) $v) : '';
+        $date = $this->calendarDateYmd($scalar($request->work_board_meeting_date[$key] ?? '')) ?? '';
+        $no = CC_Board_Details::normalizeMeetingNo($scalar($request->work_board_meeting_details[$key] ?? ''));
+        $org = $scalar($request->work_employer_name[$key] ?? $request->work_level[$key] ?? '');
+        $member = $scalar($request->work_board_member_name[$key] ?? '');
+
+        if ($carried === false) {
+            $carried = $this->formSCarriedOverForRequest($request);
+        }
+        if (isset($carried['board'][FormSSubmissionGuard::boardKey($date, $no, $org, $member)])) {
+            return null;
+        }
+
+        return FormSSubmissionGuard::boardRowError($date, $no, $org, $member);
+    }
+
+    /** Application id of the request (route param or posted), if any. */
+    private function currentApplicationIdFromRequest(Request $request): ?string
+    {
+        foreach (['appl_id', 'id', 'applicationId', 'application_id'] as $param) {
+            $value = $request->route($param);
+            if (is_scalar($value) && trim((string) $value) !== '') {
+                return trim((string) $value);
+            }
+        }
+        $posted = $request->input('application_id');
+
+        return is_scalar($posted) && trim((string) $posted) !== '' ? trim((string) $posted) : null;
+    }
+
+    /**
+     * Options for the Form S submit guards.
+     *  same            - returned application: compare with what is saved under this application
+     *  excludeCurrent  - leave the request's own application out of the "on record" rows
+     *                    (false for renewal submit, where the route id is the finalised PARENT)
+     *  type            - appl_type decided by the route (renewal submit => 'R'), not by the client
+     *  effective       - a draft-flagged save of an already finalised (paid / fee-exempt) application
+     *                    is treated as a submit
+     */
+    private function formSGuardOptions(array $options = []): array
+    {
+        return $options + ['same' => false, 'excludeCurrent' => true, 'type' => null, 'effective' => true];
+    }
+
+    /** Draft-flagged saves of a finalised application (payment Y/B, not draft / returned) are real submits. */
+    private function formSGuardAction(Request $request, $action, array $options)
+    {
+        if ((string) $action !== 'draft' || ! $options['effective'] || $options['same']) {
+            return $action;
+        }
+
+        $appId = $this->currentApplicationIdFromRequest($request);
+        $existing = $appId ? CC_Forms_Meta::findByApplicationId($appId) : null;
+        if (! $existing) {
+            return $action;
+        }
+
+        $paid = in_array(strtoupper(trim((string) ($existing->payment_status ?? ''))), FormSSubmissionGuard::FINALISED_PAYMENT_STATUSES, true);
+        $status = strtoupper(trim((string) ($existing->app_status ?? '')));
+
+        return ($paid && ! in_array($status, ['D', 'QU', ''], true)) ? 'submit' : $action;
+    }
+
+    /**
+     * Rows this submit may carry over unchanged, or null for a strict check (new applications).
+     * The appl_type comes from the route or the STORED application, never only from the client.
+     */
+    private function formSCarriedOverForRequest(Request $request, array $options = []): ?array
+    {
+        $options = $this->formSGuardOptions($options);
+        $appId = $this->currentApplicationIdFromRequest($request);
+
+        $applType = $options['type'];
+        if ($applType === null) {
+            $existing = $appId ? CC_Forms_Meta::findByApplicationId($appId) : null;
+            $applType = $existing ? ($existing->appl_type ?? null) : $request->input('appl_type');
+        }
+
+        if (! $options['same'] && ! FormSSubmissionGuard::allowsCarryOver($applType)) {
+            return null;
+        }
+
+        $loginId = trim((string) (Auth::user()->login_id ?? ''));
+        if ($loginId === '') {
+            return null;
+        }
+
+        $cacheKey = 'fs_carried_'.md5(json_encode([$appId, $options['same'], $options['excludeCurrent']]));
+        if ($request->attributes->has($cacheKey)) {
+            return $request->attributes->get($cacheKey);
+        }
+
+        $carried = FormSSubmissionGuard::carriedOverRows(
+            $loginId,
+            $options['excludeCurrent'] || $options['same'] ? $appId : null,
+            (bool) $options['same']
+        );
+        $request->attributes->set($cacheKey, $carried);
+
+        return $carried;
+    }
+
+    /**
+     * Form S §7b gate: confirm a typed meeting date + number against the board meeting master.
+     * Returns only that meeting's organisations and members, never the whole table.
+     */
+    public function verifyBoardMeeting(Request $request)
+    {
+        $rawDate = $request->query('date');
+        $rawNo = $request->query('no');
+        $date = is_string($rawDate) ? ($this->calendarDateYmd($rawDate) ?? '') : '';
+        $no = is_string($rawNo) ? CC_Board_Details::normalizeMeetingNo($rawNo) : '';
+
+        $meeting = ($date !== '' && $no !== '' && strlen($no) <= 6)
+            ? CC_Board_Details::lookupMeeting($date, $no)
+            : null;
+
+        if ($meeting === null) {
+            return response()->json([
+                'valid' => false,
+                'message' => self::BOARD_MEETING_MISMATCH_MESSAGE,
+            ]);
+        }
+
+        return response()->json(['valid' => true, 'orgs' => $meeting]);
+    }
+
+    /**
+     * Form S §7b: on a real submit (not a draft) reject board-member rows whose meeting date / number /
+     * organisation / member do not match the Board records. Every row whose employment type is
+     * board_member_tnelb is checked; the client-side Yes/No switch is ignored.
+     */
+    private function rejectIfFormSBoardMeetingMismatch(Request $request, $action, array $options = [])
+    {
+        if (! is_string($request->form_name ?? null) || strtoupper(trim($request->form_name)) !== 'S') {
+            return null;
+        }
+
+        $options = $this->formSGuardOptions($options);
+        if ((string) $this->formSGuardAction($request, $action, $options) === 'draft') {
+            return null;
+        }
+
+        $errors = FormSSubmissionGuard::boardErrorsForRequest($request, $this->formSCarriedOverForRequest($request, $options));
+        if ($errors === []) {
+            return null;
+        }
+
+        return response()->json(['status' => 'error', 'message' => reset($errors), 'errors' => $errors], 422);
+    }
+
+    /**
+     * Form S: chronological sanity checks between Date of Birth, year of passing and experience.
+     * See FormSSubmissionGuard::chronologyErrors for the rules.
+     *
+     * @return array<string, string>  [field key => message]
+     */
+    private function collectFormSChronologyErrors(Request $request, ?array $carried): array
+    {
+        $dobRaw = $request->d_o_b ?? $request->dob ?? null;
+        $dobYmd = is_scalar($dobRaw) ? $this->calendarDateYmd($dobRaw) : null;
+
+        return FormSSubmissionGuard::chronologyErrorsForRequest($request, $dobYmd, $carried);
+    }
+
+    /** Submit only (drafts may stay incomplete): reject impossible DOB / passing / experience dates. */
+    private function rejectIfFormSChronologyInvalid(Request $request, $action, array $options = [])
+    {
+        if (! is_string($request->form_name ?? null) || strtoupper(trim($request->form_name)) !== 'S') {
+            return null;
+        }
+
+        $options = $this->formSGuardOptions($options);
+        if ((string) $this->formSGuardAction($request, $action, $options) === 'draft') {
+            return null;
+        }
+
+        $errors = $this->collectFormSChronologyErrors($request, $this->formSCarriedOverForRequest($request, $options));
+        if ($errors === []) {
+            return null;
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => reset($errors),
+            'errors' => $errors,
+        ], 422);
     }
 
     private function rejectIfFormSSubmitInvalid(Request $request, $action)
@@ -877,6 +1089,28 @@ class FormController extends BaseController
     private function calendarDateYmd(mixed $value): ?string
     {
         return CalendarDate::ymd($value);
+    }
+
+    /**
+     * Form S only: date of birth cannot be earlier than 1 Jan 1935.
+     * Accepts DD-MM-YYYY, DD/MM/YYYY and YYYY-MM-DD (via CalendarDate::ymd).
+     *
+     * @return list<\Closure>
+     */
+    private function dobMinYearRule(mixed $formName): array
+    {
+        if ($formName !== 'S') {
+            return [];
+        }
+
+        return [
+            function (string $attribute, mixed $value, \Closure $fail): void {
+                $ymd = is_scalar($value) ? $this->calendarDateYmd($value) : null;
+                if ($ymd !== null && $ymd < '1935-01-01') {
+                    $fail('Year of birth cannot be earlier than 1935.');
+                }
+            },
+        ];
     }
 
     private function applicantEmailValidationRule(bool $required, ?string $formName): string
@@ -3359,7 +3593,7 @@ class FormController extends BaseController
             'applicant_name'       => 'required|string|max:80',
             'fathers_name'         => 'required|string|max:80',
             'applicants_address'   => 'required|string|max:255',
-            'd_o_b'                => 'required|date',
+            'd_o_b'                => array_merge(['required', 'date'], $this->dobMinYearRule($request->form_name)),
             'age'                  => 'required|integer|min:18|max:100',
             'previously_number'    => 'nullable|string',
             'previously_date'      => 'nullable|date',
@@ -3575,6 +3809,12 @@ class FormController extends BaseController
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
         //     return $reject;
         // }
+        if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, $action)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfFormSChronologyInvalid($request, $action)) {
+            return $reject;
+        }
 
         // Safety fallback: if client doesn't send form_action, keep first save as draft.
         $loginId = $request->login_id;
@@ -3919,7 +4159,7 @@ class FormController extends BaseController
             'applicant_name'     => 'required|string|max:255',
             'fathers_name'       => 'required|string|max:255',
             'applicants_address' => 'required|string|max:500',
-            'd_o_b'              => 'required|date',
+            'd_o_b'              => array_merge(['required', 'date'], $this->dobMinYearRule($request->form_name)),
             'age'                => 'required|integer|min:18|max:100',
             'previously_number'  => 'nullable|string',
             'previously_date'    => 'nullable|date',
@@ -4080,6 +4320,12 @@ class FormController extends BaseController
         $validator->validate();
 
         $action = $request->input('form_action', 'draft');
+        if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, $action)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfFormSChronologyInvalid($request, $action)) {
+            return $reject;
+        }
         if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $applicationId)) {
             return $reject;
         }
@@ -4311,6 +4557,15 @@ class FormController extends BaseController
         $returnedEditableSections = ReturnedApplicationEditScope::editableSectionsFromReasons($queryReasonsForSubmit);
         $this->mergeReturnedCompetencyRequestFromDb($request, $appl_id, $returnedEditableSections);
 
+        /* Sections the applicant cannot edit are restored from the database above, so rows identical to
+           what is already saved under this application are exempt; edited rows are checked. */
+        if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, 'submit', ['same' => true])) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfFormSChronologyInvalid($request, 'submit', ['same' => true])) {
+            return $reject;
+        }
+
         $response = $this->draft_update($request, $appl_id);
         $data = json_decode($response->getContent(), true);
 
@@ -4512,7 +4767,7 @@ class FormController extends BaseController
                 'fathers_name'       => 'nullable|string|max:255',
                 'applicant_email'    => $this->applicantEmailValidationRule(false, $request->form_name),
                 'applicants_address' => 'nullable|string|max:500',
-                'd_o_b'              => 'nullable|date',
+                'd_o_b'              => array_merge(['nullable', 'date'], $this->dobMinYearRule($request->form_name)),
                 'age'                => 'nullable|integer|min:18|max:100',
                 'previously_number'  => 'nullable|string',
                 'previously_date'    => 'nullable|date',
@@ -4580,6 +4835,12 @@ class FormController extends BaseController
         $this->assertFormPInstituteDates($request, false);
 
         $action = $request->form_action; // "draft" or "submit"
+        if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, $action)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfFormSChronologyInvalid($request, $action)) {
+            return $reject;
+        }
         $loginId = $this->resolveDigitizationLoginId($request, $request->login_id);
         if ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $id ?: $request->input('application_id'))) {
             return $reject;
@@ -4934,6 +5195,12 @@ class FormController extends BaseController
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
         //     return $reject;
         // }
+        if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, $action, ['excludeCurrent' => false, 'type' => 'R', 'effective' => false])) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfFormSChronologyInvalid($request, $action, ['excludeCurrent' => false, 'type' => 'R', 'effective' => false])) {
+            return $reject;
+        }
         $loginId   = $request->login_id;
         $appl_type = $request->appl_type ?? 'R'; // ensure renewal
         $nowTs     = $this->dbNow;
@@ -5172,7 +5439,7 @@ public function update(Request $request, $id)
                 'fathers_name'       => 'nullable|string|max:255',
                 'applicant_email'    => $this->applicantEmailValidationRule(false, $request->form_name),
                 'applicants_address' => 'nullable|string|max:500',
-                'd_o_b'              => 'nullable|date',
+                'd_o_b'              => array_merge(['nullable', 'date'], $this->dobMinYearRule($request->form_name)),
                 'age'                => 'integer|min:18|max:100',
                 'previously_number'  => 'nullable|string',
                 'previously_date'    => 'nullable|date',
@@ -5239,6 +5506,12 @@ public function update(Request $request, $id)
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
         //     return $reject;
         // }
+        if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, $action)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfFormSChronologyInvalid($request, $action)) {
+            return $reject;
+        }
         $loginId = $request->login_id;
 
         DB::beginTransaction();

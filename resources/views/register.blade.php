@@ -906,12 +906,13 @@
                                 required />
 
                             <x-form-input
-                                type="date"
+                                type="text"
                                 name="date_of_birth"
                                 label="Date of Birth"
+                                placeholder="DD-MM-YYYY"
+                                inputmode="numeric"
+                                maxlength="10"
                                 autocomplete="bday"
-                                min="1900-01-01"
-                                max="{{ now()->toDateString() }}"
                                 required />
                         </div>
 

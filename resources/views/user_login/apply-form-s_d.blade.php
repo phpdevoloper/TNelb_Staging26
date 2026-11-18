@@ -1484,7 +1484,7 @@
             {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Supervisor Competency Certificate</h5>
+                    <h5>Digitisation of Supervisor Competency Certificate</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
@@ -1582,7 +1582,7 @@
                                             <div class="row fs-dob-age-pair align-items-start mx-0">
                                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                                     <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
-                                                        type="text" placeholder="DD/MM/YYYY"
+                                                        type="text" placeholder="DD-MM-YYYY"
                                                         value="{{ isset($application) ? $application->d_o_b : '' }}">
                                                     <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                                 </div>
@@ -2049,9 +2049,8 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>
                         <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>

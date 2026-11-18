@@ -120,6 +120,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/payment-maintenance/payment-transactions', [PaymentMaintenanceController::class, 'deletePaymentTransactions'])->name('payment.maintenance.delete_payment_transactions');
 
     Route::get('/apply-form-s', [RegisterController::class, 'apply_form_s'])->name('apply-form-s');
+    Route::get('/form-s/board-meeting/verify', [FormController::class, 'verifyBoardMeeting'])
+        ->middleware('throttle:60,1')
+        ->name('form-s.board-meeting.verify');
 
     Route::get('/apply-form-w', [FormWController::class, 'create'])->name('apply-form-w');
     Route::get('/apply-form-wh', [FormWHController::class, 'create'])->name('apply-form-wh');

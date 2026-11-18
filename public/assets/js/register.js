@@ -10,6 +10,27 @@
 (() => {
     "use strict";
 
+    /**
+     * Parse DD-MM-YYYY (also DD/MM/YYYY and YYYY-MM-DD) into a local Date.
+     * Returns null for empty or impossible dates (e.g. 31-02-2000).
+     */
+    const parseDob = (value) => {
+        const text = String(value ?? "").trim();
+        let y, m, d;
+        let match = text.match(/^(d{1,2})[-/](d{1,2})[-/](d{4})$/);
+        if (match) {
+            [d, m, y] = [+match[1], +match[2], +match[3]];
+        } else if ((match = text.match(/^(d{4})-(d{2})-(d{2})$/))) {
+            [y, m, d] = [+match[1], +match[2], +match[3]];
+        } else {
+            return null;
+        }
+        const date = new Date(y, m - 1, d);
+        return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d
+            ? date
+            : null;
+    };
+
     /** Client-side rules, evaluated against the FormData snapshot of step 2. */
     const VALIDATORS = [
         {
@@ -24,10 +45,24 @@
         },
         {
             field: "date_of_birth",
+            message: "Enter a valid Date of Birth in DD-MM-YYYY format.",
+            test: ({ date_of_birth: value = "" }) => parseDob(value) !== null,
+        },
+        {
+            field: "date_of_birth",
+            message: "Year of birth cannot be earlier than 1935.",
+            // Empty/invalid values are reported by the format rule above.
+            test: ({ date_of_birth: value = "" }) => {
+                const dob = parseDob(value);
+                return dob === null || dob.getFullYear() >= 1935;
+            },
+        },
+        {
+            field: "date_of_birth",
             message: "You must be at least 18 years old to register.",
             test: ({ date_of_birth: value = "" }) => {
-                if (!value) return false;
-                const dob = new Date(value);
+                const dob = parseDob(value);
+                if (dob === null) return true; // reported by the format rule
                 const today = new Date();
                 if (dob >= today) return false;
                 const age = today.getFullYear() - dob.getFullYear();
@@ -100,6 +135,20 @@
         /* Bootstrap                                                           */
         /* ------------------------------------------------------------------ */
 
+        /** DD-MM-YYYY date picker for Date of Birth (1935 .. 18 years ago). */
+        initDobPicker() {
+            const input = document.getElementById("date_of_birth");
+            if (!input || typeof window.flatpickr !== "function") return;
+            const latest = new Date();
+            latest.setFullYear(latest.getFullYear() - 18);
+            window.flatpickr(input, {
+                dateFormat: "d-m-Y",
+                allowInput: true,
+                minDate: new Date(1935, 0, 1),
+                maxDate: latest,
+            });
+        },
+
         init() {
             this.root = document.querySelector("[data-wizard]");
             if (!this.root) return;
@@ -122,6 +171,7 @@
             }
 
             this.cacheElements();
+            this.initDobPicker();
             this.bindEvents();
             this.goToStep(1, { focus: false });
         },

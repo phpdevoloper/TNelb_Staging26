@@ -1,6 +1,5 @@
 {{-- Form S §7b: one-time board-member form (never a multi-row experience list). --}}
 @php
-    use App\Models\CC_Board_Details;
     use App\Support\FormSExperiencePartition;
 
     $exp_details = collect($exp_details ?? []);
@@ -11,9 +10,9 @@
     // Prefer an explicit board-member row; never render more than one §7b form.
     $boardRow = $exp_details->first(fn ($row) => FormSExperiencePartition::isBoardMemberRow($row));
 
-    $boardMeetingMaster = CC_Board_Details::masterForFormS7b();
 @endphp
-<script type="application/json" id="fs-7b-board-master-json">@json($boardMeetingMaster)</script>
+{{-- The meeting master is no longer embedded in the page: the applicant types the meeting date +
+     number and the server verifies them (route form-s.board-meeting.verify). --}}
 <div class="work-exp-wrap" data-work-part="current">
     <div class="work-rows js-work-container"
         id="work-container-current"
@@ -25,7 +24,6 @@
             'rowIndex' => 0,
             'hideUploadWhenDocExists' => $hideUploadWhenDocExists,
             'alterationExistingRow' => $lockExistingRows && $boardRow,
-            'boardMeetingMaster' => $boardMeetingMaster,
         ])
     </div>
 </div>

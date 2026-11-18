@@ -214,11 +214,18 @@ class RegisterController extends BaseController
             ], 422);
         }
 
+        // The form posts DD-MM-YYYY; normalise to YYYY-MM-DD so validation and the
+        // date column never depend on how the DB/PHP parse ambiguous day-month order.
+        $dobYmd = \App\Casts\CalendarDate::ymd($request->input('date_of_birth'));
+        if ($dobYmd !== null) {
+            $request->merge(['date_of_birth' => $dobYmd]);
+        }
+
         $validator = Validator::make($request->all(), [
             'salutation' => 'required|in:Mr,Mrs,Ms,Dr',
             'first_name' => 'required|string|max:50',
             'last_name' => 'required|string|max:50',
-            'date_of_birth' => 'required|date|before:today',
+            'date_of_birth' => 'required|date|before:today|after_or_equal:1935-01-01',
             'gender' => 'required|string',
             'mobile' => ['required', 'digits:10', Rule::unique('tnelb_registers', 'mobile')],
             'email' => [
@@ -235,6 +242,7 @@ class RegisterController extends BaseController
         ], [
             'date_of_birth.date' => 'Date of birth must be a valid date.',
             'date_of_birth.before' => 'Date of birth must be in the past.',
+            'date_of_birth.after_or_equal' => 'Year of birth cannot be earlier than 1935.',
         ]);
 
         // Add custom validation using after callback

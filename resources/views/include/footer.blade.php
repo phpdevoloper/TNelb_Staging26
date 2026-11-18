@@ -271,8 +271,12 @@ $(document).ready(function() {
             if (dobInput.readOnly || dobInput.disabled) {
                 dobInput.setAttribute('tabindex', '-1');
             } else {
+                var dobMax = new Date();
+                dobMax.setFullYear(dobMax.getFullYear() - 18);
                 flatpickr(dobInput, {
                     dateFormat: "d-m-Y",
+                    minDate: new Date(1935, 0, 1),
+                    maxDate: dobMax,
                     onChange: function (_selectedDates, dateStr) {
                         validateDOB(dateStr || dobInput.value);
                     },
@@ -368,22 +372,28 @@ $(document).ready(function() {
             return;
         }
 
-        const min = new Date(1970, 0, 1);
-        const max = new Date(2010, 11, 31);
-        if (selectedDate < min || selectedDate > max) {
-            errorElement.textContent = "Minimum age should be 15 and above";
+        // Earliest allowed birth year is 1935; applicant must be at least 18 years old.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+            errorElement.textContent = "Date of Birth cannot be in the future.";
             return;
         }
 
-        const today = new Date();
+        if (yyyy < 1935) {
+            errorElement.textContent = "Year of birth cannot be earlier than 1935.";
+            return;
+        }
+
         let age = today.getFullYear() - yyyy;
         const m = today.getMonth() - (mm - 1);
         if (m < 0 || (m === 0 && today.getDate() < dd)) {
             age--;
         }
 
-        if (age < 0) {
-            errorElement.textContent = "Age cannot be negative.";
+        if (age < 18) {
+            errorElement.textContent = "Minimum age should be 18 years and above.";
             return;
         }
 

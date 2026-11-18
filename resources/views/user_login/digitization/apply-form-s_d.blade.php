@@ -902,7 +902,7 @@
                                             <div class="row fs-dob-age-pair align-items-start mx-0">
                                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                                     <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
-                                                        type="text" placeholder="DD/MM/YYYY"
+                                                        type="text" placeholder="DD-MM-YYYY"
                                                         value="{{ isset($application) ? $application->d_o_b : '' }}">
                                                     <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                                 </div>
@@ -1251,9 +1251,8 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>
                         <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>

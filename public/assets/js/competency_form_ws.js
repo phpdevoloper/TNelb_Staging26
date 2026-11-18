@@ -4000,11 +4000,89 @@
                         dobEl.after('<span class="error-message text-danger d-block mt-1">Date of Birth cannot be in the future.</span>');
                         if (!firstErrorField) firstErrorField = dobEl;
                         isValid = false;
-                    } else if (age < 18 || age > 100) {
+                    } else if (dob.getFullYear() < 1935) {
+                        dobEl.after('<span class="error-message text-danger d-block mt-1">Year of birth cannot be earlier than 1935.</span>');
+                        if (!firstErrorField) firstErrorField = dobEl;
+                        isValid = false;
+                    } else if (age < 18) {
+                        $('#age').after('<span class="error-message text-danger d-block mt-1">Minimum age should be 18 years and above.</span>');
+                        if (!firstErrorField) firstErrorField = $('#age');
+                        isValid = false;
+                    } else if (age > 100) {
                         $('#age').after('<span class="error-message text-danger d-block mt-1">Age must be between 18 and 100.</span>');
                         if (!firstErrorField) firstErrorField = $('#age');
                         isValid = false;
                     }
+                }
+            }
+
+            /* Form S: chronology between Date of Birth, year of passing and experience dates.
+               (Mirrors FormController::collectFormSChronologyErrors; the server re-checks on submit.) */
+            if (dobEl.length && (($('#form_name').val() || '').toString().toUpperCase() === 'S')) {
+                const dobParts = String(dobEl.val() || '').trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/)
+                    || String(dobEl.val() || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                let dobDate = null;
+                if (dobParts) {
+                    const isIsoFirst = String(dobParts[1]).length === 4;
+                    const y = parseInt(isIsoFirst ? dobParts[1] : dobParts[3], 10);
+                    const mo = parseInt(dobParts[2], 10);
+                    const d = parseInt(isIsoFirst ? dobParts[3] : dobParts[1], 10);
+                    const candidate = new Date(y, mo - 1, d);
+                    if (candidate.getFullYear() === y && candidate.getMonth() === mo - 1 && candidate.getDate() === d) {
+                        dobDate = candidate;
+                    }
+                }
+
+                if (dobDate) {
+                    const chronoToday = new Date();
+                    chronoToday.setHours(0, 0, 0, 0);
+                    const fmtDmy = function (dt) {
+                        return String(dt.getDate()).padStart(2, '0') + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + dt.getFullYear();
+                    };
+                    const chronoFail = function ($target, message) {
+                        $target.after('<span class="error-message text-danger d-block mt-1">' + message + '</span>');
+                        if (!firstErrorField) firstErrorField = $target;
+                        isValid = false;
+                    };
+
+                    /* Education: year of passing >= DOB year + 15, and not in the future. */
+                    $('#education-container .education-fields').each(function () {
+                        const $year = $(this).find('select[name="year_of_passing[]"]');
+                        const year = parseInt($year.val(), 10);
+                        if (!$year.length || !year) return;
+                        const month = parseInt($(this).find('select[name="month_of_passing[]"]').val(), 10) || 0;
+                        if (year < dobDate.getFullYear() + 15) {
+                            chronoFail($year, 'Year of passing is not possible for the Date of Birth entered.');
+                        } else if (year > chronoToday.getFullYear() || (year === chronoToday.getFullYear() && month > chronoToday.getMonth() + 1)) {
+                            chronoFail($year, 'Year of passing cannot be in the future.');
+                        }
+                    });
+
+                    /* Experience: start at age 18 or later; no future dates (Till date rows have no To date). */
+                    const earliestStart = new Date(dobDate.getFullYear() + 18, dobDate.getMonth(), dobDate.getDate());
+                    const isoToDate = function (iso) {
+                        const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                        return m ? new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)) : null;
+                    };
+                    $('.js-work-container .work-fields, #work-container .work-fields').each(function () {
+                        const $r = $(this);
+                        if (isFormS7bCurrentWorkRow($r) && !isFormS7bBoardGateYes()) return;
+                        const $from = $r.find('.work-date-from').first();
+                        const $to = $r.find('.work-date-to').first();
+                        const from = $from.length ? isoToDate(readWorkDateIsoGeneric($from)) : null;
+                        if (from) {
+                            if (from < earliestStart) {
+                                chronoFail($from, 'Experience cannot start before age 18 (Date of Birth: ' + fmtDmy(dobDate) + ').');
+                            } else if (from > chronoToday) {
+                                chronoFail($from, 'Experience From date cannot be in the future.');
+                            }
+                        }
+                        const isTill = $r.find('.work-date-till').is(':checked');
+                        const to = (!isTill && $to.length) ? isoToDate(readWorkDateIsoGeneric($to)) : null;
+                        if (to && to > chronoToday) {
+                            chronoFail($to, 'Experience To date cannot be in the future.');
+                        }
+                    });
                 }
             }
 
@@ -4322,8 +4400,20 @@
                             isValid = false;
                         }
                         if (meetingDate.length && !readWorkDateIsoGeneric(meetingDate)) {
-                            meetingDate.after('<span class="error-message text-danger d-block mt-1">Date of Meeting is required.</span>');
-                            if (!firstErrorField) firstErrorField = meetingDate;
+                            const meetingDateVisible = $row.find('.work-board-meeting-date-text').first();
+                            const meetingDateTarget = meetingDateVisible.length ? meetingDateVisible : meetingDate;
+                            meetingDateTarget.after('<span class="error-message text-danger d-block mt-1">Date of Meeting is required.</span>');
+                            if (!firstErrorField) firstErrorField = meetingDateTarget;
+                            isValid = false;
+                        } else if (
+                            $row.attr('data-bm-gate') === '1'
+                            && $row.attr('data-bm-valid') !== '1'
+                            && meetingDetails.length
+                            && (meetingDetails.val() || '').trim() !== ''
+                        ) {
+                            /* Form S §7b: typed date + number must match the Board records. */
+                            meetingDetails.after('<span class="error-message text-danger d-block mt-1">Date of Meeting and Meeting details do not match the Board records.</span>');
+                            if (!firstErrorField) firstErrorField = meetingDetails;
                             isValid = false;
                         }
                         const memberName = $row.find('select.work-board-member-name').first();

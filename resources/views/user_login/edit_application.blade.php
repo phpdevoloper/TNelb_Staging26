@@ -1290,12 +1290,10 @@
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
                                                     </div>
                                                 </div>
-                                                <input class="form-control" type="date" autocomplete="off"
+                                                <input class="form-control" type="text" autocomplete="off" placeholder="DD-MM-YYYY"
                                                     id="d_o_b" name="d_o_b"
-                                                    min="{{ \Carbon\Carbon::now()->subYears(100)->format('Y-m-d') }}"
-                                                    max="{{ \Carbon\Carbon::now()->subYears(18)->format('Y-m-d') }}"
-                                                    value="{{ $dobIsoVal }}">
-                                                <span id="dob-error" class="text-danger" style="display:none;"></span>
+                                                    value="{{ $dobDisplayVal }}">
+                                                <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                             </div>
                                             <div class="col-12 col-sm-5">
                                                 <div class="fs-field-label"><span class="fs-field-num-sub">(ii)</span>Age <span class="req">*</span></div>
@@ -2112,9 +2110,8 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 @if ($formName === 'S')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                    I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                                 @elseif ($formName === 'W')
                                     I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>
                                     I request that I may be granted a Wireman Competency Certificate.
@@ -2374,7 +2371,11 @@
 
     // Age calculation on DOB change
     $('#d_o_b').on('change', function() {
-        const dob = new Date($(this).val());
+        // Accepts DD-MM-YYYY (text / datepicker) and legacy YYYY-MM-DD.
+        const dobRaw = String($(this).val() || '').trim();
+        const dobM = dobRaw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        const dob = dobM ? new Date(+dobM[3], +dobM[2] - 1, +dobM[1]) : new Date(dobRaw);
+        if (isNaN(dob.getTime())) return;
         const today = new Date();
         let age = today.getFullYear() - dob.getFullYear();
         const monthDiff = today.getMonth() - dob.getMonth();

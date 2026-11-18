@@ -12,61 +12,27 @@
     $meetingDate = ($hasRow && ! empty($expRow->board_meeting_date))
         ? calendar_date_ymd($expRow->board_meeting_date)
         : '';
-    $boardMeetingMaster = collect($boardMeetingMaster ?? []);
-    $meetingNosForDate = $meetingDate !== ''
-        ? $boardMeetingMaster
-            ->filter(fn ($r) => (string) ($r['bm_date'] ?? '') === $meetingDate)
-            ->pluck('bm_no')
-            ->map(fn ($n) => (string) $n)
-            ->unique()
-            ->values()
-            ->all()
-        : [];
-    if ($meetingDetails !== '' && ! in_array((string) $meetingDetails, $meetingNosForDate, true)) {
-        $meetingNosForDate[] = (string) $meetingDetails;
-    }
-    /* Org options only for the selected meeting date (never the full master list). */
-    $boardRepresentingOrgs = $meetingDate !== '' && count($meetingNosForDate) > 0
-        ? $boardMeetingMaster
-            ->filter(fn ($r) => (string) ($r['bm_date'] ?? '') === $meetingDate)
-            ->pluck('bm_member')
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values()
-            ->all()
-        : [];
-    $hasValidMeetingDate = $meetingDate !== '' && count($meetingNosForDate) > 0;
+    $alterationExistingRow = ! empty($alterationExistingRow);
+    /* The applicant types the meeting date + number; they are verified against cc_board_details.
+       Only that meeting's organisations / members are ever rendered (never the whole master). */
+    $meetingLookup = ($meetingDate !== '' && $meetingDetails !== '')
+        ? \App\Models\CC_Board_Details::lookupMeeting($meetingDate, $meetingDetails)
+        : null;
+    $hasValidMeetingDate = $meetingLookup !== null;
+    $boardRepresentingOrgs = $hasValidMeetingDate ? array_keys($meetingLookup) : [];
     $memberName = $hasRow
         ? (string) (($expRow->member_name ?? '') !== '' ? $expRow->member_name : ($expRow->emp_cate ?? ''))
         : '';
-    $boardMemberNames = $hasValidMeetingDate && $orgName !== ''
-        ? $boardMeetingMaster
-            ->filter(function ($r) use ($meetingDate, $meetingDetails, $orgName) {
-                if ((string) ($r['bm_date'] ?? '') !== $meetingDate) {
-                    return false;
-                }
-                if ($meetingDetails !== '' && (string) ($r['bm_no'] ?? '') !== (string) $meetingDetails) {
-                    return false;
-                }
-
-                return (string) ($r['bm_member'] ?? '') === $orgName;
-            })
-            ->pluck('bm_members')
-            ->flatMap(function ($raw) {
-                return preg_split('/[,;|\n]+/', (string) $raw) ?: [];
-            })
-            ->map(fn ($n) => trim((string) $n))
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values()
-            ->all()
-        : [];
+    $boardMemberNames = ($hasValidMeetingDate && $orgName !== '') ? ($meetingLookup[$orgName] ?? []) : [];
     $hasValidOrg = $hasValidMeetingDate && $orgName !== '';
+    /* Locked (alteration / renewal) rows are exempt from the gate; new + editable rows are gated. */
+    $bmGateActive = ! $alterationExistingRow;
+    $bmDependentsDisabled = $bmGateActive && ! $hasValidMeetingDate;
+    $meetingDateText = preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $meetingDate, $bmDm)
+        ? $bmDm[3].'-'.$bmDm[2].'-'.$bmDm[1]
+        : '';
     $rowIndex = $rowIndex ?? 0;
     $hideUploadWhenDocExists = ! empty($hideUploadWhenDocExists);
-    $alterationExistingRow = ! empty($alterationExistingRow);
     $hideSupportUpload = $hideUploadWhenDocExists && $supportDoc !== '';
     $storedRowClass = $workId !== '' ? ' is-complete work-row--expanded work-row--board-member' : ' work-row--board-member';
     if ($alterationExistingRow) {
@@ -74,7 +40,7 @@
     }
 @endphp
 <div class="work-entry-block">
-<div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}">
+<div class="work-fields work-row{{ $storedRowClass }}" data-row-index="{{ $rowIndex }}" data-bm-gate="{{ $bmGateActive ? '1' : '0' }}" data-bm-valid="{{ $hasValidMeetingDate ? '1' : '0' }}" data-bm-verify-url="{{ route('form-s.board-meeting.verify') }}">
     {{-- Always board member for §7b; hidden so gate UI owns the question. --}}
     {{-- Sync field only; apply7bBoardToggle enables + requires it when Board = Yes. --}}
     <select class="form-control work-employment-type d-none" name="work_employment_type[]" aria-hidden="true" tabindex="-1">
@@ -99,27 +65,17 @@
             <div class="row g-2">
                 <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-date">
                     <label class="work-card-field-label">Date of Meeting <span class="req">*</span></label>
-                    @include('user_login.partials.form-s-7b-meeting-date-select', [
-                        'meetingDate' => $meetingDate,
-                        'boardMeetingMaster' => $boardMeetingMaster,
-                        'alterationExistingRow' => $alterationExistingRow,
-                    ])
-                    @if ($meetingDate !== '' && count($meetingNosForDate) === 0)
-                        <span class="error-message text-danger d-block mt-1 work-board-meeting-date-error" role="alert">No meeting for this date</span>
-                    @endif
+                    <input type="text" class="form-control work-board-meeting-date-text" placeholder="DD-MM-YYYY" inputmode="numeric" maxlength="10" autocomplete="off" aria-label="Date of board meeting attended" title="Date of Meeting" value="{{ $meetingDateText }}" @if($alterationExistingRow) disabled @endif>
+                    {{-- ISO value posted + read by the preview / validators (kept in sync by the gate script). --}}
+                    <input type="hidden" class="work-board-meeting-date" name="work_board_meeting_date[]" value="{{ $meetingDate }}" data-raw="{{ $meetingDate }}" @if($alterationExistingRow) disabled @endif>
                 </div>
                 <div class="col-12 col-md-4 work-card-field work-board-meeting-field" data-field="board-meeting-details">
                     <label class="work-card-field-label">Details of the meeting attended <span class="req">*</span></label>
-                    <select class="form-control work-board-meeting-details" name="work_board_meeting_details[]" autocomplete="off" required @if($meetingDate === '' || count($meetingNosForDate) === 0) disabled @endif>
-                        @if ($meetingDate === '' || count($meetingNosForDate) === 0)
-                            <option value="">Select date first</option>
-                        @else
-                            <option value="">Select</option>
-                            @foreach ($meetingNosForDate as $meetingOpt)
-                                <option value="{{ $meetingOpt }}" {{ (string) $meetingDetails === (string) $meetingOpt ? 'selected' : '' }}>{{ $meetingOpt }}</option>
-                            @endforeach
-                        @endif
-                    </select>
+                    <input type="text" class="form-control work-board-meeting-details" name="work_board_meeting_details[]" placeholder="Meeting number" inputmode="numeric" maxlength="6" autocomplete="off" required value="{{ $meetingDetails }}" @if($alterationExistingRow) disabled @endif>
+                </div>
+                <div class="col-12 col-md-4 work-card-field work-bm-gate-field">
+                    {{-- Not ".error-message": the shared validators remove those wholesale. Toggled via d-none by the gate script. --}}
+                    <span class="text-danger work-bm-gate-msg{{ ($hasValidMeetingDate || $meetingDate === '' || $meetingDetails === '') ? ' d-none' : '' }}" role="alert" aria-live="polite">Date of Meeting and Meeting details do not match the Board records.</span>
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation">
                     <label class="work-card-field-label">Representing Organisation<span class="req">*</span></label>
@@ -144,11 +100,11 @@
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation-address">
                     <label class="work-card-field-label">Address <span class="req">*</span></label>
-                    <textarea class="form-control work-org-address" name="work_organisation_address[]" rows="3" maxlength="255" autocomplete="off" required placeholder="Street, City, State, PIN">{{ $orgAddress }}</textarea>
+                    <textarea class="form-control work-org-address work-bm-dependent" name="work_organisation_address[]" rows="3" maxlength="255" autocomplete="off" required placeholder="Street, City, State, PIN" @if($bmDependentsDisabled) disabled @endif>{{ $orgAddress }}</textarea>
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="designation">
                     <label class="work-card-field-label">Designation <span class="req">*</span></label>
-                    <input type="text" class="form-control work-designation" name="designation[]" maxlength="80" autocomplete="off" required placeholder="e.g. Site Engineer" value="{{ $designation }}">
+                    <input type="text" class="form-control work-designation work-bm-dependent" name="designation[]" maxlength="80" autocomplete="off" required placeholder="e.g. Site Engineer" value="{{ $designation }}" @if($bmDependentsDisabled) disabled @endif>
                 </div>
                 <div class="col-12 col-md-4 work-card-field" data-field="support-doc">
                     <label class="work-card-field-label">Supporting docs</label>
@@ -161,7 +117,7 @@
                         </div>
                     @endif
                     <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined{{ $hideSupportUpload ? ' d-none work-upload-hidden-until-remove' : '' }}" data-upload-kind="work" data-doc-field="support">
-                        <input class="form-control work-doc-input" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png">
+                        <input class="form-control work-doc-input work-bm-dependent" name="work_document[]" type="file" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png" @if($bmDependentsDisabled) disabled @endif>
                     </div>
                     <span class="work-card-field-hint{{ $hideSupportUpload ? ' d-none work-upload-hint-hidden-until-remove' : '' }}"><i class="fa fa-info-circle"></i> PDF / JPG / PNG, 5-200 KB</span>
                 </div>
