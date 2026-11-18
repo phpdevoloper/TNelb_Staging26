@@ -114,20 +114,6 @@
         margin-top: 4px;
         letter-spacing: .5px;
     }
-    .fs-card-header .instructions-link {
-        text-align: right;
-        margin-top: 0;
-        margin-bottom: 0;
-        font-size: .82rem;
-        line-height: 1;
-    }
-    .fs-card-header .instructions-link a {
-        color: rgba(255,255,255,.9);
-        text-decoration: none;
-        border-bottom: 1px dashed rgba(255,255,255,.5);
-    }
-    .fs-card-header .instructions-link a:hover { color: #fff; border-bottom-color: #fff; }
-
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
         background: #f8f9ff;
@@ -811,35 +797,31 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{--  PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Application for Supervisor Competency Certificate - Digitisation</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - கணினிமயமாக்கல்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url('assets/pdf/form_s_notes.pdf')}}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
-                </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
 
                 <form id="competency_form_ws" class="apply-form" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
+                    {{-- SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -920,7 +902,7 @@
                                             <div class="row fs-dob-age-pair align-items-start mx-0">
                                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                                     <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
-                                                        type="text" placeholder="DD/MM/YYYY"
+                                                        type="text" placeholder="DD-MM-YYYY"
                                                         value="{{ isset($application) ? $application->d_o_b : '' }}">
                                                     <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                                 </div>
@@ -935,7 +917,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 6 — Education ═══ --}}
+                    {{-- SECTION 6 — Education --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">6</span>
@@ -1030,7 +1012,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 7 — Work Experience ═══ --}}
+                    {{-- SECTION 7 — Work Experience --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">7</span>
@@ -1052,7 +1034,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 8 — Previous License ═══ --}}
+                    {{-- SECTION 8 — Previous License --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">8</span>
@@ -1113,7 +1095,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 9 — Wireman Certificate ═══ --}}
+                    {{-- SECTION 9 — Wireman Certificate --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">9</span>
@@ -1177,7 +1159,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 10 — Upload Documents ═══ --}}
+                    {{-- SECTION 10 — Upload Documents --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">10</span>
@@ -1212,32 +1194,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;">
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                            </div>
-                                            <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                            <small class="text-danger file-error d-block"></small>
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -1247,7 +1206,7 @@
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -1260,7 +1219,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -1286,21 +1245,20 @@
                         </div>
                     </div>
 
-                    {{-- ═══ Declaration ═══ --}}
+                    {{-- Declaration --}}
                     <div class="fs-declaration">
                         <label class="container">
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>
                         <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span>
                     </div>
 
-                    {{-- Hidden fields --}}
+                    {{-- Hidden Fields --}}
                     <input type="hidden" id="login_id_store" name="login_id" value="{{ $user['user_id'] }}">
                     <input type="hidden" id="application_id" name="application_id" value="{{ $application_details->application_id ?? '' }}">
                     <input type="hidden" id="cc_digitization_temp_id" name="cc_digitization_temp_id" value="{{ $cc_digitization_temp_id ?? '' }}">
@@ -1312,7 +1270,7 @@
                     <input type="hidden" id="form_action" name="form_action" value="draft">
                     @csrf
 
-                    {{-- ── Action buttons ── --}}
+                    {{-- Action buttons --}}
                     <div class="fs-action-bar">
                         @if(! isset($application))
                         <button type="button" class="btn-fs-draft" id="saveDraftBtn"
@@ -1332,7 +1290,7 @@
     </div>{{-- /container --}}
 </div>{{-- /fs-page-wrap --}}
 
-{{-- ── Draft saved modal ── --}}
+{{-- Draft saved modal --}}
 <div id="draftModal" class="overlay-bg" style="display:none;">
     <div class="otp-modal">
         <h5><i class="fa fa-check-circle"></i> Your Application Details Saved Successfully</h5>
@@ -1340,11 +1298,11 @@
     </div>
 </div>
 
-{{-- ── Application Preview Modal ── --}}
+{{-- Application Preview Modal --}}
 <div id="appPreviewModal" class="prv-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Application Preview">
     <div class="prv-panel">
 
-        {{-- Header --}}
+        {{-- Card Header --}}
         <div class="prv-header">
             <div class="prv-header-left">
                 <h5><i class="fa fa-file-text-o"></i> Application Preview <span class="prv-badge">FORM - S / Certificate C</span></h5>
@@ -1353,10 +1311,10 @@
             <button class="prv-close" onclick="closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}" title="Close preview">&times;</button>
         </div>
 
-        {{-- Scrollable body --}}
+        {{-- Scrollable Body --}}
         <div class="prv-body" id="prvBody">
 
-            {{-- Section 1&2: Personal Info --}}
+            {{-- SECTION 1&2: Personal Info --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
                     <span class="prv-section-num">1</span>
@@ -1364,7 +1322,7 @@
                 </div>
                 <div class="prv-section-body">
                     <div class="row">
-                        {{-- Photo & Signature alongside personal details --}}
+                        {{-- Photo & Signature Alongside Personal Details --}}
                         <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex align-items-start" style="gap:12px;">
                             <div class="prv-thumb text-center">
                                 <div id="prv_photo_wrap"><div class="prv-no-img">No Photo</div></div>
@@ -1419,7 +1377,7 @@
                 </div>
             </div>
 
-            {{-- Section 6: Education --}}
+            {{-- SECTION 6: Education --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
                     <span class="prv-section-num">6</span>
@@ -1447,7 +1405,7 @@
                 </div>
             </div>
 
-            {{-- Section 7a: Previous Work Experience --}}
+            {{-- SECTION 7a: Previous Work Experience --}}
             <div class="prv-section">
                 <div class="prv-section-hd">
                     <span class="prv-section-num prv-section-num--sub">7a</span>
@@ -1614,21 +1572,6 @@
                     <span class="prv-section-title">Identity &amp; Uploaded Documents</span>
                 </div>
                 <div class="prv-section-body">
-                    {{-- Aadhaar row --}}
-                    <div class="row align-items-center mb-2">
-                        <div class="col-5 col-md-3">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">Aadhaar Number</div>
-                                <div class="prv-value" id="prv_aadhaar">—</div>
-                            </div>
-                        </div>
-                        <div class="col-7 col-md-4">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">Aadhaar Document</div>
-                                <div class="prv-value" id="prv_aadhaar_doc">—</div>
-                            </div>
-                        </div>
-                    </div>
                     {{-- PAN row --}}
                     <div class="row align-items-center">
                         <div class="col-5 col-md-3">
@@ -1837,7 +1780,7 @@
             }
         });
 
-        $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
+        $(document).on('change', '#pancard_doc', function() {
             var $input = $(this);
             clearLocalPreview($input);
             var file = this.files && this.files[0] ? this.files[0] : null;
@@ -2166,11 +2109,8 @@
                 : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
         }
 
-        // Aadhaar & PAN
-        setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
+        // PAN
         setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-        var aDoc = document.getElementById('aadhaar_doc');
-        setVal('prv_aadhaar_doc', fileLabel(aDoc));
         var pDoc = document.getElementById('pancard_doc');
         setVal('prv_pan_doc', fileLabel(pDoc));
     }

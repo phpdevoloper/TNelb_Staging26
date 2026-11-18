@@ -334,8 +334,6 @@ final class ReturnedApplicationPayloadMerge
      */
     public static function mergeFormPApplicantScalarsIntoRequest(Request $request, object $form): void
     {
-        $aadhaarPlain = safeDecrypt($form->aadhaar ?? null) ?? '';
-
         $fmtDate = static function ($v): ?string {
             if ($v === null || $v === '') {
                 return null;
@@ -359,7 +357,6 @@ final class ReturnedApplicationPayloadMerge
             'previously_valid_from' => $fmtDate($form->previously_valid_from ?? $form->scc_from_date ?? null),
             'wireman_details' => $form->wireman_details ?? $form->employer_detail ?? null,
             'employer_name' => $form->employer_detail ?? $form->employer_name ?? null,
-            'aadhaar' => preg_replace('/\D/', '', (string) $aadhaarPlain),
             'pancard' => strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) (safeDecrypt($form->pancard ?? null) ?? ''))),
             // Do not merge into certificate_no — that key is education certificate_no[].
             'competency_certificate_no' => $form->wcc_no ?? $form->certificate_no ?? null,

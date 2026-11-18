@@ -78,7 +78,7 @@
         clearWorkRowUploadErrors($input.closest('.work-fields'));
     });
 
-    $(document).on('change', '#aadhaar_doc, #pancard_doc', function () {
+    $(document).on('change', '#pancard_doc', function () {
         var $input = $(this);
         clearLocalPreview($input);
         var file = this.files && this.files[0] ? this.files[0] : null;
@@ -171,6 +171,7 @@
                 '<option value="BEE">B.E(Electrical Engineering)</option>' +
                 '<option value="MEE">M.E(Electrical Engineering)</option>' +
                 '<option value="AMIE">A pass in AMIE</option>' +
+                '<option value="EX">Ex Serviceman</option>' +
                 '</select></td>' +
                 '<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" required></td>' +
                 '<td><select name="month_of_passing[]" class="form-control" required>' +
@@ -368,7 +369,8 @@ var EDU_LEVEL_MAP = {
     DEE: 'Diploma(Electrical Engineering)',
     BEE: 'B.E(Electrical Engineering)',
     MEE: 'M.E(Electrical Engineering)',
-    AMIE: 'A pass in AMIE'
+    AMIE: 'A pass in AMIE',
+    EX: 'Ex Serviceman'
 };
 var MONTH_MAP = {
     '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun',
@@ -499,6 +501,9 @@ function populatePreview() {
     setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
     var emailEl = document.getElementById('applicant_email');
     setVal('prv_email', emailEl ? emailEl.value : '');
+    if (typeof window.fsComposeApplicantAddress === 'function') {
+        window.fsComposeApplicantAddress();
+    }
     setVal('prv_address', document.getElementById('applicants_address').value);
     setVal('prv_dob', document.getElementById('d_o_b').value);
     setVal('prv_age', document.getElementById('age').value);
@@ -596,10 +601,7 @@ function populatePreview() {
             : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
     }
 
-    setVal('prv_aadhaar', document.getElementById('aadhaar') ? document.getElementById('aadhaar').value : '');
     setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-    var aDoc = document.getElementById('aadhaar_doc');
-    setVal('prv_aadhaar_doc', fileLabel(aDoc));
     var pDoc = document.getElementById('pancard_doc');
     setVal('prv_pan_doc', fileLabel(pDoc));
 }

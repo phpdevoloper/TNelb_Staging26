@@ -1,0 +1,33 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/php-lint.js",
+            "timeout": 10,
+            "statusMessage": "Checking PHP syntax..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(composer *)",
+      "Bash(php -l *)",
+      "Bash(php artisan test *)",
+      "Bash(php artisan route:list *)",
+      "Bash(vendor/bin/phpunit *)",
+      "Bash(vendor/bin/pint *)",
+      "Bash(npx prettier *)",
+      "Bash(node --check *)"
+    ],
+    "ask": [
+      "Bash(php artisan migrate*)",
+      "Bash(php artisan db:*)"
+    ]
+  }
+}

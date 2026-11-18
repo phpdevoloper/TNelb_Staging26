@@ -435,7 +435,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Wireman Helper Competency Certificate</span>
-                                    <span class="sb-nav__sublink-form">[Form H]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form H]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -475,7 +475,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Wireman Competency Certificate</span>
-                                    <span class="sb-nav__sublink-form">[Form W]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form W]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -516,7 +516,7 @@
                                 <span class="sb-nav__sublink-text">
                                     <span>Power Generating Station Operation &amp; Maintenance Competency
                                         Certificate</span>
-                                    <span class="sb-nav__sublink-form">[Form P]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form P]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -556,7 +556,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Supervisor Competency Certificate</span>
-                                    <span class="sb-nav__sublink-form">[Form S]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form S]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -612,7 +612,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Electrical Contractor's Licence-Grade 'A'</span>
-                                    <span class="sb-nav__sublink-form">[Form A]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form A]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -652,7 +652,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Electrical Contractors Licence Grade Super 'A'</span>
-                                    <span class="sb-nav__sublink-form">[Form SA]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form SA]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -692,7 +692,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Electrical Contractor's Licence-Grade `SB'</span>
-                                    <span class="sb-nav__sublink-form">[Form SB]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form SB]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>
@@ -732,7 +732,7 @@
                                 <i class="fa fa-angle-right sb-nav__sublink-bullet" aria-hidden="true"></i>
                                 <span class="sb-nav__sublink-text">
                                     <span>Electrical Contractor License 'EB'</span>
-                                    <span class="sb-nav__sublink-form">[Form B]</span>
+                                    {{-- <span class="sb-nav__sublink-form">[Form B]</span> --}}
                                 </span>
                                 <i class="fa fa-chevron-down sb-nav__item-toggle-caret" aria-hidden="true"></i>
                             </button>

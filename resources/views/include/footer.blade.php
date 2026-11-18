@@ -247,11 +247,14 @@ $(document).ready(function() {
 
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
-        new Cleave('#aadhaar', {
-            delimiter: ' ',
-            blocks: [4, 4, 4],
-            numericOnly: true
-        });
+        // Aadhaar input only exists on Form A pages; guard so competency forms don't throw.
+        if (document.getElementById('aadhaar')) {
+            new Cleave('#aadhaar', {
+                delimiter: ' ',
+                blocks: [4, 4, 4],
+                numericOnly: true
+            });
+        }
 
 
         const dobInput = document.getElementById('d_o_b');
@@ -268,8 +271,12 @@ $(document).ready(function() {
             if (dobInput.readOnly || dobInput.disabled) {
                 dobInput.setAttribute('tabindex', '-1');
             } else {
+                var dobMax = new Date();
+                dobMax.setFullYear(dobMax.getFullYear() - 18);
                 flatpickr(dobInput, {
                     dateFormat: "d-m-Y",
+                    minDate: new Date(1935, 0, 1),
+                    maxDate: dobMax,
                     onChange: function (_selectedDates, dateStr) {
                         validateDOB(dateStr || dobInput.value);
                     },
@@ -365,22 +372,28 @@ $(document).ready(function() {
             return;
         }
 
-        const min = new Date(1970, 0, 1);
-        const max = new Date(2010, 11, 31);
-        if (selectedDate < min || selectedDate > max) {
-            errorElement.textContent = "Minimum age should be 15 and above";
+        // Earliest allowed birth year is 1935; applicant must be at least 18 years old.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate > today) {
+            errorElement.textContent = "Date of Birth cannot be in the future.";
             return;
         }
 
-        const today = new Date();
+        if (yyyy < 1935) {
+            errorElement.textContent = "Year of birth cannot be earlier than 1935.";
+            return;
+        }
+
         let age = today.getFullYear() - yyyy;
         const m = today.getMonth() - (mm - 1);
         if (m < 0 || (m === 0 && today.getDate() < dd)) {
             age--;
         }
 
-        if (age < 0) {
-            errorElement.textContent = "Age cannot be negative.";
+        if (age < 18) {
+            errorElement.textContent = "Minimum age should be 18 years and above.";
             return;
         }
 
@@ -699,20 +712,23 @@ $(document).ready(function() {
             // Aadhaar number validation
             const aadhaarnumber = document.getElementById("aadhaar");
             const aadhaarErrormsg = document.getElementById("aadhaar_error");
-            const aadhaar = aadhaarnumber.value.replace(/\s+/g, '').trim();
+            const aadhaar = aadhaarnumber ? aadhaarnumber.value.replace(/\s+/g, '').trim() : "";
             // let aadhaar = $("#aadhaar").val().trim();
             const aadhaarRegex = /^[2-9]{1}[0-9]{11}$/;
-            if (aadhaar === "") {
-                aadhaarErrormsg.textContent = "Aadhaar number is required.";
-                if (!firstErrorField) firstErrorField = aadhaar;
-                isValid = false;
-            } else if (!aadhaarRegex.test(aadhaar)) {
-                aadhaarErrormsg.textContent =
-                    "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
-                if (!firstErrorField) firstErrorField = aadhaar;
-                isValid = false;
-            } else {
-                aadhaarErrormsg.textContent = "";
+            // Competency forms (S/W/WH/P) have no Aadhaar field - skip this block there.
+            if (aadhaarnumber) {
+                if (aadhaar === "") {
+                    if (aadhaarErrormsg) aadhaarErrormsg.textContent = "Aadhaar number is required.";
+                    if (!firstErrorField) firstErrorField = aadhaar;
+                    isValid = false;
+                } else if (!aadhaarRegex.test(aadhaar)) {
+                    if (aadhaarErrormsg) aadhaarErrormsg.textContent =
+                        "Please enter a valid 12-digit Aadhaar number (should not start with 0 or 1).";
+                    if (!firstErrorField) firstErrorField = aadhaar;
+                    isValid = false;
+                } else if (aadhaarErrormsg) {
+                    aadhaarErrormsg.textContent = "";
+                }
             }
 
 

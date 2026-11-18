@@ -110,10 +110,9 @@ class PDFController extends Controller
         return $row;
     }
 
-    /** Load Aadhaar and PAN from cc_proof_doc onto the form row. */
-    private function addAadhaarPan(object $applicationDetails, string $masterApplicationId): object
+    /** Load PAN from cc_proof_doc onto the form row. */
+    private function addPan(object $applicationDetails, string $masterApplicationId): object
     {
-        $applicationDetails->aadhaar = $applicationDetails->aadhaar ?? null;
         $applicationDetails->pancard = $applicationDetails->pancard ?? null;
 
         $ids = $this->relatedAppIds(
@@ -127,9 +126,8 @@ class PDFController extends Controller
         $proofRows = CC_Proof_doc::whereIn('application_id', $ids)
             ->where(function ($query) {
                 $query->whereIn('proof_name', [
-                    FormSProofDocumentService::PROOF_AADHAAR,
                     FormSProofDocumentService::PROOF_PAN,
-                ])->orWhereRaw('LOWER(proof_type) IN (?, ?)', ['aadhaar', 'pan']);
+                ])->orWhereRaw('LOWER(proof_type) = ?', ['pan']);
             })
             ->orderBy('p_id')
             ->get();
@@ -142,9 +140,7 @@ class PDFController extends Controller
             $proofType = strtolower((string) ($proof->proof_type ?? ''));
             $proofName = strtoupper((string) ($proof->proof_name ?? ''));
 
-            if ($proofType === 'aadhaar' || $proofName === FormSProofDocumentService::PROOF_AADHAAR) {
-                $applicationDetails->aadhaar = $proof->proof_no;
-            } elseif ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
+            if ($proofType === 'pan' || $proofName === FormSProofDocumentService::PROOF_PAN) {
                 $applicationDetails->pancard = $proof->proof_no;
             }
         }
@@ -367,19 +363,19 @@ class PDFController extends Controller
                 ->preferredIdentityProofApplicationId($ccMeta);
             $applicationDetails = $this->mapFormFields((object) $ccMeta->toArray());
 
-            return $this->addAadhaarPan($applicationDetails, $proofApplicationId);
+            return $this->addPan($applicationDetails, $proofApplicationId);
         }
 
         // $legacyForm = DB::table('tnelb_application_tbl')
         //     ->where('application_id', $applicationId)
         //     ->first();
         // if ($legacyForm) {
-        //     return $this->addAadhaarPan($legacyForm, $applicationId);
+        //     return $this->addPan($legacyForm, $applicationId);
         // }
 
         $formP = TnelbFormP::where('application_id', $applicationId)->first();
 
-        return $formP ? $this->addAadhaarPan($formP, $applicationId) : null;
+        return $formP ? $this->addPan($formP, $applicationId) : null;
     }
 
     private function resolveEducationForPdf(string $applicationId): Collection
@@ -528,13 +524,9 @@ class PDFController extends Controller
             return redirect()->back()->with('error', 'No records found!');
         }
 
-        $decryptedaadhar = $this->safeDecryptString($form->aadhaar);
-        $decryptedaadhar = $decryptedaadhar ? preg_replace('/\s+/', '', $decryptedaadhar) : '';
-        $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
         $decryptedPan = $this->safeDecryptString($form->pancard);
         $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
         $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
-        $maskedUpper = mb_strtoupper($masked, 'UTF-8');
         $panDisplayPdf = $maskedPan !== '' ? mb_strtoupper($maskedPan, 'UTF-8') : '—';
 
         // Match generatePDF(): A4, helvetica 10pt, acknowledgement-style layout
@@ -640,8 +632,7 @@ class PDFController extends Controller
 
             table.form-p-grid.form-p-qs-final { margin-top: 22px; margin-bottom: 4px; }
             table.form-p-grid.form-p-qs-final tr.form-p-q6 > td,
-            table.form-p-grid.form-p-qs-final tr.form-p-q7 > td,
-            table.form-p-grid.form-p-qs-final tr.form-p-q8 > td {
+            table.form-p-grid.form-p-qs-final tr.form-p-q7 > td {
                 padding-top: 14px;
                 padding-bottom: 6px;
             }
@@ -847,13 +838,6 @@ class PDFController extends Controller
         </tr>
         <tr class="form-p-q7">
             <td class="fp-num">7.</td>
-            <td class="fp-label">AADHAAR NUMBER</td>
-            <td class="fp-colon">:</td>
-            <td class="fp-val">' . e($maskedUpper) . '</td>
-            <td class="fp-photo">&nbsp;</td>
-        </tr>
-        <tr class="form-p-q8">
-            <td class="fp-num">8.</td>
             <td class="fp-label">PAN CARD NUMBER</td>
             <td class="fp-colon">:</td>
             <td class="fp-val">' . e($panDisplayPdf) . '</td>
@@ -921,10 +905,6 @@ class PDFController extends Controller
         if (!$form) {
             return redirect()->back()->with('error', 'No records found!');
         }
-
-        $decryptedaadhar = $this->safeDecryptString($form->aadhaar);
-        $decryptedaadhar = $decryptedaadhar ? preg_replace('/\s+/', '', $decryptedaadhar) : '';
-        $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
 
         $mpdf = new Mpdf([
             'mode' => 'utf-8',
@@ -1120,16 +1100,6 @@ class PDFController extends Controller
 
         // Question 7 – previous application (heading only)
         $html .= '<h4 class="ta">7. முன்பு நீங்கள் ஏதேனும் விண்ணப்பம் சமர்ப்பித்துள்ளீர்களா? இருப்பின், அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடவும்.</h4>';
-
-        // Question 8 – Aadhaar Number (masked, same value as English) in row format
-        $html .= '
-        <table style="width:100%; border-collapse:collapse; margin-top:6px;">
-            <tr>
-                <td style="width:5%; text-align:right; padding-right:6px;" class="ta">8.</td>
-                <td style="width:65%; text-align:left;" class="ta">ஆதார் எண்</td>
-                <td style="width:30%; text-align:left;">: ' . $masked . '</td>
-            </tr>
-        </table>';
 
         // Append English payment details at bottom, if available
         if ($payment) {
@@ -2055,9 +2025,6 @@ class PDFController extends Controller
             return redirect()->back()->with('error', 'பதிவுகள் கிடைக்கவில்லை!');
         }
 
-        $decryptedaadhar = $this->decryptProofNo($form->aadhaar ?? null);
-        $decryptedaadhar = $decryptedaadhar ? preg_replace('/\s+/', '', $decryptedaadhar) : '';
-        $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
         $decryptedPan = $this->decryptProofNo($form->pancard ?? null);
         $decryptedPan = $decryptedPan ? strtoupper(preg_replace('/[^A-Z0-9]/i', '', $decryptedPan)) : '';
         $maskedPan = strlen($decryptedPan) === 10 ? str_repeat('X', 6) . substr($decryptedPan, -4) : '';
@@ -2427,16 +2394,14 @@ class PDFController extends Controller
             if ($certno === 'ஆம்') {
                 $html .= $certSubRowTa($certificateRefNoTa ?: '-', $certificateIssueDateTa, $certificateValidityDateTa);
             }
-            $html .= $qRow('9', 'ஆதார் எண்', e($masked));
-            $html .= $qRow('10', 'நிரந்தர கணக்கு எண்', e($maskedPan));
+            $html .= $qRow('9', 'நிரந்தர கணக்கு எண்', e($maskedPan));
         } else {
             $no = '8';
             $certLabelTa = ($form->form_name == 'WH')
                 ? 'இந்த வாரியம் வழங்கிய மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? இருப்பின் விவரங்களை வழங்கி சான்றிதழை ஒப்படைக்கவும்.'
                 : 'இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதி சான்றிதழ் அல்லது மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? இருப்பின் விவரங்களை வழங்கி சான்றிதழை ஒப்படைக்கவும்.';
             $html .= $qRow($no, $certLabelTa, e($certno));
-            $html .= $qRow('9', 'ஆதார் எண்', e($masked));
-            $html .= $qRow('10', 'நிரந்தர கணக்கு எண்', e($maskedPan));
+            $html .= $qRow('9', 'நிரந்தர கணக்கு எண்', e($maskedPan));
         }
 
         $html .= '</table>';

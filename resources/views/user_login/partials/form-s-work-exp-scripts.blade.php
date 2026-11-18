@@ -139,6 +139,10 @@
                 var $sel = $row.find('select.work-board-member-name').first();
                 var $sync = $row.find('.work-board-member-name-sync').first();
                 if (!$sel.length) return;
+                if ($row.attr('data-bm-gate') !== undefined) {
+                    if ($row.attr('data-bm-gate') === '1' && $row.data('bmOrgs')) bmFillMembers($row, preferredMember);
+                    return;
+                }
                 if ($sel.prop('disabled') && $row.closest('.fs-alt-existing-work').length) {
                     return;
                 }
@@ -191,6 +195,7 @@
             function fill7bOrgOptionsForDate($row, dateIso, preferredOrg, hasMeetings) {
                 var $org = $row.find('.work-employer-input').first();
                 if (!$org.length || !$org.is('select')) return;
+                if ($row.attr('data-bm-gate') !== undefined) return;
                 if ($org.prop('disabled') && $org.closest('.fs-alt-existing-work').length) {
                     return;
                 }
@@ -326,6 +331,7 @@
             function on7bMeetingDateChanged($dateInput, preferredNo, preferredOrg, preferredMember) {
                 var $row = $dateInput.closest('.work-fields');
                 if (!$row.length) return;
+                if ($row.attr('data-bm-gate') !== undefined) return;
                 var dateIso = '';
                 if (typeof readWorkDateFromInput === 'function') {
                     dateIso = readWorkDateFromInput($dateInput);
@@ -363,6 +369,7 @@
                 'change',
                 '#work-container-current .work-board-meeting-details, .js-work-container[data-work-part="current"] .work-board-meeting-details',
                 function () {
+                    if ($(this).closest('.work-fields').attr('data-bm-gate') !== undefined) return;
                     fill7bMemberOptions($(this).closest('.work-fields'), '');
                 }
             );
@@ -375,6 +382,163 @@
                     $row.find('.work-board-member-name-sync').val(String($(this).val() || '').trim());
                 }
             );
+
+            /* ── Form S §7b gate: typed meeting date + number are verified against the Board records.
+                  Rows with data-bm-gate="1" use this; Form W / WH keep the legacy dropdown flow above. ── */
+            var BM_GATE_MISMATCH = 'Date of Meeting and Meeting details do not match the Board records.';
+
+            function bmParseTypedDate(text) {
+                var m = String(text || '').trim().match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+                if (!m) return '';
+                var d = +m[1], mo = +m[2], y = +m[3];
+                var dt = new Date(y, mo - 1, d);
+                if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return '';
+                return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+            }
+
+            function bmShowMsg($row, text) {
+                var $m = $row.find('.work-bm-gate-msg').first();
+                if (!$m.length) return;
+                if (text) $m.text(text);
+                $m.toggleClass('d-none', !text);
+            }
+
+            function bmSetDependents($row, enabled) {
+                $row.attr('data-bm-valid', enabled ? '1' : '0');
+                if (enabled) {
+                    $row.find('.work-employer-input, .work-bm-dependent').prop('disabled', false);
+                    return;
+                }
+                $row.removeData('bmOrgs');
+                $row.find('.work-employer-input, select.work-board-member-name, .work-bm-dependent').prop('disabled', true);
+                $row.find('.work-employer-input').empty()
+                    .append($('<option></option>').attr('value', '').text('Enter meeting details first')).val('');
+                $row.find('select.work-board-member-name').empty()
+                    .append($('<option></option>').attr('value', '').text('Select organisation first')).val('');
+                $row.find('.work-board-member-name-sync, .work-level-sync').val('');
+                $row.find('textarea.work-org-address, .work-designation').val('');
+                $row.find('.work-doc-input').val('');
+            }
+
+            function bmFillMembers($row, preferredMember) {
+                var $sel = $row.find('select.work-board-member-name').first();
+                var $sync = $row.find('.work-board-member-name-sync').first();
+                var orgs = $row.data('bmOrgs') || {};
+                var org = String($row.find('.work-employer-input').first().val() || '').trim();
+                preferredMember = String(preferredMember || '').trim();
+                $sel.empty();
+                if (!org || !orgs[org]) {
+                    $sel.append($('<option></option>').attr('value', '').text('Select organisation first'))
+                        .val('').prop('disabled', true);
+                    $sync.val('');
+                    return;
+                }
+                $sel.append($('<option></option>').attr('value', '').text('Select member'));
+                orgs[org].forEach(function (n) {
+                    $sel.append($('<option></option>').attr('value', n).text(n));
+                });
+                if (preferredMember && orgs[org].indexOf(preferredMember) === -1) preferredMember = '';
+                $sel.prop('disabled', false).val(preferredMember);
+                $sync.val(String($sel.val() || '').trim());
+            }
+
+            function bmFillOrgs($row, orgs, preferredOrg, preferredMember) {
+                var $org = $row.find('.work-employer-input').first();
+                var names = Object.keys(orgs || {}).sort(function (a, b) { return a.localeCompare(b); });
+                $org.empty().append($('<option></option>').attr('value', '').text('Select organisation'));
+                names.forEach(function (n) {
+                    $org.append($('<option></option>').attr('value', n).text(n));
+                });
+                preferredOrg = String(preferredOrg || '').trim();
+                if (preferredOrg && names.indexOf(preferredOrg) === -1) preferredOrg = '';
+                $org.val(preferredOrg);
+                $row.find('.work-level-sync').val(String($org.val() || '').trim());
+                bmFillMembers($row, preferredMember);
+            }
+
+            /** Verify the typed date + number on the server; opens or closes the dependent fields. */
+            function bmVerify($row, opts) {
+                opts = opts || {};
+                var text = $.trim($row.find('.work-board-meeting-date-text').val() || '');
+                var no = String($row.find('.work-board-meeting-details').first().val() || '').replace(/\D+/g, '');
+                var $iso = $row.find('.work-board-meeting-date').first();
+                var iso = bmParseTypedDate(text);
+                $iso.val(iso);
+                if (iso) $iso.attr('data-raw', iso); else $iso.removeAttr('data-raw');
+
+                var seq = ($row.data('bmSeq') || 0) + 1;
+                $row.data('bmSeq', seq);
+
+                if (!text || !no) {
+                    bmShowMsg($row, '');
+                    if (!opts.initial) bmSetDependents($row, false);
+                    return;
+                }
+                if (!iso) {
+                    bmShowMsg($row, 'Enter the Date of Meeting as DD-MM-YYYY.');
+                    if (!opts.initial) bmSetDependents($row, false);
+                    return;
+                }
+
+                var preferredOrg = $row.find('.work-employer-input').first().val();
+                var preferredMember = $row.find('select.work-board-member-name').first().val()
+                    || $row.find('.work-board-member-name-sync').first().val();
+                if (!opts.initial) $row.attr('data-bm-valid', '0'); /* pending: not valid until the server confirms */
+
+                $.ajax({
+                    url: $row.attr('data-bm-verify-url'),
+                    method: 'GET',
+                    dataType: 'json',
+                    data: { date: iso, no: no }
+                }).done(function (res) {
+                    if ($row.data('bmSeq') !== seq) return;
+                    if (res && res.valid) {
+                        bmShowMsg($row, '');
+                        $row.data('bmOrgs', res.orgs || {});
+                        bmSetDependents($row, true);
+                        bmFillOrgs($row, res.orgs || {}, preferredOrg, preferredMember);
+                    } else if (!opts.initial) {
+                        bmShowMsg($row, (res && res.message) || BM_GATE_MISMATCH);
+                        bmSetDependents($row, false);
+                    }
+                }).fail(function () {
+                    /* A failed first-load check must never wipe a saved row. */
+                    if ($row.data('bmSeq') !== seq || opts.initial) return;
+                    bmShowMsg($row, 'Could not verify the meeting details. Please try again.');
+                    bmSetDependents($row, false);
+                });
+            }
+
+            function bmInit($row) {
+                if (!$row.length || $row.attr('data-bm-gate') !== '1') return;
+                var el = $row.find('.work-board-meeting-date-text').get(0);
+                if (el && !el.disabled && typeof window.flatpickr === 'function' && !el._flatpickr) {
+                    window.flatpickr(el, { dateFormat: 'd-m-Y', allowInput: true, maxDate: 'today' });
+                }
+                if ($.trim($(el).val() || '') && $.trim($row.find('.work-board-meeting-details').first().val() || '')) {
+                    bmVerify($row, { initial: true });
+                }
+            }
+
+            var BM_GATE_INPUTS = '.work-fields[data-bm-gate="1"] .work-board-meeting-date-text, '
+                + '.work-fields[data-bm-gate="1"] .work-board-meeting-details';
+
+            $(document).on('input', BM_GATE_INPUTS, function () {
+                var $row = $(this).closest('.work-fields');
+                if ($(this).hasClass('work-board-meeting-details')) {
+                    this.value = this.value.replace(/\D+/g, '');
+                } else {
+                    this.value = this.value.replace(/[^\d\-\/.]/g, '');
+                }
+                clearTimeout($row.data('bmTimer'));
+                $row.data('bmTimer', setTimeout(function () { bmVerify($row); }, 450));
+            });
+
+            $(document).on('change', BM_GATE_INPUTS, function () {
+                var $row = $(this).closest('.work-fields');
+                clearTimeout($row.data('bmTimer'));
+                bmVerify($row);
+            });
 
             function competencyStoredDocHref(storedPath) {
                 storedPath = String(storedPath || '').trim();
@@ -2101,7 +2265,13 @@
                     var $meet = $tr.find('.work-board-meeting-details').first();
                     if (!($meet.val() || '').trim()) fail($meet, 'Details of the meeting is required.');
                     var $meetDate = $tr.find('.work-board-meeting-date').first();
-                    if (!readWorkDateFromInput($meetDate)) fail($meetDate, 'Date of Meeting is required.');
+                    if (!readWorkDateFromInput($meetDate)) {
+                        var $meetDateText = $tr.find('.work-board-meeting-date-text').first();
+                        fail($meetDateText.length ? $meetDateText : $meetDate, 'Date of Meeting is required.');
+                    }
+                    else if ($tr.attr('data-bm-gate') === '1' && $tr.attr('data-bm-valid') !== '1' && ($meet.val() || '').trim()) {
+                        fail($meet, BM_GATE_MISMATCH);
+                    }
                     var $empBoard = $tr.find('.work-employer-input').first();
                     if (!($empBoard.val() || '').trim()) fail($empBoard, 'Organisation is required.');
                     var $memberName = $tr.find('select.work-board-member-name').first();
@@ -2610,6 +2780,10 @@
                 /* Prefill §7b meeting/org dropdowns when editing an existing board row. */
                 $('#work-container-current .work-fields, .js-work-container[data-work-part="current"] .work-fields').each(function () {
                     var $row = $(this);
+                    if ($row.attr('data-bm-gate') !== undefined) {
+                        bmInit($row); /* no-op for locked (data-bm-gate="0") rows */
+                        return;
+                    }
                     var $date = $row.find('.work-board-meeting-date').first();
                     if (!$date.length) return;
                     var preferredNo = format7bBmNo($row.find('.work-board-meeting-details').first().val());

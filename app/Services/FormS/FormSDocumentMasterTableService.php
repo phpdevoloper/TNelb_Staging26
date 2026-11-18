@@ -46,7 +46,7 @@ class FormSDocumentMasterTableService
             }
         }
 
-        if (in_array($moduleType, ['photo', 'signature', 'aadhaar', 'pan'], true)) {
+        if (in_array($moduleType, ['photo', 'signature', 'pan'], true)) {
             $path = CC_Proof_doc::where('application_id', $masterApplication->application_id)
                 ->whereKey($moduleRefId)
                 ->value('proof_doc');
@@ -142,7 +142,7 @@ class FormSDocumentMasterTableService
             }
         }
 
-        if (in_array($document->module_type, ['photo', 'signature', 'aadhaar', 'pan'], true) && $refId > 0) {
+        if (in_array($document->module_type, ['photo', 'signature', 'pan'], true) && $refId > 0) {
             $onChild = CC_Proof_doc::where('application_id', $workflowApp->application_id)
                 ->whereKey($refId)
                 ->exists();
@@ -175,7 +175,7 @@ class FormSDocumentMasterTableService
         $value = match ($document->module_type) {
             'education' => CC_Education::whereKey($refId)->value('application_id'),
             'experience' => CC_Experience::whereKey($refId)->value('application_id'),
-            'photo', 'signature', 'aadhaar', 'pan', 'alteration' => CC_Proof_doc::whereKey($refId)->value('application_id'),
+            'photo', 'signature', 'pan', 'alteration' => CC_Proof_doc::whereKey($refId)->value('application_id'),
             default => null,
         };
 
@@ -211,7 +211,7 @@ class FormSDocumentMasterTableService
             return;
         }
 
-        if (in_array($moduleType, ['photo', 'signature', 'aadhaar', 'pan'], true)) {
+        if (in_array($moduleType, ['photo', 'signature', 'pan'], true)) {
             CC_Proof_doc::where('application_id', $masterApplication->application_id)
                 ->whereKey($moduleRefId)
                 ->update([

@@ -1538,12 +1538,10 @@
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
                                                     </div>
                                                 </div>
-                                                <input class="form-control" type="date" autocomplete="off"
+                                                <input class="form-control" type="text" autocomplete="off" placeholder="DD-MM-YYYY"
                                                     id="d_o_b" name="d_o_b"
-                                                    min="{{ \Carbon\Carbon::now()->subYears(100)->format('Y-m-d') }}"
-                                                    max="{{ \Carbon\Carbon::now()->subYears(18)->format('Y-m-d') }}"
-                                                    value="{{ $dobIsoVal }}">
-                                                <span id="dob-error" class="text-danger" style="display:none;"></span>
+                                                    value="{{ $dobDisplayVal }}">
+                                                <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                             </div>
                                             <div class="col-12 col-sm-5">
                                                 <div class="fs-field-label"><span class="fs-field-num-sub">(ii)</span>Age <span class="req">*</span></div>
@@ -2412,7 +2410,6 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
                                 $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo?->upload_path);
@@ -2455,43 +2452,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}">
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            @if (!empty($application_details->aadhaar_doc))
-                                                <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View Document
-                                                    </a>
-                                                    {{-- <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button> --}}
-                                                </div>
-                                            @endif
-                                            <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
-                                                <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                    <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                                </div>
-                                                <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                <small class="text-danger file-error d-block"></small>
-                                            </div>
-                                            <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -2501,7 +2464,7 @@
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -2524,7 +2487,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -2567,13 +2530,11 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 @if ($isAlterationMode)
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
-                                    I request that the selected alteration(s) to my Supervisor Competency Certificate may be processed.<span class="req">*</span>
-                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.<br>எனது மேற்பார்வையாளர் திறன் சான்றிதழில் தேர்ந்தெடுத்த மாற்றம்(கள்) செயல்படுத்தப்பட வேண்டும் என்று கேட்டுக்கொள்கிறேன்.</span>
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                                 @elseif ($formName === 'S')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                    I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                                 @elseif ($formName === 'W')
                                     I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>
                                     I request that I may be granted a Wireman Competency Certificate.
@@ -2864,7 +2825,7 @@
         $input.closest('.form-s-file-upload-wrap').after($preview);
     });
 
-    $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
+    $(document).on('change', '#pancard_doc', function() {
         var $input = $(this);
         clearLocalPreview($input);
 
@@ -2900,33 +2861,6 @@
         $input.closest('.form-s-file-upload-wrap').after($preview);
     });
 
-    $(document).on('click', '.remove-aadhaar-doc', function(e) {
-        e.preventDefault();
-        var $button = $(this);
-        Swal.fire({
-            title: 'Do you want to remove the document?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No',
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            reverseButtons: true
-        }).then((result) => {
-            if (!result.isConfirmed) return;
-
-            var $scope = $button.closest('td, .col-12, .col-md-3');
-            var $docContainer = $scope.find('.aadhaar-doc-container').first();
-            var $docInput = $scope.find('.aadhaar-doc-input').first();
-            var $fileInput = $scope.find('#aadhaar_doc').first();
-
-            $docContainer.removeClass('d-flex align-items-center justify-content-center').addClass('d-none').hide();
-            $docInput.removeClass('d-none').show();
-            $scope.find('#aadhaar_doc_removed').val('1');
-            clearLocalPreview($fileInput);
-        });
-    });
-
     $(document).on('click', '.remove-pan-doc', function(e) {
         e.preventDefault();
         var $button = $(this);
@@ -2956,7 +2890,11 @@
 
     // Age calculation on DOB change
     $('#d_o_b').on('change', function() {
-        const dob = new Date($(this).val());
+        // Accepts DD-MM-YYYY (text / datepicker) and legacy YYYY-MM-DD.
+        const dobRaw = String($(this).val() || '').trim();
+        const dobM = dobRaw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        const dob = dobM ? new Date(+dobM[3], +dobM[2] - 1, +dobM[1]) : new Date(dobRaw);
+        if (isNaN(dob.getTime())) return;
         const today = new Date();
         let age = today.getFullYear() - dob.getFullYear();
         const monthDiff = today.getMonth() - dob.getMonth();

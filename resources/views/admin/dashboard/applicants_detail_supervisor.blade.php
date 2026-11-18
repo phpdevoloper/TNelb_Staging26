@@ -916,7 +916,7 @@
                                         <strong>Email:</strong>
                                         <span>{{ !empty($applicant->applicant_email) ? e($applicant->applicant_email) : '—' }}</span>
                                         <strong>Applied For:</strong> <span>FORM {{ $applicant->form_name }} &middot;
-                                            License {{ $applicant->license_name }}</span>
+                                            Certificate {{ $applicant->license_name }}</span>
                                         @if($applicant->appl_type == 'A' && !empty($applicant->old_application))
                                             <strong>Parent Application:</strong>
                                             <span>{{ $applicant->old_application }}</span>
@@ -1425,14 +1425,7 @@
                                                                     class="asp-detail-value">{{ !empty($prevValidTo) ? format_date($prevValidTo) : '—' }}</span>
                                                             </div>
                                                         </div>
-                                                        <div class="asp-verify-row">
-                                                            <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->previous_scc_no }}"
-                                                                data-license_from_date="{{ $applicant->scc_from_date }}"
-                                                                data-license_date="{{ $prevValidTo }}"
-                                                                data-license_issue_date="{{ $applicant->first_issue_date }}"
-                                                                data-type="certificate" style="cursor: pointer;">Verify</span>
-                                                        </div>
+                                                        
                                                     @endif
                                                 </div>
 
@@ -1474,14 +1467,7 @@
                                                                     class="asp-detail-value">{{ !empty($applicant->wcc_to) ? format_date($applicant->wcc_to) : '—' }}</span>
                                                             </div>
                                                         </div>
-                                                        <div class="asp-verify-row">
-                                                            <span class="badge badge-primary admin_verify"
-                                                                data-license_number="{{ $applicant->wcc_no }}"
-                                                                data-license_from_date="{{ $applicant->wcc_from }}"
-                                                                data-license_date="{{ $applicant->wcc_to ?? $applicant->certificate_date }}"
-                                                                data-license_issue_date="{{ $applicant->wcc_issue_date }}"
-                                                                data-type="certificate" style="cursor: pointer;">Verify</span>
-                                                        </div>
+                                                        
                                                     @endif
                                                 </div>
                                             @endif
@@ -1589,45 +1575,19 @@
                                             <!-- ----------------------------------------------- -->
 
                                             @php
-                                                $decryptedAadhaar = displayProofNumber($applicant->aadhaar ?? '');
                                                 $decryptedPan = displayProofNumber($applicant->pancard ?? '');
-
-                                                $masked = strlen($decryptedAadhaar) === 12
-                                                    ? str_repeat('X', 8) . substr($decryptedAadhaar, -4)
-                                                    : ($decryptedAadhaar !== '' ? 'Invalid Aadhaar' : '—');
 
                                                 $maskedPan = strlen($decryptedPan) === 10
                                                     ? str_repeat('X', 6) . substr($decryptedPan, -4)
                                                     : ($decryptedPan !== '' ? 'Invalid PAN' : '—');
 
                                                 $panDocument = $applicant->pan_doc ?? $applicant->pancard_doc ?? null;
-                                                $aadhaarDocUrl = proof_document_url($applicant->aadhaar_doc ?? null, 'aadhaar');
                                                 $panDocUrl = proof_document_url($panDocument, 'pan');
                                             @endphp
 
                                             <div class="asp-docs-block">
                                                 <h6>Documents Uploaded</h6>
                                                 <div class="row align-items-center g-2">
-                                                    <div class="col-lg-6">
-                                                        <span class="fw-bold" style="color: #111;">Aadhaar</span>
-                                                    </div>
-                                                    <div class="col-lg-6 text-lg-end">
-                                                        <span class="fw-bold"
-                                                            style="color: #515365">{{ $masked }}</span>
-                                                        @if ($aadhaarDocUrl)
-                                                            <a href="{{ $aadhaarDocUrl }}" target="_blank"
-                                                                class="applicant-inline-doc-link ms-1"
-                                                                title="Open Aadhaar document">
-                                                                <i class="fa fa-file-pdf-o text-danger"
-                                                                    aria-hidden="true"></i>
-                                                                <span>View Document</span>
-                                                            </a>
-                                                        @else
-                                                            <span class="text-muted small ms-1">No document</span>
-                                                        @endif
-                                                    </div>
-                                                </div>
-                                                <div class="row align-items-center g-2 mt-1">
                                                     <div class="col-lg-6">
                                                         <span class="fw-bold" style="color: #111;">PAN</span>
                                                     </div>
@@ -1939,45 +1899,6 @@
                     @endif
 
                     @if(($applicant->status ?? '') != 'A')
-                        <div class="statbox widget box box-shadow mb-2">
-                            <div class="row align-items-center">
-
-                                <div class="col-lg-12">
-                                    <div class="switch-wrapper d-flex justify-content-between align-items-center">
-                                        <label class="switch-label mb-0 fw-bold text-end" for="Queryswitch">If you have any
-                                            queries</label>
-                                        <div
-                                            class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
-                                            <div class="input-checkbox">
-                                                <span class="switch-chk-label label-left">Yes</span>
-                                                <input class="switch-input" type="checkbox" id="Queryswitch" role="switch">
-                                                <span class="switch-chk-label label-right">No</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="box box-shadow" id="queryOptions" style="display: none;">
-                                <div class="row mt-2">
-                                    <div class="col-lg-12">
-                                        <div class="form-group">
-
-                                            {{-- <label class="fw-bold">Select Query Type:</label> --}}
-                                            <select class="form-control" id="queryType" name="queryType[]" multiple>
-                                                <option value="general">General Query</option>
-                                                <option value="technical">Technical Query</option>
-                                                <option value="other">Other</option>
-                                                <option value="checklist">Checklist Details Missing</option>
-                                            </select>
-
-                                            <span id="query_error" class="text-danger"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-
                         <div class="statbox widget box box-shadow">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
@@ -2229,12 +2150,6 @@
                                 <input class="form-check-input return-to-applicant-query" type="checkbox"
                                     name="return_applicant_query[]" id="query_photo" value="Photo is missing">
                                 <label class="form-check-label" for="query_photo">Photo is missing</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input return-to-applicant-query" type="checkbox"
-                                    name="return_applicant_query[]" id="query_aadhaar"
-                                    value="Aadhaar document is missing">
-                                <label class="form-check-label" for="query_aadhaar">Aadhaar document is missing</label>
                             </div>
                             <div class="form-check mb-2">
                                 <input class="form-check-input return-to-applicant-query" type="checkbox"

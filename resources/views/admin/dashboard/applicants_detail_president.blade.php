@@ -242,19 +242,13 @@
 
                                             <div class="row">
                                                 <div class="col-lg-6 col-6">
-                                                    <p><strong>Aadhaar:</strong></p>
-
                                                     <p><strong>PAN:</strong></p>
                                                 </div>
                                                 @php
-                                                    $decryptedaadhar = Crypt::decryptString($applicant->aadhaar);
                                                     $decryptedpan = Crypt::decryptString($applicant->pancard);
-                                                    $masked = strlen($decryptedaadhar) === 12 ? str_repeat('X', 8) . substr($decryptedaadhar, -4) : 'Invalid Aadhaar';
                                                     $maskedPan = strlen($decryptedpan) === 10 ? str_repeat('X', 6) . substr($decryptedpan, -4) : 'Invalid PAN';
-                                                @endphp 
+                                                @endphp
                                                 <div class="col-lg-6 col-6">
-                                                    <p>{{ $masked }}</p>
-
                                                     <p>{{ $maskedPan }}</p>
                                                 </div>
                                             </div>
