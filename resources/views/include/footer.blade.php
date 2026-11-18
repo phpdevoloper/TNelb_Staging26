@@ -1374,8 +1374,6 @@ $(document).on("change", "#ownership_type_select", function (e, fromDraft = fals
     }
 });
 
-
-
     // ------------------------------------------------------------forma 8_11 Attachments open----------------------
     $(document).on("change", "input[name='criminal_offence']", function () {
 
@@ -2976,7 +2974,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         }
     });
 
-// --------------------- alteration_clSubmit --------------------
+
 // --------------------- alteration_clSubmit --------------------
 $(document).on('click', '#alteration_clSubmit', function () {
 
@@ -2998,10 +2996,72 @@ $(document).on('click', '#alteration_clSubmit', function () {
     // Redirect to forma_alter()
     let url = "{{ route('forma_alter') }}";
 
-    url += '?application_id=' + encodeURIComponent(applicationId);
+    url += '?old_applicationid=' + encodeURIComponent(applicationId);
     url += '&license_number=' + encodeURIComponent(licenseNumber);
 
     window.location.href = url;
+});
+
+
+// ========================================================
+// MINIMUM DATE: 01-01-1952
+// ========================================================
+// ========================================================
+// DATE VALIDATION - MINIMUM DATE 01-01-1952
+// ========================================================
+// ========================================================
+// DATE VALIDATION - MINIMUM 01-01-1952
+// ========================================================
+// ========================================================
+// DATE VALIDATION - MINIMUM 01-01-1952
+// YEAR MUST BE EXACTLY 4 DIGITS
+// ========================================================
+
+const dateFieldNames = [
+    "dob[]",
+    "staff_cc_first_issue[]",
+    "staff_cc_validity_from[]",
+    "staff_cc_validity_to[]",
+    "cc_firstissue[]",
+    "cc_validity_from[]",
+    "cc_validity_to[]",
+    "bank_validity",
+    "date_of_test[]"
+];$(document).on("change blur", "input[type='date']", function () {
+
+    let $input = $(this);
+    let value = $input.val();
+
+    let $error = $input.next(".date-validation-error");
+
+    if (!$error.length) {
+        $error = $('<span class="date-validation-error text-danger small"></span>');
+        $input.after($error);
+    }
+
+    $error.text("");
+    $input.removeClass("is-invalid");
+
+    if (!value) return;
+
+    let parts = value.split("-");
+    let year = parseInt(parts[0], 10);
+
+    if (!/^\d{4}$/.test(parts[0])) {
+        $error.text("Please enter a valid 4-digit year.");
+        $input.addClass("is-invalid");
+        return;
+    }
+
+    if (year < 1952) {
+        $error.text("Year must be 1952 or later.");
+        $input.addClass("is-invalid");
+        return;
+    }
+
+    // Valid date
+    $error.text("");
+    $input.removeClass("is-invalid");
 });
 </script>
 

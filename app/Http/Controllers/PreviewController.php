@@ -40,7 +40,7 @@ class PreviewController extends BaseController
         $staffdetails = DB::table('cl_staff_tbl')
             ->where('application_id', $application_id)
             ->where('staff_flag', '1')
-            ->orderBy('id')
+            ->orderBy('id', 'ASC')
             ->get();
 
         $otherstaffdetails = DB::table('cl_staff_tbl')
@@ -106,6 +106,7 @@ class PreviewController extends BaseController
         $clDigitization = Schema::hasTable('mapping_digi_cls')
             ? DB::table('mapping_digi_cls')->where('application_id', $application_id)->first()
             : null;
+            
 
         $equipmentMasters = collect();
         if ($equipmentlist->isNotEmpty()) {

@@ -472,8 +472,6 @@ class LoginController extends Controller
 
                     if ($staff->role_id == '1') {
 
-
-
                         // recent modify for count form A
                         $rows = DB::table($tbl . ' as ta')
                             // For contractor licences, treat both freshly submitted and
@@ -624,6 +622,7 @@ class LoginController extends Controller
             })
             ->values()
             ->all();
+            
 
         $formColors = [
             'C'   => 'bg-yellow',
@@ -695,8 +694,6 @@ class LoginController extends Controller
         $contractorCards = $contractorCardsCollection->all();
 
         // dd($contractorCards);exit;
-
-
 
         $amendmentCards = $amendmentCardsCollection->all();
 
@@ -1288,7 +1285,7 @@ class LoginController extends Controller
                         "UPPER(TRIM(COALESCE(ta.appl_type, ''))) as appl_type"
                     ),
 
-                    'ta.created_at',
+                    'ta.dt_submit as created_at',
 
                     DB::raw("'A' as status"),
 
@@ -2238,8 +2235,436 @@ class LoginController extends Controller
     // -----------------form A -------------------
     public function applicants_detail_forma($applicant_id)
     {
+        return view('admin.dashboard.applicants_detail_forma', $this->formADetailData($applicant_id));
+    }
+
+   public function applicants_detail_forma_preview($applicant_id)
+{
+    $data = $this->formADetailData($applicant_id);
+
+    $data['applicant_id'] = $applicant_id;
+
+    return view('admin.dashboard.applicants_detail_forma_preview', $data);
+}
+
+    private function formADetailData(string $applicant_id): array
+    {
 
         $returnForwardUser = null;
+
+        $staff = Auth::user();
+
+        if (!$staff || !$staff->roles_id) {
+            return abort(403, 'Unauthorized');
+        }
+
+     $applicantQuery1 = DB::table('ccl_forma_meta')
+        ->leftJoin('payments', function ($join) {
+            $join->on('ccl_forma_meta.application_id', '=', 'payments.application_id')
+                ->whereRaw('payments.id = (
+                    SELECT MAX(p2.id)
+                    FROM payments p2
+                    WHERE p2.application_id = ccl_forma_meta.application_id
+                )');
+        })
+        ->where('ccl_forma_meta.application_id', $applicant_id)
+        ->select(
+            'ccl_forma_meta.*',
+            'payments.transaction_id',
+            'payments.payment_status',
+            'payments.amount',
+            'payments.payment_mode',
+            'payments.created_at as payment_date',
+            'payments.application_fee',
+            'payments.late_fee',
+            'payments.qc_fees'
+        );
+
+    $applicant = $applicantQuery1
+        ->orderByDesc('ccl_forma_meta.dt_submit')
+        ->first();
+
+        $appl_type = trim($applicant->appl_type);
+
+        if ($appl_type === 'R') {
+            $old_issuedat = DB::table('cl_forma_lic')
+                ->select('dateof_issue', 'created_at', 'valid_from',  'valid_to')
+                ->where('application_id', $applicant->old_application)
+
+
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            $old_issued_at_date = $old_issuedat->valid_to;
+
+        } else {
+
+            $old_issued_at_date = '0';
+        }
+
+
+        $formname = $applicant->form_name;
+
+        $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
+
+        $license_name_data = DB::table('mst_licences')->where('cert_licence_code', $applicant->license_name)->first();
+
+        if (!$applicant) {
+            return abort(404, 'Applicant not found');
+        }
+
+        if ($staff->name === "Supervisor") {
+
+
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Assistant Secretary')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+
+        if ($staff->name === "Supervisor2") {
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Assistant Secretary')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+
+        if ($staff->name === "Assistant Secretary") {
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Secretary')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+        if ($staff->name === "Secretary") {
+
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'President')
+                ->select('name', 'roles_id')
+                ->first();
+
+            $returnForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Supervisor')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+
+        if ($staff->name === "President") {
+
+            $nextForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'President')
+                ->select('name', 'roles_id')
+                ->first();
+
+            $returnForwardUser = DB::table('mst__staffs__tbls')
+                ->where('name', 'Supervisor')
+                ->select('name', 'roles_id')
+                ->first();
+        }
+
+        // psql -U postgres -d arundb_dec01 -p 5432 -f "D:\laravel_program\tnelb-program-arun-dec01\TNelb-Staging\db\latest_v28112025.sql"
+
+        $cl_ownership_table = DB::table('cl_ownership_table')
+            ->where('application_id', $applicant_id)
+            ->orderBy('id', 'Desc')
+            ->where('proprietor_flag', '1')
+            ->get();
+
+        $staffdetails = DB::table('cl_staff_tbl')
+            ->where('application_id', $applicant_id)
+            ->where('staff_flag', '1')
+            ->orderBy('id')
+            ->get();
+        
+        
+
+        $otherstaffdetails = DB::table('cl_staff_tbl')
+            ->where('application_id', $applicant_id)
+            ->whereNotIn('staff_category', ['QC', 'QSC'])
+            ->where('staff_flag', '1')
+            ->orderBy('id')
+            ->get();
+
+        $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('login_id', Auth::user()->login_id)
+                ->where('application_id', $applicant_id)
+                ->where('flag', 1)
+                ->orderBy('row_index', 'asc')
+                ->get();
+
+        
+
+
+
+        $qcQscStaffs_details = $staffdetails->filter(function ($staff) {
+                return in_array(
+                    strtoupper(trim($staff->staff_category)),
+                    ['QC', 'QSC']
+                );
+            });
+
+
+
+        $showQcWarning = false;
+        $licence_validitystaff = null;
+
+        $licence_name_validitystaff = MstLicence::where('form_code', $formname)->first();
+
+        if ($licence_name_validitystaff && $staffdetails->count() > 0) {
+
+            $today = Carbon::today()->toDateString();
+            $applType = trim($applicant->appl_type);
+
+            $licence_validitystaff = FeesValidity::where(
+                'licence_id',
+                $licence_name_validitystaff->id
+            )
+                ->whereIn('form_type', ['N', 'R', 'D', 'A'])
+                ->where('status', 1)
+                ->whereDate('validity_start_date', '<=', $today)
+                ->orderBy('validity_start_date', 'desc')
+                ->first();
+
+            if ($licence_validitystaff && $licence_validitystaff->validity) {
+
+                $qcQscStaff = $staffdetails
+                    ->filter(function ($staff) {
+                        return in_array(
+                            strtoupper(trim($staff->staff_category)),
+                            ['QC', 'QSC']
+                        );
+                    });
+
+                if ($qcQscStaff->count() > 0) {
+
+                    // Get QC/QSC staff having the maximum validity_to date
+                    $latestQcQscStaff = $qcQscStaff->sortByDesc(function ($staff) {
+                        return Carbon::parse($staff->staff_cc_validity_to);
+                    })->first();
+
+                    $firstQcValidity = Carbon::parse(
+                        $latestQcQscStaff->staff_cc_validity_from
+                    );
+
+                    $licencePeriodEnd = Carbon::now()->addMonths(
+                        (int) $licence_validitystaff->validity
+                    );
+
+                    if ($firstQcValidity->lt($licencePeriodEnd)) {
+                        $showQcWarning = true;
+                    }
+                }
+
+                $licencePeriodEnd = Carbon::now()->addMonths(
+                    (int) $licence_validitystaff->validity
+                );
+
+                if ($firstQcValidity->lt($licencePeriodEnd)) {
+                    $showQcWarning = true;
+                }
+            }
+        }
+
+        $staff = Auth::user();
+        if (!$staff || !$staff->roles_id) {
+            return abort(403, 'Unauthorized');
+        }
+
+        $user_entry = DB::table('ccl_forma_meta')
+            ->where('application_id', $applicant_id)
+            ->select('*')
+
+            ->first();
+
+        $documents = DB::table('tnelb_applicant_doc_A')
+            ->where('application_id', $applicant_id)
+            ->select('*')
+
+            ->first();
+
+        $workflows = DB::table('tnelb_workflow_a')
+            ->leftjoin('ccl_forma_meta', 'tnelb_workflow_a.application_id', '=', 'ccl_forma_meta.application_id')
+            ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
+            ->where('tnelb_workflow_a.application_id', $applicant_id)
+            ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
+            ->orderBy('tnelb_workflow_a.id', 'desc')
+            ->get();
+
+        $queries = DB::table('tnelb_query_applicable as qa')
+            ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
+            ->where('qa.application_id', $applicant_id)
+            ->where('qa.query_status', 'P')
+            ->select('qa.*')
+            ->first() ?? null;
+
+        $showbankWarning = false;
+
+        $banksolvency = Tnelb_banksolvency_a::where('application_id', $applicant_id)
+            ->where('status', '1')
+            ->first();
+
+        if ($banksolvency && $banksolvency->bank_validity && $licence_validitystaff && $licence_validitystaff->validity) {
+            $bankValidity = Carbon::parse($banksolvency->bank_validity);
+
+            // Licence period (months)
+            $bankvalidityend = Carbon::now()->addMonths((int) $licence_validitystaff->validity);
+
+            if ($bankValidity->lt($bankvalidityend)) {
+                $showbankWarning = true;
+            }
+        }
+
+        // $equipmentlist = Equipment_storetmp_A::where('application_id', $applicant_id)->first();
+
+        $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
+            ->where('status', 1)
+            ->orderBy('id')
+            ->get();
+
+        $equipmentlist = DB::table('tnelb_equimentsuser_cl')
+            // ->where('login_id', Auth::user()->login_id)
+            ->where('application_id', $applicant_id)
+            ->get();
+
+        $attachments_cl = DB::table('tnelb_attachments_cl')
+
+            ->where('application_id', $applicant_id)
+            ->get();
+
+        $addressproof = DB::table('tnelb_addressproof_cl')
+
+            ->where('application_id', $applicant_id)
+            ->first();
+
+        
+        $checklist = DB::table('mst_checklists as mc')
+            ->join('mst_licences as ml', 'ml.id', '=', 'mc.cert_license_id')
+            ->where('ml.cert_licence_code', $applicant->license_name)
+            ->where('mc.appl_type', trim($applicant->appl_type))
+            ->where('mc.status', 1)
+            ->select(
+                'mc.*',
+                'ml.licence_name',
+                'ml.cert_licence_code'
+            )
+            ->get();
+
+        $Existingchecklist = Cl_Checklist_applicant::where('applicant_id', $applicant_id)
+            ->where('licence_name', $applicant->license_name)
+            ->orderByDesc('id')
+            ->first();
+
+
+
+        $checkedList_1 = [];
+        $verifyList = [];
+
+        if ($Existingchecklist && $Existingchecklist->checklist_json) {
+
+            $json = is_array($Existingchecklist->checklist_json)
+                ? $Existingchecklist->checklist_json
+                : json_decode($Existingchecklist->checklist_json, true);
+
+            foreach ($json ?? [] as $row) {
+                if (!is_array($row) || !isset($row['id'])) {
+                    continue;
+                }
+
+                $checkedList_1[$row['id']] = (int) ($row['checked'] ?? 0);
+                $verifyList[$row['id']] = (int) ($row['verify'] ?? 0);
+            }
+        }
+
+
+        $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $applicant_id)->orderBy('id', 'ASC')->get();
+        $staff_checklist = DB::table('cl_staff_detail_adminstore')->where('application_id', $applicant_id)
+            ->get();
+
+        if (! in_array($staff->name, ['President', 'Secretary', 'Supervisor', 'Assistant Secretary'], true)) {
+            abort(403, 'Unauthorized');
+        }
+        $staffVerifyList = $staff_checklist
+            ->whereNotNull('staff_cc_no')
+            ->pluck('verify_flag', 'staff_cc_no')
+            ->toArray();
+
+        $maxQcStaff = $qcQscStaffs_details
+            ->filter(function ($staff) {
+                return !empty($staff->staff_cc_validity_to);
+            })
+            ->sortByDesc(function ($staff) {
+                return \Carbon\Carbon::parse($staff->staff_cc_validity_to);
+            })
+            ->first();
+
+        $maxQcCertNo = $maxQcStaff?->staff_cc_no;
+        $maxQcValidityDate = $maxQcStaff?->staff_cc_validity_to;
+
+         $cl_digitization = DB::table('mapping_digi_cls')
+            ->where('application_id', $applicant_id)
+            ->first();
+
+             $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('application_id', $applicant_id)
+                ->where('flag', 1)
+                ->orderBy('row_index', 'asc')
+                ->get();
+
+                // dd($authoritysignatory); exit;
+
+                // dd($applicant); exit;
+        
+        // $applicant->appl_type = match(trim($applicant->appl_type)) {
+        //     'N' => 'New',
+        //     'R' => 'Renewal',
+        //     'D' => 'Digitisation',
+        //     'A' => 'Alteration',
+        //     default => $applicant->appl_type,
+        // };
+        
+
+        return compact(
+            'applicant',
+            'cl_ownership_table',
+            'staffdetails',
+            'showQcWarning',
+            'nextForwardUser',
+            'returnForwardUser',
+            'user_entry',
+            'workflows',
+            'queries',
+            'documents',
+            'banksolvency',
+            'equipmentlist',
+            'license_name',
+            'equiplist',
+            'equipmentlist',
+            'showbankWarning',
+            'old_issued_at_date',
+            'attachments_cl',
+            'addressproof',
+            'Qcstaffs',
+            'qcQscStaffs_details',
+            'otherstaffdetails',
+            'checklist',
+            'staff_checklist',
+            'verifyList',
+            'staffVerifyList',
+            'checkedList_1',
+            'maxQcCertNo',
+            'maxQcValidityDate',
+            'cl_digitization', 'authoritysignatory'
+
+        );
+    }
+
+
+
+
+    // Form A completed
+    public function applicants_detail_forma_completed($applicant_id)
+    {
+
+       $returnForwardUser = null;
 
         $staff = Auth::user();
 
@@ -2555,11 +2980,11 @@ class LoginController extends Controller
             ->get();
 
         $view = match ($staff->name) {
-            'President'  => 'admin.dashboard.applicants_detail_forma',
-            'Secretary'  => 'admin.dashboard.applicants_detail_forma',
-            'Supervisor' => 'admin.dashboard.applicants_detail_forma',
+            'President'  => 'admin.completedappls.applicants_forma_completed',
+            'Secretary'  => 'admin.completedappls.applicants_forma_completed',
+            'Supervisor' => 'admin.completedappls.applicants_forma_completed',
             // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-            'Assistant Secretary'    => 'admin.dashboard.applicants_detail_forma',
+            'Assistant Secretary'    => 'admin.completedappls.applicants_forma_completed',
 
             default      => abort(403, 'Unauthorized'),
         };
@@ -2583,6 +3008,14 @@ class LoginController extends Controller
          $cl_digitization = DB::table('mapping_digi_cls')
             ->where('application_id', $applicant_id)
             ->first();
+
+             $authoritysignatory = DB::table('cl_forma_signs')
+                ->where('application_id', $applicant_id)
+                ->where('flag', 1)
+                ->orderBy('row_index', 'asc')
+                ->get();
+
+                // dd($authoritysignatory); exit;
         
         $applicant->appl_type = match(trim($applicant->appl_type)) {
             'N' => 'New',
@@ -2623,351 +3056,8 @@ class LoginController extends Controller
             'checkedList_1',
             'maxQcCertNo',
             'maxQcValidityDate',
-            'cl_digitization'
+            'cl_digitization', 'authoritysignatory'
 
-        ));
-    }
-
-
-
-
-    // Form A completed
-    public function applicants_detail_forma_completed($applicant_id)
-    {
-
-        $returnForwardUser = null;
-
-        $staff = Auth::user();
-
-        if (!$staff || !$staff->roles_id) {
-            return abort(403, 'Unauthorized');
-        }
-
-        $applicantQuery1 = DB::table('ccl_forma_meta')
-            ->leftJoin('payments', 'ccl_forma_meta.application_id', '=', 'payments.application_id')
-            ->where('ccl_forma_meta.application_id', $applicant_id)
-            ->select(
-                'ccl_forma_meta.*',
-                'payments.transaction_id',
-                'payments.payment_status',
-                'payments.amount',
-                'payments.payment_mode',
-                'payments.created_at as payment_date',
-                'payments.application_fee',
-                'payments.late_fee',
-            );
-
-
-
-        $applicant = $applicantQuery1
-            // ->unionAll($applicantQuery2)
-            ->orderByDesc('dt_submit')
-            ->first();
-
-        // dd($applicant->appl_type);
-        // exit;
-
-        $appl_type = trim($applicant->appl_type);
-        // dd($appl_type);
-        // exit;
-
-        if ($appl_type === 'R') {
-            // dd($applicant->old_application);
-            // exit;
-            $old_issuedat = DB::table('tnelb_license')
-                ->select('issued_at', 'created_at', 'expires_at')
-                ->where('application_id', $applicant->old_application)
-
-                ->unionAll(
-
-                    DB::table('cl_forma_lic')
-                        ->select('issued_at', 'created_at', 'expires_at')
-                        ->where('application_id', $applicant->old_application)
-
-                )
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            $old_issued_at_date = $old_issuedat->expires_at;
-
-            // dd($old_issuedat->issued_at);
-            // exit;
-        } else {
-
-            $old_issued_at_date = '0';
-        }
-
-
-        $formname = $applicant->form_name;
-
-        $license_name = DB::table('mst_licences')->where('form_code', $formname)->first();
-
-
-        if (!$applicant) {
-            return abort(404, 'Applicant not found');
-        }
-
-        if ($staff->name === "Supervisor") {
-
-            if ($applicant->application_status == 'RE') {
-
-                // $processed_by = match ($applicant->processed_by) {
-                //     'PR'  => 'President',
-                //     'SE'  => 'Secretary',
-                //     'S'  => 'Supervisor',
-                //     'A'  => 'Assistant Secretary'
-                // };
-
-                // $nextForwardUser = DB::table('mst__staffs__tbls')
-                //     ->where('name', $processed_by)
-                //     ->select('name', 'roles_id')
-                //     ->first();
-
-                $nextForwardUser = DB::table('mst__staffs__tbls')
-                    ->where('name', 'Secretary')
-                    ->select('name', 'roles_id')
-                    ->first();
-            } else {
-                $nextForwardUser = DB::table('mst__staffs__tbls')
-                    ->where('name', 'Assistant Secretary')
-                    ->select('name', 'roles_id')
-                    ->first();
-            }
-
-            // if ($applicant->application_status == 'RE') {
-
-            //     $processed_by = match ($applicant->processed_by) {
-            //         'PR'  => 'President',
-            //         'SE'  => 'Secretary',
-            //         'S'  => 'Supervisor',
-            //         'A'  => 'Assistant Secretary'
-            //     };
-
-            //     $nextForwardUser = DB::table('mst__staffs__tbls')
-            //         ->where('name', $processed_by)
-            //         ->select('name', 'roles_id')
-            //         ->first();
-
-            //         // dd($nextForwardUser);
-            //         // exit;
-            // } else {
-            //     $nextForwardUser = DB::table('mst__staffs__tbls')
-            //         ->where('name', 'Assistant Secretary')
-            //         ->select('name', 'roles_id')
-            //         ->first();
-
-            // }
-        }
-
-        if ($staff->name === "Supervisor2") {
-            $nextForwardUser = DB::table('mst__staffs__tbls')
-                ->where('name', 'Assistant Secretary')
-                ->select('name', 'roles_id')
-                ->first();
-        }
-
-        if ($staff->name === "Assistant Secretary") {
-            $nextForwardUser = DB::table('mst__staffs__tbls')
-                ->where('name', 'Secretary')
-                ->select('name', 'roles_id')
-                ->first();
-        }
-        if ($staff->name === "Secretary") {
-
-            $nextForwardUser = DB::table('mst__staffs__tbls')
-                ->where('name', 'President')
-                ->select('name', 'roles_id')
-                ->first();
-
-            $returnForwardUser = DB::table('mst__staffs__tbls')
-                ->where('name', 'Supervisor')
-                ->select('name', 'roles_id')
-                ->first();
-        }
-
-        if ($staff->name === "President") {
-
-            $nextForwardUser = DB::table('mst__staffs__tbls')
-                ->where('name', 'President')
-                ->select('name', 'roles_id')
-                ->first();
-
-            $returnForwardUser = DB::table('mst__staffs__tbls')
-                ->where('name', 'Supervisor')
-                ->select('name', 'roles_id')
-                ->first();
-        }
-
-        // psql -U postgres -d arundb_dec01 -p 5432 -f "D:\laravel_program\tnelb-program-arun-dec01\TNelb-Staging\db\latest_v28112025.sql"
-
-        $cl_ownership_table = DB::table('cl_ownership_table')
-            ->where('application_id', $applicant_id)
-            ->orderBy('id', 'Desc')
-            ->where('proprietor_flag', '1')
-            ->get();
-
-        $staffdetails = DB::table('tnelb_applicant_cl_staffdetails')
-            ->where('application_id', $applicant_id)
-            ->orderBy('id')
-            ->get();
-
-        $showQcWarning = false;
-
-        $licence_name_validitystaff = MstLicence::where('form_code', $formname)->first();
-
-        if ($licence_name_validitystaff && $staffdetails->count() > 0) {
-
-            $today = Carbon::today()->toDateString();
-            $applType = trim($applicant->appl_type); // N or R
-
-            /* -----------------------------
-       Get fees validity
-    ------------------------------ */
-            $licence_validitystaff = FeesValidity::where('licence_id', $licence_name_validitystaff->id)
-                ->where('form_type', $applType === 'N' ? 'N' : 'R')
-                ->where('status', 1)
-                ->whereDate('validity_start_date', '<=', $today)
-                ->orderBy('validity_start_date', 'desc')
-                ->first();
-
-            if ($licence_validitystaff && $licence_validitystaff->validity) {
-
-                /* -----------------------------
-                Compare FIRST QC validity
-                ------------------------------ */
-                $firstQcValidity = Carbon::parse($staffdetails->first()->cc_validity);
-
-                // dd($staffdetails->first()->cc_validity);
-                // exit;
-
-
-                // Licence period (months)
-                $licencePeriodEnd = Carbon::now()->addMonths((int) $licence_validitystaff->validity);
-                // dd($licencePeriodEnd);
-                // exit;
-
-                if ($firstQcValidity->lt($licencePeriodEnd)) {
-                    $showQcWarning = true;
-                }
-            }
-        }
-
-
-
-        $staff = Auth::user();
-        if (!$staff || !$staff->roles_id) {
-            return abort(403, 'Unauthorized');
-        }
-
-        $user_entry = DB::table('ccl_forma_meta')
-            ->where('application_id', $applicant_id)
-            ->select('*')
-
-            ->first();
-
-        $documents = DB::table('tnelb_applicant_doc_A')
-            ->where('application_id', $applicant_id)
-            ->select('*')
-
-            ->first();
-
-        $workflows = DB::table('tnelb_workflow_a')
-            ->leftjoin('ccl_forma_meta', 'tnelb_workflow_a.application_id', '=', 'ccl_forma_meta.application_id')
-            ->leftjoin('mst__roles', 'tnelb_workflow_a.forwarded_to', '=', 'mst__roles.id')
-            ->where('tnelb_workflow_a.application_id', $applicant_id)
-            ->select('tnelb_workflow_a.*', 'mst__roles.name', 'ccl_forma_meta.form_name', 'ccl_forma_meta.license_name')
-            ->orderBy('tnelb_workflow_a.id', 'desc')
-            ->get();
-
-        $queries = DB::table('tnelb_query_applicable as qa')
-            ->leftJoin('ccl_forma_meta as ta', 'qa.application_id', '=', 'ta.application_id')
-            ->where('qa.application_id', $applicant_id)
-            ->where('qa.query_status', 'P')
-            ->select('qa.*')
-            ->first() ?? null;
-
-        $showbankWarning = false;
-
-        $banksolvency = Tnelb_banksolvency_a::where('application_id', $applicant_id)
-            ->where('status', '1')
-            ->first();
-
-        if ($banksolvency && $banksolvency->bank_validity && $licence_validitystaff && $licence_validitystaff->validity) {
-            $bankValidity = Carbon::parse($banksolvency->bank_validity);
-
-            // Licence period (months)
-            $bankvalidityend = Carbon::now()->addMonths((int) $licence_validitystaff->validity);
-
-            if ($bankValidity->lt($bankvalidityend)) {
-                $showbankWarning = true;
-            }
-        }
-
-        // $equipmentlist = Equipment_storetmp_A::where('application_id', $applicant_id)->first();
-
-        $equiplist = Mst_equipment_tbl::where('equip_licence_name', 8)
-            ->where('status', 1)
-            ->orderBy('id')
-            ->get();
-
-        $equipmentlist = DB::table('tnelb_equimentsuser_cl')
-            // ->where('login_id', Auth::user()->login_id)
-            ->where('application_id', $applicant_id)
-            ->get();
-
-        $attachments_cl = DB::table('tnelb_attachments_cl')
-
-            ->where('application_id', $applicant_id)
-            ->get();
-
-        $addressproof = DB::table('tnelb_addressproof_cl')
-
-            ->where('application_id', $applicant_id)
-            ->first();
-
-        // $view = match ($staff->name) {
-        //     'President'  => 'admin.dashboard.applicants_president_forma',
-        //     'Secretary'  => 'admin.dashboard.applicants_detail_sec_forma',
-        //     'Supervisor' => 'admin.dashboard.applicants_detail_forma',
-        //     // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-        //     'Assistant Secretary'    => 'admin.dashboard.applicants_detail_auditor_forma',
-
-        //     default      => abort(403, 'Unauthorized'),
-        // };
-
-
-
-
-        $view = match ($staff->name) {
-            'President'  => 'admin.completedappls.applicants_forma_completed',
-            'Secretary'  => 'admin.completedappls.applicants_forma_completed',
-            'Supervisor' => 'admin.completedappls.applicants_forma_completed',
-            // 'Supervisor2' => 'admin.dashboard.applicants_detail_supervisor',
-            'Assistant Secretary'    => 'admin.completedappls.applicants_detail_auditor_forma_completed',
-
-            default      => abort(403, 'Unauthorized'),
-        };
-
-        return view($view, compact(
-            'applicant',
-            'cl_ownership_table',
-            'staffdetails',
-            'showQcWarning',
-            'nextForwardUser',
-            'returnForwardUser',
-            'user_entry',
-            'workflows',
-            'queries',
-            'documents',
-            'banksolvency',
-            'equipmentlist',
-            'license_name',
-            'equiplist',
-            'equipmentlist',
-            'showbankWarning',
-            'old_issued_at_date',
-            'attachments_cl',
-            'addressproof'
         ));
     }
     // CMS

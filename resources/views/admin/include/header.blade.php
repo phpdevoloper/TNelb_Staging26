@@ -91,7 +91,7 @@
                         <button type="button"
                             class="btn-close"
                             data-bs-dismiss="modal"
-                            aria-label="Close">
+                            aria-label="Close"> X
                         </button>
                     </div>
 

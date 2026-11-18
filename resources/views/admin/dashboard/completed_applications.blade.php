@@ -513,6 +513,7 @@
                                             <th>Applied On</th>
                                             <th>Licence No</th>
                                             <th>Issued At</th>
+                                            <th>Valid From</th>
                                             <th>Expires At</th>
                                             <th>Certificate</th>
                                         </tr>
@@ -635,6 +636,7 @@
                     const appliedOn = escapeHtml(formatDateDDMMYYYY(r.applied_on));
                     const licNo = escapeHtml(r.license_number);
                     const issuedAt = escapeHtml(formatDateDDMMYYYY(r.issued_at));
+                    const validFrom = escapeHtml(formatDateDDMMYYYY(r.valid_from));
                     const expiresAt = escapeHtml(formatDateDDMMYYYY(r.expires_at));
 
                     const applicationIdRaw = r.application_id ? String(r.application_id) : '';
@@ -720,6 +722,7 @@
                             <td>${appliedOn}</td>
                             <td>${licNo}</td>
                             <td>${issuedAt}</td>
+                            <td>${validFrom}</td>
                             <td>${expiresAt}</td>
                             <td>${licenseCell}</td>
                         </tr>

@@ -9,7 +9,7 @@ class DocPathController extends Controller
 {
     public static function getPath(Request $request)
     {
-// dd($request->module, trim($request->appl_type));
+//  dd($request->module, trim($request->appl_type));
 
 
 
@@ -24,7 +24,7 @@ class DocPathController extends Controller
         if (!$filepath) {
             $filepath = '0';
         }
-// dd($filepath);exit;
+//  dd($filepath);exit;//
         return $filepath;
     }
 }

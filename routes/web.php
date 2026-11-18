@@ -316,6 +316,28 @@ Route::middleware(['auth'])->group(function () {
     ->name('uploadownershipdeed');
 
 
+
+
+    // Save-qc------------------
+   Route::post('/save-qc-staff', [StaffController::class, 'saveQCStaff'])
+    ->name('save.qc.staff');
+
+
+      Route::post('/save-qc-staff_alter', [StaffController::class, 'saveQCStaffAlter'])
+    ->name('save.qc.staff_alter');
+
+    Route::post('/remove-qc-staff', [StaffController::class, 'removeQCStaff'])
+    ->name('remove.qc.staff');
+
+    Route::get('/edit-qc-staff/{id}', [StaffController::class, 'editQCStaff'])
+    ->name('edit.qc.staff');
+
+      Route::post('/update-qc-staff', [
+            StaffController::class,
+            'updateQCStaff'
+        ])->name('update.qc.staff');
+
+
     # Contractor Application preview
     Route::get('/contractor-application-preview/{application_id}', [PreviewController::class, 'index'])->name('contractor.application.preview');
 
@@ -374,6 +396,9 @@ Route::post('/forma/storerenewal', [FormAController::class, 'storerenewal'])->na
 Route::put('/forma/update/{appl_id}', [FormAController::class, 'update'])->name('forma.update');
 
 Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->name('payment-receipt.pdf');
+
+Route::get('/payment-receipt_cl/{login_id}', [PDFFormAController::class, 'paymentDetails_cl'])->name('payment-receipt_cl.pdf');
+
 Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->name('generate.tamil.pdf');
 
 Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->name('generatea.pdf');
@@ -489,7 +514,7 @@ Route::get('/noticeboardcontent/{news_id}', [LoginController::class, 'noticeboar
 
 Route::get('/form/get-form-cost', [FormController::class, 'getFormCost'])->name('getFormCost');
 # fees
-
+Route::get('/generate-pdf/{application_id}', [LicensepdfController::class, 'generatePDF'])->name('generate.pdf');
 
 # Form P submit Routes
 Route::post('/form_p/store', [FormPController::class, 'store'])->name('form_p.store');

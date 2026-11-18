@@ -604,6 +604,43 @@ $(document).ready(function () {
         );
     });
 
+
+    // Licence and Application Type filters
+$(".licenseFilter, .appl_type").on("change", function () {
+
+    let licence = $(".licenseFilter").val();
+    let type = $(".appl_type").val();
+
+    // Filter by Licence - Column 1
+    table.column(1).search(
+        licence
+            ? '^' + $.fn.dataTable.util.escapeRegex(licence) + '$'
+            : '',
+        true,
+        false
+    );
+
+    // Filter by Application Type - Column 2
+    let typeText = {
+        "N": "New",
+        "R": "Renewal",
+        "D": "Digitisation",
+        "A": "Alteration"
+    };
+
+    let selectedType = typeText[type] || '';
+
+    table.column(2).search(
+        selectedType
+            ? '^' + selectedType + '$'
+            : '',
+        true,
+        false
+    );
+
+    table.draw();
+});
+
     // ---------------- Combined Filters ----------------
     $(".licenseFilter, .typeFilter").on("change", function () {
 

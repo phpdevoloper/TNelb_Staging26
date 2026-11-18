@@ -72,6 +72,7 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
     Route::get('/licencepdf_cl/{application_id}', [generateLicencepdfController::class, 'licencepdf_cl'])->name('licencepdf_cl.pdf');
 
     Route::get('/licencepdf_cl_tamil/{application_id}', [generateLicencepdfController::class, 'licencepdf_cl_tamil'])->name('licencepdf_cl_tamil.pdf');
+    Route::get('/licencepdf_cl_stored/{application_id}/{lang?}', [generateLicencepdfController::class, 'streamStoredLicenceA'])->name('licencepdf_cl.stored');
     // ----------------------------------------------------------
 
     // -------------------full license---------------------------------------
@@ -180,6 +181,11 @@ Route::prefix('admin')->name('admin.')->middleware('web')->group(function () {
         Route::get('/president_completed_forma/{type}', [PresidentController::class, 'president_completed_forma'])->name('president_completed_forma');
 
         Route::get('/applicants_detail_forma/{applicant_id}', [LoginController::class, 'applicants_detail_forma'])->name('applicants_detail_forma');
+        Route::get('/applicants_detail_forma_preview/{applicant_id}', [LoginController::class, 'applicants_detail_forma_preview'])->name('applicants_detail_forma_preview');
+
+
+        Route::get('/application-preview-pdf/{applicant_id}', [generateLicencepdfController::class, 'application_preview'])
+    ->name('application_preview.pdf');
 
         //form A Completed
         Route::get('/applicants_detail_forma_completed/{applicant_id}', [LoginController::class, 'applicants_detail_forma_completed'])->name('applicants_detail_forma_completed');
