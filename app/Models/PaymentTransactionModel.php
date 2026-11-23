@@ -18,6 +18,7 @@ class PaymentTransactionModel extends Model
         'application_fee',
         'late_fee',
         'late_months',
+        'qc_fees',
         'gateway',
         'payment_method',
         'mihpayid',
@@ -32,5 +33,6 @@ class PaymentTransactionModel extends Model
         'application_fee' => 'integer',
         'late_fee' => 'integer',
         'late_months' => 'integer',
+        'qc_fees' => 'integer',
     ];
 }

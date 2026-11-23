@@ -30,6 +30,9 @@
         let license_number =
             $("input[name='license_number']").val()?.trim() || "";
 
+             let appl_type =
+            $("input[name='appl_type']").val()?.trim() || "";
+
         formData.append("module", $("input[name='module']").val());
         formData.append("appl_type", $("input[name='appl_type']").val());
         // formData.append("license_name", $("input[name='upload_license_name']").val());
@@ -2008,7 +2011,8 @@ partners.forEach((p, index) => {
 
                 validityTo,
 
-                  license_number
+                  license_number,
+                  appl_type
 
 
             ).then(function (response) {
@@ -3713,8 +3717,10 @@ function validatealterStaffCertificate(
     firstIssue,
     validityFrom,
     validityTo,
-     license_number
+     license_number,
+     appl_type
 ) {
+    // alert
     return $.ajax({
         url: BASE_URL + "/check-cc-certificate",
 
@@ -3735,7 +3741,9 @@ function validatealterStaffCertificate(
 
             valid_to: validityTo,
             
-            license_number: license_number
+            license_number: license_number,
+
+              appl_type: appl_type,
         },
     });
 }
@@ -4170,6 +4178,77 @@ function showPaymentInitiationPopupformAalter(
         allowOutsideClick: false,
         allowEscapeKey: false,
         buttonsStyling: false,
+         preConfirm: () => {
+                try {
+                    const contractorPayu = window.CONTRACTOR_PAYU_CONFIG || {};
+                    if (!contractorPayu.payuInitiateUrl) {
+                        throw new Error('Contractor payment URL is not configured.');
+                    }
+
+                    const payuWin = window.open('', 'tnelb_contractor_payu_gateway');
+                    if (!payuWin) {
+                        throw new Error('Please allow pop-ups for this site to open the payment window.');
+                    }
+
+                    const payableAmount = parseFloat(amount) || 0;
+                    if (payableAmount < 0.01) {
+                        throw new Error('Payable amount is missing. Please refresh and try again.');
+                    }
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = contractorPayu.payuInitiateUrl;
+                    form.target = 'tnelb_contractor_payu_gateway';
+
+                    const fields = {
+                        _token: contractorPayu.csrfToken || $('meta[name="csrf-token"]').attr("content"),
+                        application_id: application_id,
+                        amount: payableAmount,
+                        actual_fees: parseFloat(basic_fees) || 0,
+                        lateFee: parseFloat(lateFees) || 0,
+                        lateMonths: 0,
+                    };
+
+                    Object.keys(fields).forEach((name) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = fields[name];
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                    form.remove();
+
+                    window.__contractorPayUStarted = true;
+                    watchContractorPayUPaymentProgress({
+                        applicationId: application_id,
+                        loginId: loginId,
+                        transactionId: transactionId,
+                        transactionDate: transactionDate,
+                        licenceName: licence_name,
+                        formType: form_type,
+                        basicFees: basic_fees,
+                        lateFees: lateFees,
+                        lateFeeRow: lateFeeRow,
+                        qcfees: qcfees,
+                        applicantName: applicantName,
+                        amount: payableAmount,
+                        dbNow: dbNow,
+                        licenseName: licenseName,
+                        formName: formName,
+                        payuWin: payuWin,
+                    });
+                    return false;
+                } catch (error) {
+                    console.error('Contractor payment initiation failed:', error);
+                    Swal.showValidationMessage(
+                        (error && error.message) ? error.message : 'Please try again or contact support.'
+                    );
+                    return false;
+                }
+            },
     }).then((result) => {
         if (result.isConfirmed) {
             // Simulate payment success
@@ -4253,6 +4332,164 @@ function showPaymentInitiationPopupformAalter(
     });
 }
 
+function watchContractorPayUPaymentProgress(opts) {
+        opts = opts || {};
+        const applicationId = opts.applicationId;
+        if (!applicationId) {
+            return;
+        }
+
+        if (window.__tnelbContractorPayUMessageHandler) {
+            window.removeEventListener('message', window.__tnelbContractorPayUMessageHandler);
+            window.__tnelbContractorPayUMessageHandler = null;
+        }
+
+        let finished = false;
+
+        function finishSuccess(payload) {
+            if (finished) return;
+            finished = true;
+            clearContractorPayUWatch();
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            showPaymentSuccessPopupformAalter(
+                payload.application_id || applicationId,
+                payload.application_id || opts.loginId || applicationId,
+                payload.txnid || opts.transactionId || '',
+                payload.transaction_date || opts.transactionDate || new Date().toLocaleDateString('en-GB'),
+                payload.licence_name || opts.licenceName,
+                payload.form_type || opts.formType,
+                opts.basicFees,
+                opts.lateFees,
+                opts.qcfees,
+                opts.lateFeeRow,
+                payload.applicant_name || opts.applicantName,
+                payload.amount != null ? payload.amount : opts.amount,
+                opts.dbNow,
+                payload.licence_name || opts.licenseName,
+                opts.formName
+            );
+        }
+
+        function finishPending(message) {
+            if (finished) return;
+            finished = true;
+            clearContractorPayUWatch();
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            Swal.fire({
+                icon: 'info',
+                title: 'Payment in progress',
+                text: message || 'Payment is being processed. Check the dashboard shortly.',
+                confirmButtonText: 'OK',
+            }).then(() => {
+                window.location.href = BASE_URL + "/dashboard";
+            });
+        }
+
+        function finishFailed(message) {
+            if (finished) return;
+            finished = true;
+            clearContractorPayUWatch();
+
+            try {
+                if (opts.payuWin && !opts.payuWin.closed) {
+                    opts.payuWin.close();
+                }
+            } catch (e) {}
+
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment not completed',
+                text: message || 'Payment failed or was cancelled. You can pay again from the dashboard.',
+                confirmButtonText: 'OK',
+            });
+        }
+
+        function clearContractorPayUWatch() {
+            if (window.__tnelbContractorPayUPopupTimer) {
+                clearInterval(window.__tnelbContractorPayUPopupTimer);
+                window.__tnelbContractorPayUPopupTimer = null;
+            }
+            if (window.__tnelbContractorPayUMessageHandler) {
+                window.removeEventListener('message', window.__tnelbContractorPayUMessageHandler);
+                window.__tnelbContractorPayUMessageHandler = null;
+            }
+        }
+
+        Swal.fire({
+            title: 'Waiting for payment',
+            html: `
+                <div style="padding:8px 4px 0;">
+                    <div style="width:56px;height:56px;margin:0 auto 16px;border:4px solid #dbeafe;border-top-color:#0d6efd;border-radius:50%;animation:tnelb-payu-spin .8s linear infinite;"></div>
+                    <p style="margin:0 0 6px;font-size:15px;color:#334155;">Complete payment in the <strong>new window</strong>.</p>
+                    <p style="margin:0;font-size:13px;color:#64748b;">Keep this page open until payment finishes.</p>
+                </div>
+                <style>@keyframes tnelb-payu-spin{to{transform:rotate(360deg)}}</style>
+            `,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            showCancelButton: true,
+            cancelButtonText: 'Cancel waiting',
+        }).then(function (result) {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                finished = true;
+                clearContractorPayUWatch();
+            }
+        });
+
+        window.__tnelbContractorPayUMessageHandler = function (event) {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data || {};
+            if (data.type === 'TNELB_PAYU_SUCCESS' && data.payload) {
+                finishSuccess(data.payload);
+            } else if (data.type === 'TNELB_PAYU_FAILED') {
+                const payload = data.payload || {};
+                finishFailed(payload.message || 'Payment failed or was cancelled in the payment window.');
+            } else if (data.type === 'TNELB_PAYU_PENDING') {
+                const payload = data.payload || {};
+                finishPending(payload.message || 'Payment is in progress at your bank.');
+            }
+        };
+        window.addEventListener('message', window.__tnelbContractorPayUMessageHandler);
+
+        if (opts.payuWin) {
+            if (window.__tnelbContractorPayUPopupTimer) {
+                clearInterval(window.__tnelbContractorPayUPopupTimer);
+            }
+            window.__tnelbContractorPayUPopupTimer = setInterval(function () {
+                if (finished) {
+                    clearInterval(window.__tnelbContractorPayUPopupTimer);
+                    window.__tnelbContractorPayUPopupTimer = null;
+                    return;
+                }
+                try {
+                    if (opts.payuWin.closed) {
+                        clearInterval(window.__tnelbContractorPayUPopupTimer);
+                        window.__tnelbContractorPayUPopupTimer = null;
+                        if (!finished) {
+                            finishPending('Payment window was closed. If payment is still processing, check the dashboard.');
+                        }
+                    }
+                } catch (e) {}
+            }, 1500);
+        }
+    }
+
 window.paymentAppId = null;
 window.paymentFormType = null;
 function showPaymentSuccessPopupformAalter(
@@ -4264,6 +4501,7 @@ function showPaymentSuccessPopupformAalter(
     form_type,
     basic_fees,
     lateFees,
+    qcfees,
     lateFeeRow,
     applicantName,
     amount,
@@ -4295,8 +4533,13 @@ function showPaymentSuccessPopupformAalter(
         }));
 
     $("#paymentSuccessModalcontractor").modal("show");
+    $("#contractorGoToDashboardBtn").attr("href", BASE_URL + "/dashboard");
 }
-
+    $(document).off("click.contractorDashboard", "#contractorGoToDashboardBtn")
+        .on("click.contractorDashboard", "#contractorGoToDashboardBtn", function (e) {
+            e.preventDefault();
+            window.location.href = BASE_URL + "/dashboard";
+        });
 function paymentreceiptformAalter() {
     // alert('1111');
     if (!window.paymentAppId) {

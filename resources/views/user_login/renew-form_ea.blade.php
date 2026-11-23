@@ -5592,12 +5592,12 @@ function toggleCompetencyFields(type, show) {
 
             let nextHolderIndex = maxHolderIndex + 1;
 
-            if (rowCount >= 8) {
+            if (rowCount >= 20) {
                 Swal.fire({
                     icon: 'error',
                     width: 450,
                     title: 'Limit Reached',
-                    text: 'You can add a maximum of 8 staff members.',
+                    text: 'You can add a maximum of 20 staff members.',
                     confirmButtonText: 'OK'
                 });
                 return;

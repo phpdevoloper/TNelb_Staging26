@@ -116,7 +116,30 @@ class FormAController extends BaseController
         //     ]);
         // }
 
+        // -------------------------------------------------
+        // VALIDATE CERTIFICATE PREFIX BASED ON STAFF CATEGORY
+        // -------------------------------------------------
 
+        // $staffCategory = strtoupper(trim($request->input('staffcategory', '')));
+        // $certificateNo = strtoupper(trim($request->input('certificate_no', '')));
+
+        // $expectedPrefix = [
+        //     'B' => 'CB',
+        //     'C' => 'CC',
+        // ];
+
+        // if (!isset($expectedPrefix[$staffCategory]) ||
+        //     !str_starts_with($certificateNo, $expectedPrefix[$staffCategory])) {
+
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => $staffCategory === 'B'
+        //             ? 'For Staff Category B, Certificate Number must start with CB.'
+        //             : ($staffCategory === 'C'
+        //                 ? 'For Staff Category C, Certificate Number must start with CC.'
+        //                 : 'Invalid staff category.')
+        //     ]);
+        // }
         // -------------------------------------------------
         // STEP 1: CHECK CERTIFICATE DETAILS
         // -------------------------------------------------
@@ -189,18 +212,6 @@ class FormAController extends BaseController
 
 
         // -------------------------------------------------
-        // STEP 2: CHECK QC / QSC ELIGIBILITY
-        // YOUR EXISTING LOGIC CAN REMAIN HERE
-        // -------------------------------------------------
-
-
-
-        // -------------------------------------------------
-        // STEP 3: CHECK CERTIFICATE ALREADY MAPPED
-        // -------------------------------------------------
-
-
-        // -------------------------------------------------
         // CHECK PENDING STAFF
         // -------------------------------------------------
 
@@ -232,12 +243,13 @@ class FormAController extends BaseController
 
         if ($existingStaff) {
 
-            if ($request->appl_type == 'R' || $request->appl_type == 'A') {
+        // dd($request->appl_type); exit;
 
+            if ($request->appl_type == 'R' || $request->appl_type == 'A') {
+// dd('11'); exit;
                 $validLicenceExists = DB::table('cl_forma_lic')
                     ->where('application_id', $existingStaff->application_id)
                     ->whereDate('valid_to', '>=', now()->toDateString())
-
                     // IMPORTANT:
                     // Ignore the licence currently being edited.
                     // Check only other licence numbers.
@@ -4025,6 +4037,8 @@ class FormAController extends BaseController
 
 
         if (trim($request->appl_type) == 'D') {
+
+        
             DB::table('mapping_digi_cls')
                 ->where('temp_app_id', $request->temp_app_id)
                 ->update([
@@ -6858,7 +6872,7 @@ class FormAController extends BaseController
                         'dt_submit'  => $this->dbNow,
                         'updated_at' => $this->dbNow,
                     ]);
-                $this->datastore_history($applicationId);
+                // $this->datastore_history($applicationId);
                 return response()->json([
                     'draft_status'    => false,
                     'message'         => 'Application Submitted Successfully!',
@@ -6940,24 +6954,24 @@ class FormAController extends BaseController
 
             // dd($qcFee); exit;
 // --------temp added-------------
-             $transactionId = 'TXN' . rand(100000, 999999);
+            //  $transactionId = 'TXN' . rand(100000, 999999);
 
-            $payment = $isDraft ? 'draft' : 'paid';
+            // $payment = $isDraft ? 'draft' : 'paid';
 
-            Payment::create([
-                'login_id'       => $request->login_id_store,
-                'application_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'payment_status' => $payment,
-                'payment_mode' => 'UPI',
-                'amount'         => $fees_details['total_fees'],
-                'late_fee'       => $fees_details['lateFees'] ?? 0,
-                'late_months'    => $fees_details['late_months'] ?? 0,
-                'application_fee'     => $fees_details['basic_fees'],
-                'qc_fees'     => $qcFee,
-                'form_name'      => $request->form_name,
-                'license_name'   => $request->license_name,
-            ]);
+            // Payment::create([
+            //     'login_id'       => $request->login_id_store,
+            //     'application_id' => $applicationId,
+            //     'transaction_id' => $transactionId,
+            //     'payment_status' => $payment,
+            //     'payment_mode' => 'UPI',
+            //     'amount'         => $fees_details['total_fees'],
+            //     'late_fee'       => $fees_details['lateFees'] ?? 0,
+            //     'late_months'    => $fees_details['late_months'] ?? 0,
+            //     'application_fee'     => $fees_details['basic_fees'],
+            //     'qc_fees'     => $qcFee,
+            //     'form_name'      => $request->form_name,
+            //     'license_name'   => $request->license_name,
+            // ]);
 
             // ------------------
   
@@ -10273,50 +10287,37 @@ class FormAController extends BaseController
 
             // dd($form->license_name);
             // exit;
-            $transactionId = 'TXN' . rand(100000, 999999);
+            // $transactionId = 'TXN' . rand(100000, 999999);
 
-            $payment = $isDraft ? 'draft' : 'success';
+            // $payment = $isDraft ? 'draft' : 'success';
 
-            Payment::create([
-                'login_id'       => $request->login_id_store,
-                'application_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'payment_status' => $payment,
-                'payment_mode' => 'UPI',
-                'amount'         => $fees_details['total_fees'],
-                // 'late_fee'       => $fees_details['lateFees'] ?? 0,
-                'late_fee'          => $calculatedLateFee,
-                'late_months'    => $fees_details['late_months'] ?? 0,
-                'application_fee'     => $fees_details['basic_fees'],
-                'qc_fees'     => $qcFee,
-                'form_name'      => $request->form_name,
-                'license_name'   => $request->license_name,
-            ]);
-
-            mst_workflow::create([
-                'login_id' => $request->login_id_store,
-                'application_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'payment_status' => $payment,
-
-                'formname_appliedfor' => $request->form_name,
-                'license_name' => $request->license_name,
-            ]);
-
-
+            // Payment::create([
+            //     'login_id'       => $request->login_id_store,
+            //     'application_id' => $applicationId,
+            //     'transaction_id' => $transactionId,
+            //     'payment_status' => $payment,
+            //     'payment_mode' => 'UPI',
+            //     'amount'         => $fees_details['total_fees'],
+            //     // 'late_fee'       => $fees_details['lateFees'] ?? 0,
+            //     'late_fee'          => $calculatedLateFee,
+            //     'late_months'    => $fees_details['late_months'] ?? 0,
+            //     'application_fee'     => $fees_details['basic_fees'],
+            //     'qc_fees'     => $qcFee,
+            //     'form_name'      => $request->form_name,
+            //     'license_name'   => $request->license_name,
+            // ]);
 
             return response()->json([
                 'draft_status' => $isDraft,
                 'message' => 'Payment Processed!',
                 'login_id' => $applicationId,
-                'transaction_id' => $transactionId,
-                'qcfees'     => $qcFee,
-                'late_fee'        => $calculatedLateFee,
-                 'late_months'     => $fees_details['late_months'],
+                'transaction_id' => null,
+                'qcfees'     => $qcFee ?? 0,
                 'dbNow'      => $this->formaMetaSubmitDate($applicationId),
-
             ]);
         }
+
+        
 
         return response()->json([
             'message' => 'Draft',
@@ -11337,6 +11338,8 @@ class FormAController extends BaseController
             ->get()
             ->unique('license_number')
             ->values();
+
+            //  dd($licence); exit;
         return view('user_login.license_datechange.index', compact('licence'));
     }
 

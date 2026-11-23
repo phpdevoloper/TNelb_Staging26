@@ -23,6 +23,12 @@ class PreviewController extends BaseController
         if (!$applicant_data) {
             return abort(404, 'Applicant not found');
         }
+
+        if($applicant_data->ownership_doc){
+             $applicant_data->ownership_doc_url = $this->previewFileUrl($applicant_data->ownership_doc ?? null);
+
+            //  dd($applicant_data->ownership_doc_url); exit;
+        }
       
 
         $formname = $applicant_data->form_name;
@@ -96,7 +102,7 @@ class PreviewController extends BaseController
         $Qcstaffs = DB::table('tnelb_ea_qc_models')->where('application_id', $application_id)->orderBy('id', 'ASC')->get();
 
         $authorisedSigns = Schema::hasTable('cl_forma_signs')
-            ? DB::table('cl_forma_signs')->where('application_id', $application_id)->orderBy('row_index')->orderBy('id')->get()
+            ? DB::table('cl_forma_signs')->where('application_id', $application_id)->where('flag','1')->orderBy('row_index')->orderBy('id')->get()
             : collect();
 
         $payment = Schema::hasTable('payments')
@@ -142,6 +148,7 @@ class PreviewController extends BaseController
             ->first();
 
         foreach ($cl_ownership_table as $owner) {
+            
             $owner->age_proof_url = $this->previewFileUrl($owner->age_proof ?? null);
             $owner->education_url = $this->previewFileUrl($owner->educational_proof ?? $owner->educ_qual_proof ?? null);
         }

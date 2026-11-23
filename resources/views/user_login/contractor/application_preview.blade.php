@@ -833,9 +833,9 @@
                         </div>
 
                          <div>
-                            <dt><span>3.</span> Ownership Document</dt>
-                             @if(!empty($applicant_data->ownership_doc))
-                                <a href="{{ $applicant_data->ownership_doc }}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
+                            <dt><span>4.</span> Ownership Document</dt>
+                              @if(!empty($applicant_data->ownership_doc_url))
+                                <a href="{{ $applicant_data->ownership_doc_url}}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
                                     <i class="fa fa-file-pdf-o" aria-hidden="true"></i>
                                 </a>
                             @else
@@ -845,7 +845,7 @@
                        
                         @if(!empty($applicant_data->old_application))
                             <div>
-                                <dt><span>6.</span> Previous Application</dt>
+                                <dt><span>5.</span> Previous Application</dt>
                                 <dd><span>:</span> {{ $applicant_data->old_application }}</dd>
                             </div>
                         @endif
@@ -859,11 +859,11 @@
                         Ownership / Partners / Directors Details
 
                        
-                        @if(!empty($applicant_data->ownership_doc))
-                            <a href="{{ $applicant_data->ownership_doc }}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
+                        {{-- @if(!empty($applicant_data->ownership_doc_url))
+                            <a href="{{ $applicant_data->ownership_doc_url }}" class="apd-pdf" target="_blank" rel="noopener" title="Ownership document">
                                 <i class="fa fa-file-pdf-o" aria-hidden="true"></i>
                             </a>
-                        @endif
+                        @endif --}}
                     </header>
                     <div class="apd-table-wrap">
                         <table class="apd-table">

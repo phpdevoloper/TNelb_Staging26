@@ -566,7 +566,7 @@
             const formPLicenceBilingualUrlTemplate = "{{ route('admin.formp.licence.en', ['application_id' => '__APP__']) }}";
 
 
-            const formalicenceEnUrl = "{{ route('admin.licencepdf_cl.pdf', ['application_id' => '__APP__']) }}";
+            const formalicenceEnUrl = "{{ route('admin.licencepdf_cl.stored', ['application_id' => '__APP__']) }}";
 
             const formalicenceTmUrl = "{{ route('admin.licencepdf_cl_tamil.pdf', ['application_id' => '__APP__']) }}";
             const timelineUrlTemplate = "{{ route('admin.application.timeline', ['application_id' => '__APP__']) }}";

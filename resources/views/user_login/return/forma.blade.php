@@ -5481,12 +5481,12 @@ $(document).on("click", "#add-more-authority-name", function () {
 
             let nextHolderIndex = maxHolderIndex + 1;
 
-            if (rowCount >= 8) {
+            if (rowCount >= 20) {
                 Swal.fire({
                     icon: 'error',
                     width: 450,
                     title: 'Limit Reached',
-                    text: 'You can add a maximum of 8 staff members.',
+                    text: 'You can add a maximum of 20 staff members.',
                     confirmButtonText: 'OK'
                 });
                 return;
@@ -9507,6 +9507,9 @@ $(document).ready(function(){
             $(this).find(".removeotherStaffRow").prop("disabled", true);
 
             $(this).find(".addotherstaffs").prop("disabled", true);
+
+             $(this).find("#add-more-authority-name").prop("disabled", true);
+             $(this).find(".remove-authority-name").prop("disabled", true);
 
 
 

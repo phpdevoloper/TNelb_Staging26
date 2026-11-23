@@ -288,6 +288,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/renew_form/{application_id}', [EA_RenewalController::class, 'renew_form'])->name('renew_form');
     Route::get('/renew-form_ea/{application_id}', [EA_RenewalController::class, 'renew_form_ea'])->name('renew-form_ea');
 
+    Route::get('/renew-form_ea_draft/{application_id}', [EA_RenewalController::class, 'renew_form_ea_draft'])->name('renew-form_ea_draft');
+
     # draft form
     Route::get('/apply-form-a_draft/{application_id}', [EA_RenewalController::class, 'edit'])->name('apply-form-a_draft');
 
@@ -617,6 +619,10 @@ Route::prefix('form-s/documents')->name('form-s.documents.')->group(function () 
     Route::get('/download/{logId}', [FormSDocumentController::class, 'download'])->name('download');
 });
 
+  Route::get('/form-s/board-meeting/verify', [FormController::class, 'verifyBoardMeeting'])
+        ->middleware('throttle:60,1')
+        ->name('form-s.board-meeting.verify');
+
 # Without Temp Module (Sample / Test)
 Route::prefix('without-tmp')->name('without-tmp.')->group(function () {
     Route::get('/', [WithoutTmpController::class, 'index'])->name('index');
@@ -636,8 +642,6 @@ Route::prefix('without-tmp')->name('without-tmp.')->group(function () {
     Route::get('/storage', [WithoutTmpController::class, 'storageExplorer'])->name('storage');
     Route::get('/table-data', [WithoutTmpController::class, 'tableData'])->name('table-data');
 });
-
-
 
 
 # PayUPaymentController Routes

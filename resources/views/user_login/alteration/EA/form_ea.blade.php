@@ -1734,14 +1734,14 @@ exit; -->
 
 
 
-
+{{-- 
                                                     <td>
                                                         <button type="button"
                                                             class="btn btn-primary btn-sm update-director-row"
-                                                            data-id="{{ $p->id }}">
+                                                            data-id="{{ $p->id }}" disabled>
                                                             <i class="fa fa-pencil"></i>
                                                         </button>
-                                                    </td>
+                                                    </td> --}}
                                                     <td>
                                                         <button type="button"
                                                             class="btn btn-danger btn-sm remove-director-row"
@@ -3132,14 +3132,14 @@ exit; -->
 
 
                                                         @if ($i == $staff_count - 1)
-                                                            <button type="button" class="btn btn-success"
+                                                            <button type="button" class="btn btn-success addStaffRows"
                                                                 onclick="addStaffRows()">
                                                                 + Add
                                                             </button>
                                                         @endif
 
                                                         @if ($i >= 2)
-                                                            <button type="button" class="btn btn-danger"
+                                                            <button type="button" class="btn btn-danger removeStaffRow"
                                                                 onclick="removeStaffRow(this)">
                                                                 Remove
                                                             </button>
@@ -5564,12 +5564,12 @@ function toggleCompetencyFields(type, show) {
 
             let nextHolderIndex = maxHolderIndex + 1;
 
-            if (rowCount >= 8) {
+            if (rowCount >= 20) {
                 Swal.fire({
                     icon: 'error',
                     width: 450,
                     title: 'Limit Reached',
-                    text: 'You can add a maximum of 8 staff members.',
+                    text: 'You can add a maximum of 20 staff members.',
                     confirmButtonText: 'OK'
                 });
                 return;
@@ -9609,6 +9609,14 @@ $(document).ready(function () {
             section.find(".addotherstaffs")
                 .prop("disabled", true);
 
+            section.find(".addStaffRows")
+                .prop("disabled", true);
+
+            section.find("#add-more-authority-name")
+                .prop("disabled", true);
+             section.find(".remove-authority-name")
+                .prop("disabled", true);
+
 
             // Grey background
             section.find("input, textarea, select").css({
@@ -9656,7 +9664,6 @@ $(document).ready(function () {
         .html('<i class="fa fa-check"></i> Allow Editing');
 
 });
-
 $("#other_staff_details").on("click", function () {
 
     let staffSection = $("#staff_details");
@@ -9675,12 +9682,11 @@ $("#other_staff_details").on("click", function () {
 
     });
 
-    // Enable file inputs if any
-    staffSection.find("input[type=file]").css({
-        "pointer-events": "auto",
-        "background": "",
-        "cursor": "pointer"
-    });
+    // Enable Add Staff button
+    staffSection.find(".addStaffRows").prop("disabled", false);
+
+    // Enable Remove Staff buttons
+    staffSection.find(".removeStaffRow").prop("disabled", false);
 
     // Change Edit button
     $(this)
@@ -9689,7 +9695,6 @@ $("#other_staff_details").on("click", function () {
         .html('<i class="fa fa-check"></i> Allow Editing');
 
 });
-
 
 $("#bank_solvency_edit").on("click", function () {
 
@@ -9875,6 +9880,23 @@ $("#signatory_details").on("click", function () {
         });
 
     });
+
+    signatorySection.find("#add-more-authority-name").prop("disabled", false)
+    .css({
+        "pointer-events": "auto",
+        "cursor": "pointer",
+        "opacity": "1"
+    });
+
+    // ==========================================
+    // ENABLE ALL REMOVE BUTTONS
+    // ==========================================
+    signatorySection.find(".remove-authority-name").prop("disabled", false)
+        .css({
+            "pointer-events": "auto",
+            "cursor": "pointer",
+            "opacity": "1"
+        });
 
 
     // ==========================================

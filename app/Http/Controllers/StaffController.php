@@ -415,6 +415,8 @@ public function updateQCStaff(Request $request)
         'staff_cc_validity_to' => 'required|date',
     ]);
 
+    // dd($request->all()); exit;
+
     DB::beginTransaction();
 
     try {
