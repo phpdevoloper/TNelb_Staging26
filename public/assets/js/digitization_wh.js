@@ -481,7 +481,7 @@ $(document).on("click", "#digitizationSubmit", function () {
 });
 
 $(document).on("input", 'input[name="ccnumber"]', function () {
-    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 5);
+    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 6);
     if ($(this).val() !== cleaned) {
         $(this).val(cleaned);
     }

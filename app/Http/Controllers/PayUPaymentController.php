@@ -6,6 +6,7 @@ use App\Models\CC_Forms_Meta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Services\PayUService;
+use App\Services\FormS\FormSSubmissionGuard;
 use App\Models\PaymentTransactionModel;
 use App\Services\PayUPaymentSettlementService;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +30,22 @@ class PayUPaymentController extends BaseController
 
             if (!$form) {
                 return back()->with('error', 'Application not found');
+            }
+
+            // Paying is what submits a Form S application (it is saved as a draft until now), so
+            // re-check the SAVED data here: DOB / passing year / experience chronology and the
+            // Board meeting row. Nothing is charged or recorded when this fails.
+            if (strtoupper(trim((string) ($form->form_name ?? ''))) === 'S') {
+                // Do not reveal another applicant's saved data through the check message.
+                $ownerId = (string) ($form->login_id ?? '');
+                if ($ownerId === '' || $ownerId !== (string) (auth()->user()->login_id ?? '')) {
+                    return back()->with('error', 'Application not found');
+                }
+
+                if ($dataError = FormSSubmissionGuard::checkSavedApplication($form)) {
+                    // initiate() is posted into the PayU popup window, so show the reason there.
+                    return response()->view('user_login.payments.payu-error', ['message' => $dataError], 422);
+                }
             }
 
             $amount = (float) $request->amount;

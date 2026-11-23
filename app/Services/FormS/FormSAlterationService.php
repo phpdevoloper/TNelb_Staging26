@@ -2,6 +2,7 @@
 
 namespace App\Services\FormS;
 
+use App\Casts\CalendarDate;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
@@ -660,19 +661,12 @@ class FormSAlterationService
         $application = clone $application;
 
         $proofRows = CC_Proof_doc::where('application_id', $masterApplicationId)
-            ->whereIn('proof_type', ['aadhaar', 'pan'])
+            ->where('proof_type', 'pan')
             ->get();
 
         foreach ($proofRows as $proof) {
             $proofType = strtolower((string) ($proof->proof_type ?? ''));
-            if ($proofType === 'aadhaar') {
-                if (! empty($proof->proof_no)) {
-                    $application->aadhaar = $proof->proof_no;
-                }
-                if (! empty($proof->proof_doc)) {
-                    $application->aadhaar_doc = $proof->proof_doc;
-                }
-            } elseif ($proofType === 'pan') {
+            if ($proofType === 'pan') {
                 if (! empty($proof->proof_no)) {
                     $application->pancard = $proof->proof_no;
                 }
@@ -952,6 +946,7 @@ class FormSAlterationService
                 $this->assertFormSExperienceDateSequence($request);
                 if (! FormWSchema::isFormW($formName) && ! FormWHSchema::isFormWH($formName) && ! FormPSchema::isFormP($formName)) {
                     $this->assertFormSCountableExperienceMinimum($parent, $request);
+                    $this->assertFormSWorkChronologyAndBoardMeeting($request, $parent, $child, $loginId);
                 }
                 CC_Experience::where('application_id', $child->application_id)->delete();
                 $this->storeWorkExperienceAlterationRows($request, $child, $loginId, $parent);
@@ -1662,6 +1657,24 @@ class FormSAlterationService
      * Form S §7a — consecutive experience periods in the posted previous rows must not overlap.
      * Each subsequent From date must be strictly after the previous row's To date.
      */
+    /**
+     * Alteration submits finalise the application straight away, so new or changed work rows must pass
+     * the same checks as a new application: experience from age 18, no future dates, and the §7b board
+     * meeting must match the Board records. Rows identical to ones on the user's finalised record
+     * (the parent certificate's rows) are exempt. The Date of Birth cannot be altered here, so the
+     * parent's is used.
+     */
+    protected function assertFormSWorkChronologyAndBoardMeeting(Request $request, CC_CompetencyMeta $parent, $child, string $loginId): void
+    {
+        $carried = FormSSubmissionGuard::carriedOverRows($loginId, (string) ($child->application_id ?? ''), false);
+        $errors = FormSSubmissionGuard::chronologyErrorsForRequest($request, CalendarDate::ymd($parent->d_o_b), $carried)
+            + FormSSubmissionGuard::boardErrorsForRequest($request, $carried);
+
+        if ($errors !== []) {
+            throw new RuntimeException((string) reset($errors));
+        }
+    }
+
     protected function assertFormSExperienceDateSequence(Request $request): void
     {
         $fromDates = (array) $request->input('work_date_from', []);

@@ -109,19 +109,6 @@
         margin-top: 4px;
         letter-spacing: .5px;
     }
-    .fs-card-header .instructions-link {
-        text-align: right;
-        margin-top: 0;
-        margin-bottom: 0;
-        font-size: .82rem;
-        line-height: 1;
-    }
-    .fs-card-header .instructions-link a {
-        color: rgba(255,255,255,.9);
-        text-decoration: none;
-        border-bottom: 1px dashed rgba(255,255,255,.5);
-    }
-    .fs-card-header .instructions-link a:hover { color: #fff; border-bottom-color: #fff; }
 
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
@@ -1639,12 +1626,8 @@
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Application for Supervisor Competency Certificate - New Application</h5>
-                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதிய விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - S / Certificate C</span>
-                </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url('assets/pdf/form_s_notes.pdf')}}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
+                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதிய விண்ணப்பம்</h5>
+                    <span class="form-badge">FORM - S</span>
                 </div>
             </div>
 
@@ -1715,8 +1698,9 @@
                                             <div class="fs-section-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                         </div>
                                     </div>
-                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255">{{Auth::user()->address}}</textarea>
-                                    <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
+                                    {{-- Structured address (shared with edit_application / edit_returned_application);
+                                         applicant_address.js composes the parts into the hidden #applicants_address. --}}
+                                    @include('user_login.partials.applicant-address-fields')
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="fs-dob-age-badge-row">
@@ -1739,7 +1723,7 @@
                                             <div class="row fs-dob-age-pair align-items-start mx-0">
                                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                                     <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
-                                                        type="text" placeholder="DD/MM/YYYY"
+                                                        type="text" placeholder="DD-MM-YYYY"
                                                         value="{{ isset($application) ? $application->d_o_b : '' }}">
                                                     <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                                 </div>
@@ -1803,6 +1787,7 @@
                                                     <option value="BEE">B.E(Electrical Engineering)</option>
                                                     <option value="MEE">M.E(Electrical Engineering)</option>
                                                     <option value="AMIE">A pass in AMIE</option>
+                                                    <option value="EX">Ex Serviceman</option>
                                                 </select>
                                             </td>
                                             <td><input type="text" class="form-control" name="institute_name[]" maxlength="80"></td>
@@ -1859,7 +1844,7 @@
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
-                                <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் <span class="section-req">*</span> <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                                <div class="fs-section-tamil">முந்தைய மற்றும் தற்போதைய  பணியனுபவ விவரங்கள் <span class="section-req">*</span> <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -1954,11 +1939,10 @@
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
-                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text"
-                                            data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                            placeholder="Certificate Number" value="" maxlength="80">
+                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]*" data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
+                                            placeholder="Certificate Number" value="" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
-                                        <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
+                                        <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>   
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
@@ -2046,7 +2030,7 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 10 — Upload Documents ═══ --}}
+                    {{-- SECTION 10 — Upload Documents --}}
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">10</span>
@@ -2081,32 +2065,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;">
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                            </div>
-                                            <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                            <small class="text-danger file-error d-block"></small>
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -2116,7 +2077,7 @@
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -2129,7 +2090,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -2155,15 +2116,14 @@
                         </div>
                     </div>
 
-                    {{-- ═══ Declaration ═══ --}}
+                    {{--  Declaration --}}
                     <div class="fs-declaration">
                         <label class="container">
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                I request that I may be granted a Supervisor Competency Certificate. <span class="section-req">*</span>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="section-req">*</span>
+                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>
                         {{-- <span id="checkboxError" class="text-danger mt-2 d-none" style="font-size:.82rem;">Please check the declaration box before proceeding.</span> --}}
@@ -2492,21 +2452,6 @@
                     <span class="prv-section-title">Identity &amp; Uploaded Documents</span>
                 </div>
                 <div class="prv-section-body">
-                    {{-- Aadhaar row --}}
-                    <div class="row align-items-center mb-2">
-                        <div class="col-5 col-md-3">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">Aadhaar Number</div>
-                                <div class="prv-value" id="prv_aadhaar">—</div>
-                            </div>
-                        </div>
-                        <div class="col-7 col-md-4">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">Aadhaar Document</div>
-                                <div class="prv-value" id="prv_aadhaar_doc">—</div>
-                            </div>
-                        </div>
-                    </div>
                     {{-- PAN row --}}
                     <div class="row align-items-center">
                         <div class="col-5 col-md-3">
@@ -2556,6 +2501,8 @@
         'enableBoardMemberFeeExempt' => true,
     ])
 
+    {{-- Structured applicant address (section 4); exposes window.fsComposeApplicantAddress for form_s.js. --}}
+    <script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
     {{-- COMPETENCY_FORM_CONFIG (footer) supplies env-safe AJAX URLs; form_s.js reads that first. --}}
     <script src="{{ url('assets/js/form_s.js') }}?v={{ filemtime(public_path('assets/js/form_s.js')) }}"></script>
     <script>

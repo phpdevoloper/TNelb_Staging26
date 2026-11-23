@@ -902,7 +902,6 @@
         filter: grayscale(0.06);
     }
     .fs-section.fs-return-section-locked .btn-fs-change,
-    .fs-section.fs-return-section-locked .remove-aadhaar-doc,
     .fs-section.fs-return-section-locked .remove-pan-doc,
     .fs-section.fs-return-section-locked .remove-doc_edu_confirm,
     .fs-section.fs-return-section-locked input[type="file"],
@@ -946,7 +945,6 @@
     .fs-return-section-locked a[href] {
         pointer-events: auto;
     }
-    .fs-docs-table #aadhaar,
     .fs-docs-table #pancard {
         border: 1px solid #c5d0e6;
         background: #fff;
@@ -1189,6 +1187,11 @@
                             }
                         }
                         $addressVal = isset($application_details) ? $application_details->applicants_address : Auth::user()->address;
+                        // Saved application address only; the structured-address partial parses it
+                        // (or shows it as legacy text) and falls back to the registration profile when empty.
+                        $addressSavedVal = isset($application_details)
+                            ? trim((string) ($application_details->applicants_address ?? $application_details->applicant_address ?? ''))
+                            : '';
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1330,8 +1333,12 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                             </div>
                                         </div>
-                                        <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ $addressVal }}</textarea>
-                                        <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
+                                        {{-- Structured address; applicant_address.js composes it into hidden #applicants_address.
+                                             Locked (disabled, hidden value untouched) when staff did not unlock this section. --}}
+                                        @include('user_login.partials.applicant-address-fields', [
+                                            'addressSaved' => $addressSavedVal,
+                                            'addressLocked' => ($returnedIsPartial ?? false) && ! $retCanEdit('applicant'),
+                                        ])
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1343,12 +1350,10 @@
                                                         <div class="fs-field-tamil">பிறந்த நாள், மாதம், வருடம்</div>
                                                     </div>
                                                 </div>
-                                                <input class="form-control" type="date" autocomplete="off"
+                                                <input class="form-control" type="text" autocomplete="off" placeholder="DD-MM-YYYY"
                                                     id="d_o_b" name="d_o_b"
-                                                    min="{{ \Carbon\Carbon::now()->subYears(100)->format('Y-m-d') }}"
-                                                    max="{{ \Carbon\Carbon::now()->subYears(18)->format('Y-m-d') }}"
-                                                    value="{{ $dobIsoVal }}">
-                                                <span id="dob-error" class="text-danger" style="display:none;"></span>
+                                                    value="{{ $dobDisplayVal }}">
+                                                <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                             </div>
                                             <div class="col-12 col-sm-5">
                                                 <div class="fs-field-label"><span class="fs-field-num-sub">(ii)</span>Age <span class="req">*</span></div>
@@ -1422,6 +1427,7 @@
                                                                         <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
                                                                         <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
                                                                         <option value="AMIE" {{ $edu_details->educational_level == 'AMIE' ? 'selected' : '' }}>A pass in AMIE</option>
+                                                                        <option value="EX" {{ $edu_details->educational_level == 'EX' ? 'selected' : '' }}>Ex Serviceman</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
                                                                         <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
@@ -1541,6 +1547,7 @@
                                                                         <option value="BEE">B.E(Electrical Engineering)</option>
                                                                         <option value="MEE">M.E(Electrical Engineering)</option>
                                                                         <option value="AMIE">A pass in AMIE</option>
+                                                                        <option value="EX">Ex Serviceman</option>
                                                                     @elseif ($formName === 'W')
                                                                         <option value="NTC">NTC</option>
                                                                         <option value="Provisional">Provisional</option>
@@ -2023,7 +2030,6 @@
                         </div>
                         <div class="fs-section-body p-0">
                             @php
-                                $decryptedaadhar = displayProofNumber($application_details->aadhaar ?? '');
                                 $displayPan = displayProofNumber($application_details->pancard ?? '');
                                 $existingPanDoc = $application_details->pancard_doc ?? $application_details->pan_doc ?? '';
                                 $hasPhoto = !empty($applicant_photo->upload_path);
@@ -2067,51 +2073,9 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    {{-- Aadhaar --}}
-                                    <tr>
-                                        <td class="doc-serial">(ii)</td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">Aadhaar Number <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் எண்</div>
-                                        </td>
-                                        <td style="min-width:180px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="applicant-aadhaar-no">
-                                            <input type="text" class="form-control" name="aadhaar" id="aadhaar" maxlength="14" style="max-width:260px;" value="{{ $decryptedaadhar }}" @unless($retCanEdit('aadhaar_doc')) readonly tabindex="-1" data-return-locked="1" @endunless>
-                                            <span id="aadhaar-error" class="text-danger" style="font-size:.78rem;"></span>
-                                            </div>
-                                        </td>
-                                        <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iii) Upload Aadhaar Document <span class="req">*</span></div>
-                                            <div class="fs-field-tamil">ஆதார் ஆவணத்தை பதிவேற்றவும் <span class="req">*</span></div>
-                                        </td>
-                                        <td style="min-width:200px;">
-                                            <div class="fs-return-upload-cell{{ $retLockClass('aadhaar_doc') }}" data-return-section="aadhaar_doc">
-                                            @if (!empty($application_details->aadhaar_doc))
-                                                <div class="aadhaar-doc-container mb-2 d-flex align-items-center">
-                                                    <a href="{{ proof_document_url($application_details->aadhaar_doc, 'aadhaar') }}" target="_blank" style="color:#007bff;">
-                                                        <i class="fa fa-file-pdf-o" style="color:red;"></i> View
-                                                    </a>
-                                                    @if($retCanEdit('aadhaar_doc'))
-                                                    <button type="button" class="btn btn-sm btn-danger ml-3 remove-aadhaar-doc">Remove</button>
-                                                    @endif
-                                                </div>
-                                            @endif
-                                            @if($retCanEdit('aadhaar_doc'))
-                                            <div class="aadhaar-doc-input {{ !empty($application_details->aadhaar_doc) ? 'd-none' : '' }}">
-                                                <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                    <input autocomplete="off" class="form-control" id="aadhaar_doc" name="aadhaar_doc" type="file" accept=".pdf,application/pdf">
-                                                </div>
-                                                <span class="file-limit">File type: PDF (Max 250 KB)</span>
-                                                <small class="text-danger file-error d-block"></small>
-                                            </div>
-                                            @endif
-                                            <input type="hidden" name="aadhaar_doc_removed" id="aadhaar_doc_removed" value="0">
-                                            </div>
-                                        </td>
-                                    </tr>
                                     {{-- PAN --}}
                                     <tr>
-                                        <td class="doc-serial">(iii)</td>
+                                        <td class="doc-serial">(ii)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">PAN Card Number</div>
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
@@ -2123,7 +2087,7 @@
                                             </div>
                                         </td>
                                         <td class="doc-label-cell">
-                                            <div class="fs-field-label">(iv) Upload PAN Card Document</div>
+                                            <div class="fs-field-label">(iii) Upload PAN Card Document</div>
                                             <div class="fs-field-tamil">பான் கார்டு ஆவணத்தைப் பதிவேற்றவும்</div>
                                         </td>
                                         <td style="min-width:200px;">
@@ -2152,7 +2116,7 @@
                                     </tr>
                                     {{-- Signature --}}
                                     <tr>
-                                        <td class="doc-serial">(v)</td>
+                                        <td class="doc-serial">(iv)</td>
                                         <td class="doc-label-cell">
                                             <div class="fs-field-label">Upload Signature <span class="req">*</span></div>
                                             <div class="fs-field-tamil">கையொப்பத்தைப் பதிவேற்றவும்</div>
@@ -2199,9 +2163,8 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 @if ($formName === 'S')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                    I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                                 @elseif ($formName === 'W')
                                     I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>
                                     I request that I may be granted a Wireman Competency Certificate.
@@ -2263,6 +2226,8 @@
     @include('include.footer')
 </footer>
 </div>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
 <script>
     window.toggleSectionEdit = function(btn) {
         var section = btn.closest('.fs-section');
@@ -2368,7 +2333,6 @@
                 el.blur();
             });
         }
-        lockReturnIdentityField('aadhaar');
         lockReturnIdentityField('pancard');
     })();
 </script>
@@ -2420,7 +2384,7 @@
         $input.closest('.form-s-file-upload-wrap').after($preview);
     });
 
-    $(document).on('change', '#aadhaar_doc, #pancard_doc', function() {
+    $(document).on('change', '#pancard_doc', function() {
         var $input = $(this);
         clearLocalPreview($input);
 
@@ -2456,33 +2420,6 @@
         $input.closest('.form-s-file-upload-wrap').after($preview);
     });
 
-    $(document).on('click', '.remove-aadhaar-doc', function(e) {
-        e.preventDefault();
-        var $button = $(this);
-        Swal.fire({
-            title: 'Do you want to remove the document?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Yes',
-            cancelButtonText: 'No',
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            reverseButtons: true
-        }).then((result) => {
-            if (!result.isConfirmed) return;
-
-            var $scope = $button.closest('td, .col-12, .col-md-3');
-            var $docContainer = $scope.find('.aadhaar-doc-container').first();
-            var $docInput = $scope.find('.aadhaar-doc-input').first();
-            var $fileInput = $scope.find('#aadhaar_doc').first();
-
-            $docContainer.removeClass('d-flex align-items-center justify-content-center').addClass('d-none').hide();
-            $docInput.removeClass('d-none').show();
-            $scope.find('#aadhaar_doc_removed').val('1');
-            clearLocalPreview($fileInput);
-        });
-    });
-
     $(document).on('click', '.remove-pan-doc', function(e) {
         e.preventDefault();
         var $button = $(this);
@@ -2512,7 +2449,11 @@
 
     // Age calculation on DOB change
     $('#d_o_b').on('change', function() {
-        const dob = new Date($(this).val());
+        // Accepts DD-MM-YYYY (text / datepicker) and legacy YYYY-MM-DD.
+        const dobRaw = String($(this).val() || '').trim();
+        const dobM = dobRaw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        const dob = dobM ? new Date(+dobM[3], +dobM[2] - 1, +dobM[1]) : new Date(dobRaw);
+        if (isNaN(dob.getTime())) return;
         const today = new Date();
         let age = today.getFullYear() - dob.getFullYear();
         const monthDiff = today.getMonth() - dob.getMonth();
@@ -2592,7 +2533,7 @@
                     <select class="form-control" name="educational_level[]" required>
                         <option value="">Select Education</option>
                         ${isSForm
-                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option>'
+                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option><option value="AMIE">A pass in AMIE</option><option value="EX">Ex Serviceman</option>'
                             : (isWHForm
                                 ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper Examination">Wireman Helper Examination</option><option value="ITI Certificate">ITI Certificate</option>'
                                 : (isWOrWHForm
@@ -3300,9 +3241,14 @@
         applicant_name: 'Applicant Name',
         fathers_name: "Father's Name",
         applicants_address: 'Applicant Address',
+        address_line1: 'Address Line 1',
+        address_line2: 'Address Line 2',
+        city: 'Village / Town / City',
+        state: 'State',
+        district: 'District',
+        pincode: 'Pin Code',
         d_o_b: 'Date of Birth',
         age: 'Age',
-        aadhaar: 'Aadhaar Number',
         pancard: 'PAN Number',
         previously_number: 'Previous License Number',
         previously_date: 'Previous Date of Expiry',
@@ -3313,7 +3259,6 @@
         wireman_details: 'Wireman Details',
         upload_photo: 'Photo',
         upload_sign: 'Signature',
-        aadhaar_doc: 'Aadhaar Document',
         pancard_doc: 'PAN Document',
         educational_level: 'Education Level',
         institute_name: 'Institute / School Name',
@@ -3566,14 +3511,6 @@
             var hasSign = (signInput && signInput.files && signInput.files.length > 0) ||
                           (signWrapper && signWrapper.style.display === 'none');
             if (!hasSign) err.push('Please upload Signature.');
-        }
-        if (reasons.indexOf('Aadhaar document is missing') !== -1) {
-            var aadhaarInput = document.getElementById('aadhaar_doc');
-            var aadhaarRemoved = $('#aadhaar_doc_removed').val();
-            var aadhaarInputWrap = $('.aadhaar-doc-input');
-            var hasAadhaar = (aadhaarInput && aadhaarInput.files && aadhaarInput.files.length > 0) ||
-                             (aadhaarRemoved !== '1' && aadhaarInputWrap.hasClass('d-none'));
-            if (!hasAadhaar) err.push('Please upload Aadhaar document.');
         }
         if (err.length > 0) {
             var msg = err.join(' ');

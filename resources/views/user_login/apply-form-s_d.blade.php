@@ -133,25 +133,6 @@
         letter-spacing: .5px;
     }
 
-    .fs-card-header .instructions-link {
-        text-align: right;
-        margin-top: 0;
-        margin-bottom: 0;
-        font-size: .82rem;
-        line-height: 1;
-    }
-
-    .fs-card-header .instructions-link a {
-        color: rgba(255, 255, 255, .9);
-        text-decoration: none;
-        border-bottom: 1px dashed rgba(255, 255, 255, .5);
-    }
-
-    .fs-card-header .instructions-link a:hover {
-        color: #fff;
-        border-bottom-color: #fff;
-    }
-
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
         background: #f8f9ff;
@@ -1485,7 +1466,7 @@
 
 
 
-{{-- ░░ BREADCRUMB ░░ --}}
+{{-- BREADCRUMB  --}}
 <div class="fs-breadcrumb-bar">
     <div class="container">
         <ul id="breadcrumb">
@@ -1495,35 +1476,31 @@
     </div>
 </div>
 
-{{-- ░░ PAGE BODY ░░ --}}
+{{-- PAGE BODY --}}
 <div class="fs-page-wrap">
     <div class="container">
         <div class="fs-card comp_certificate" data-select2-id="14">
 
-            {{-- ── Card header ── --}}
+            {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Supervisor Competency Certificate</h5>
+                    <h5>Digitisation of Supervisor Competency Certificate</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
                     <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url('assets/pdf/form_s_notes.pdf')}}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
-                </div>
             </div>
 
-            {{-- ── Mandatory notice ── --}}
+            {{-- Mandatory notice --}}
             <div class="fs-mandatory-bar">
                 <span class="req-dot">*</span> Fields are Mandatory
             </div>
 
-            {{-- ── Form body ── --}}
+            {{-- Form body --}}
             <div class="fs-form-body fs-form apply-card">
 
                 <form id="competency_form_ws" class="apply-form" enctype="multipart/form-data">
 
-                    {{-- ═══ SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age ═══ --}}
+                    {{-- SECTIONS 1–5 — Name, Father's Name, Email, Address, DOB/Age --}}
                     <div class="fs-section">
                         <div class="fs-section-body">
                             <div class="row">
@@ -1605,7 +1582,7 @@
                                             <div class="row fs-dob-age-pair align-items-start mx-0">
                                                 <div class="col-12 col-sm-6 mb-3 mb-sm-0">
                                                     <input autocomplete="off" class="form-control" id="d_o_b" name="d_o_b"
-                                                        type="text" placeholder="DD/MM/YYYY"
+                                                        type="text" placeholder="DD-MM-YYYY"
                                                         value="{{ isset($application) ? $application->d_o_b : '' }}">
                                                     <span id="dob-error" class="text-danger" style="font-size:.78rem;"></span>
                                                 </div>
@@ -2072,9 +2049,8 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge. <br>
-                                I request that I may be granted a Supervisor Competency Certificate.<span class="req">*</span>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br> எனக்கு மேற்பார்வையாளர் திறன் சான்றிதழ் வழங்குமாறு கேட்டுக்கொள்கிறேன்.</span>
+                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>
                         <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>
