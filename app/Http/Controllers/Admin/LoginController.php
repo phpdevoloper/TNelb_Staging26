@@ -2250,6 +2250,8 @@ class LoginController extends Controller
     private function formADetailData(string $applicant_id): array
     {
 
+    // dd('111'); exit;
+
         $returnForwardUser = null;
 
         $staff = Auth::user();
@@ -2275,6 +2277,7 @@ class LoginController extends Controller
             'payments.amount',
             'payments.payment_mode',
             'payments.created_at as payment_date',
+            'payments.updated_at as payment_updatedate',
             'payments.application_fee',
             'payments.late_fee',
             'payments.qc_fees'
@@ -2365,7 +2368,7 @@ class LoginController extends Controller
 
         $cl_ownership_table = DB::table('cl_ownership_table')
             ->where('application_id', $applicant_id)
-            ->orderBy('id', 'Desc')
+            ->orderBy('id', 'ASC')
             ->where('proprietor_flag', '1')
             ->get();
 

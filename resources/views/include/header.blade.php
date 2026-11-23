@@ -2041,7 +2041,7 @@ use Illuminate\Support\Facades\Auth;
                                             data-valid-from="{{ $license->valid_from }}"
                                             data-valid-to="{{ $license->valid_to }}"
                                         >
-                                            {{ $license->license_number }}
+                                            {{ $license->license_number }} |({{ $license->application_id }})
                                             | ({{ $appl_type_name }})
                                             | Issue {{ $license->dateof_issue }}
                                             | From {{ $license->valid_from }}

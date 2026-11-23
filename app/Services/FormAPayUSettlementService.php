@@ -29,6 +29,7 @@ class FormAPayUSettlementService
             $amountPaid = (int) round((float) $paymentTxn->amount);
             $lateFee = (int) ($paymentTxn->late_fee ?? 0);
             $lateMonths = (int) ($paymentTxn->late_months ?? 0);
+            $qc_fees = (int) ($paymentTxn->qc_fees ?? 0);
             $applicationFee = (int) ($paymentTxn->application_fee ?? 0);
             if ($applicationFee <= 0) {
                 $applicationFee = max(0, $amountPaid - $lateFee);
@@ -57,6 +58,7 @@ class FormAPayUSettlementService
                 'application_fee' => $applicationFee,
                 'late_fee' => $lateFee,
                 'late_months' => $lateMonths,
+                'qc_fees' => $qc_fees,
                 'form_name' => $form->form_name,
                 'license_name' => $form->license_name,
                 'payment_mode' => $callback['mode'] ?? ($paymentTxn->payment_method ?: 'PayU'),

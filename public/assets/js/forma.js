@@ -4062,6 +4062,7 @@ partners.forEach((p, index) => {
                         basicFees: basic_fees,
                         lateFees: lateFees,
                         lateFeeRow: lateFeeRow,
+                        qcfees: qcfees,
                         applicantName: applicantName,
                         amount: payableAmount,
                         dbNow: dbNow,
@@ -4131,6 +4132,7 @@ partners.forEach((p, index) => {
                 payload.form_type || opts.formType,
                 opts.basicFees,
                 opts.lateFees,
+                opts.qcfees,
                 opts.lateFeeRow,
                 payload.applicant_name || opts.applicantName,
                 payload.amount != null ? payload.amount : opts.amount,
@@ -4264,6 +4266,7 @@ partners.forEach((p, index) => {
         form_type,
         basic_fees,
         lateFees,
+        qcfees,
         lateFeeRow,
         applicantName,
         amount,
@@ -4295,14 +4298,16 @@ partners.forEach((p, index) => {
             }));
 
         $("#paymentSuccessModalcontractor").modal("show");
-        $("#contractorGoToDashboardBtn").attr("href", window.location.origin + "/dashboard");
+        // alert(BASE_URL);
+        $("#contractorGoToDashboardBtn").attr("href", BASE_URL + "/dashboard");
 
     }
 
     $(document).off("click.contractorDashboard", "#contractorGoToDashboardBtn")
         .on("click.contractorDashboard", "#contractorGoToDashboardBtn", function (e) {
+            // alert(BASE_URL);
             e.preventDefault();
-            window.location.href = window.location.origin + "/dashboard";
+            window.location.href = BASE_URL + "/dashboard";
         });
 
     function paymentreceiptformA() {
@@ -8837,6 +8842,22 @@ $(document).on("click", "#add_qc_staff", function () {
 
     let $section = $("#staffqc_datasection");
 
+
+    let qcStaffCount = $("#staffqc-records tr.staffqc-record").length;
+
+    // Maximum 5 QC staff allowed
+    if (qcStaffCount >= 5) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Maximum Limit Reached',
+            text: 'Maximum 5 QC staffs are allowed.',
+            confirmButtonText: 'OK'
+        });
+
+        return false;
+    }
+
+
     // Get the next index from the current table rows
     let staffRowIndex = getNextQCStaffIndex();
 
@@ -10177,6 +10198,302 @@ function updateQCStaffSerialNumbers() {
 
     // verify other staff certificate
     $(document).on('click', '.verify-otherstaff', function () {
+
+    let $button = $(this);
+    let $row = $button.closest('tr.staff-fields');
+
+    let $ccColumn = $row.find('.cc_number').closest('.cc-column');
+
+    $ccColumn.find('.error').empty();
+
+    $ccColumn.find('.competency_verify_result')
+        .removeClass('text-danger text-success')
+        .text('');
+
+    // Remove dynamically generated duplicate errors
+    $ccColumn.find('.staff-validation-error').remove();
+
+    let $holderColumn = $row.find(".certificate-holder-column");
+
+    // ==================================================
+    // GET VALUES ONLY FROM CURRENT ROW
+    // ==================================================
+
+    let certificateNo =
+        ($row.find('.cc_number').val() || '').trim();
+
+    let dateofIssue =
+        $row.find('.cc_firstissue').val() || '';
+
+    let validFrom =
+        $row.find('.cc_validity_from').val() || '';
+
+    let validTo =
+        $row.find('.cc_validity_to').val() || '';
+
+    let $result =
+        $row.find('.competency_verify_result');
+
+    let $holder =
+        $row.find('.certificate-holder');
+
+    let $holderInput =
+        $row.find('input.certificate_holder_name_others');
+
+
+    // ==================================================
+    // CLEAR ONLY CURRENT ROW
+    // ==================================================
+
+    $result
+        .removeClass('text-success text-danger')
+        .text('');
+
+    $holder
+        .removeClass('text-success text-danger')
+        .text('');
+
+    $holderInput.val('');
+
+
+    let holderName = (
+        $row.find(".certificate_holder_name_others").val() || ""
+    ).trim();
+
+    if (holderName !== "") {
+
+        $holderColumn.find(".holder-name-error").remove();
+
+        $button.removeClass("btn-danger");
+
+    } else {
+
+        $holderColumn.find(".holder-name-error").remove();
+
+        $holderColumn.append(
+            '<span class="holder-name-error text-danger d-block mt-1">' +
+            'Certificate holder name is missing. Please verify first.' +
+            '</span>'
+        );
+    }
+
+
+    // ==================================================
+    // VALIDATION
+    // ==================================================
+
+    if (certificateNo === '') {
+
+        $result
+            .addClass('text-danger')
+            .text('Please enter Competency Certificate Number.');
+
+        $row.find('.cc_number').focus();
+
+        return;
+    }
+
+
+    if (dateofIssue === '') {
+
+        $result
+            .addClass('text-danger')
+            .text('Please select Certificate First Issue date.');
+
+        $row.find('.cc_firstissue').focus();
+
+        return;
+    }
+
+
+    if (validFrom === '') {
+
+        $result
+            .addClass('text-danger')
+            .text('Please select Certificate Validity From date.');
+
+        $row.find('.cc_validity_from').focus();
+
+        return;
+    }
+
+
+    if (validTo === '') {
+
+        $result
+            .addClass('text-danger')
+            .text('Please select Certificate Validity To date.');
+
+        $row.find('.cc_validity_to').focus();
+
+        return;
+    }
+
+
+    let originalText = $button.text();
+
+    $button
+        .prop('disabled', true)
+        .text('Verifying...');
+
+
+    $.ajax({
+
+        url: BASE_URL + "/otherstaffcheck",
+
+        type: "POST",
+
+        data: {
+
+            _token:
+                $('meta[name="csrf-token"]').attr("content"),
+
+            certificate_no:
+                certificateNo,
+
+            dateof_issue:
+                dateofIssue,
+
+            valid_from:
+                validFrom,
+
+            valid_to:
+                validTo
+        },
+
+
+        success: function (response) {
+
+            if (response.status === true) {
+
+                let holderName =
+                    (response.certificate_holder_name_others || '').trim();
+
+
+                // ==================================================
+                // UPDATE ONLY CURRENT ROW HOLDER NAME
+                // SHOW GREEN ONLY AFTER SUCCESS
+                // ==================================================
+
+                if (holderName !== '') {
+
+                    $holder
+                        .text(holderName)
+                        .removeClass('text-danger')
+                        .addClass('text-success');
+
+                    $holderInput.val(holderName);
+
+                    $holderColumn.find('.holder-name-error').remove();
+
+                    $button.removeClass('btn-danger');
+
+                } else {
+
+                    $holder
+                        .removeClass('text-success text-danger')
+                        .text('');
+
+                    $holderInput.val('');
+                }
+
+
+                // ==================================================
+                // UPDATE ONLY CURRENT ROW RESULT
+                // ==================================================
+
+                $result
+                    .removeClass('text-danger')
+                    .addClass('text-success')
+                    .text(response.message);
+
+
+                // ==================================================
+                // APPLICATION ID HANDLING
+                // ==================================================
+
+                let $applicationId =
+                    $row.find('.certificate_application_id');
+
+                if ($applicationId.length === 0) {
+
+                    $row.append(
+                        '<input type="hidden" ' +
+                        'class="certificate_application_id" ' +
+                        'name="certificate_application_id[]" ' +
+                        'value="' +
+                        (response.application_id || '') +
+                        '">'
+                    );
+
+                } else {
+
+                    $applicationId.val(
+                        response.application_id || ''
+                    );
+                }
+
+
+            } else {
+
+                // ==================================================
+                // VERIFICATION FAILED
+                // ==================================================
+
+                $holder
+                    .removeClass('text-success text-danger')
+                    .text('');
+
+                $holderInput.val('');
+
+                $result
+                    .removeClass('text-success')
+                    .addClass('text-danger')
+                    .text(
+                        response.message ||
+                        'Staff Certificate details are not valid.'
+                    );
+            }
+        },
+
+
+        error: function (xhr) {
+
+            $holder
+                .removeClass('text-success text-danger')
+                .text('');
+
+            $holderInput.val('');
+
+            let message =
+                'Unable to verify certificate.';
+
+            if (
+                xhr.responseJSON &&
+                xhr.responseJSON.message
+            ) {
+                message =
+                    xhr.responseJSON.message;
+            }
+
+            $result
+                .removeClass('text-success')
+                .addClass('text-danger')
+                .text(message);
+        },
+
+
+        complete: function () {
+
+            $button
+                .prop('disabled', false)
+                .text(originalText);
+        }
+
+    });
+
+});
+    $(document).on('click', '.verify-otherstaff_old', function () {
 
         let $button = $(this);
         let $row = $button.closest('tr.staff-fields');

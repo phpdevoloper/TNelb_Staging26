@@ -377,6 +377,8 @@ function buildQCStaffRow(staff, serialNo, rowClass = "") {
 
 $(document).on("click", "#update_qc", function () {
 
+
+
     let $section = $("#staffqc_datasection");
 
     // ======================================================
@@ -398,7 +400,7 @@ $(document).on("click", "#update_qc", function () {
         $section.find('input[name="staff_cc_no[]"]').last().val()
     );
 
-    let holderName = $("#edit_qc_holder_name").val();
+    let holderName = $.trim($("#certificate-holder-name").text());
 
     let category = $section
         .find('input[name="staffqc_category[]"]')

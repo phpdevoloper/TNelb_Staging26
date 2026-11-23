@@ -2148,7 +2148,11 @@
                                                     <p><strong> Payment Time</strong></p>
                                                 </div>
                                                 <div class="col-lg-6">
-                                                    <p>{{ format_date_other($applicant->created_at) }}</p>
+                                                   <p>
+                                                        {{ !empty($applicant->payment_updatedate)
+                                                            ? format_date_other($applicant->payment_updatedate)
+                                                            : 'NA' }}
+                                                    </p>
                                                 </div>
 
                                             </div>

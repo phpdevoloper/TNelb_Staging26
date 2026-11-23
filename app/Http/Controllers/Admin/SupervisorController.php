@@ -1723,6 +1723,8 @@ class SupervisorController extends Controller
 
     public function approveApplicationForma(Request $request)
     {
+
+    // dd($request->all()); exit;
         $request->validate([
             'application_id'    => 'required|string',
             'processed_by'      => 'required|string',
@@ -2091,6 +2093,7 @@ class SupervisorController extends Controller
                         'Digitisation mapping record not found.'
                     );
                 }
+                //  $expiresAt = $digitisationCL->to_date;
 
                 if (!empty($digitisationCL->clnumber)) {
 
@@ -2110,7 +2113,7 @@ class SupervisorController extends Controller
                         'new_cl_no' => $newSerial,
                     ];
                 }
-
+                $expiresAt = $digitisationCL->to_date;
                 DB::table('cl_forma_lic')->insert([
 
                     'application_id' => $request->application_id,
@@ -2118,7 +2121,7 @@ class SupervisorController extends Controller
                     'issued_by'      => Auth::user()->roles_id,
                     'dateof_issue'   => $digitisationCL->fissue,
                     'valid_from'     => $digitisationCL->from_date,
-                    'valid_to'       => $digitisationCL->to_date,
+                    'valid_to'       => $expiresAt,
                     'cert_status'   => 'A',
                     'cert_pdf'      => '',
                     'created_at'    => $now,
@@ -2415,11 +2418,17 @@ class SupervisorController extends Controller
             // COMMIT
             // ======================================================
 
+            // DB::commit();
+
+            // $applicationIdForPdf = $request->application_id;
+            // app()->terminating(fn () => $this->storeFormALicencePdfs($applicationIdForPdf));
+
             DB::commit();
 
-            $applicationIdForPdf = $request->application_id;
-            app()->terminating(fn () => $this->storeFormALicencePdfs($applicationIdForPdf));
+               $applicationIdForPdf = $request->application_id;
 
+                $this->storeFormALicencePdfs($applicationIdForPdf);
+// dd($$applicationIdForPdf); exit;
             // ======================================================
             // SUCCESS RESPONSE
             // ======================================================
@@ -3404,48 +3413,120 @@ class SupervisorController extends Controller
      * on the latest cl_forma_lic row. Runs after the approval response is sent,
      * so a slow or failing PDF never delays or breaks the approval.
      */
-    private function storeFormALicencePdfs(string $applicationId): bool
-    {
-        @set_time_limit(180);
+  private function storeFormALicencePdfs(string $applicationId): bool
+        {
 
-        $rowId = DB::table('cl_forma_lic')
-            ->where('application_id', $applicationId)
-            ->orderByDesc('id')
-            ->value('id');
+        // dd($applicationId); exit;
+            @set_time_limit(180);
 
-        if (!$rowId) {
-            return false;
-        }
-
-        $licence = app(generateLicencepdfController::class);
-        $columns = [];
-
-        foreach (['cert_pdf' => 'licencepdf_cl', 'lic_pdf' => 'licencepdf_cl_tamil'] as $column => $method) {
             try {
-                $binary = $licence->{$method}($applicationId, true);
 
-                if ($binary) {
-                    $columns[$column] = Crypt::encryptString($binary);
-                }
-            } catch (\Throwable $e) {
-                Log::error('Form A licence PDF generation failed', [
+                Log::info('Form A PDF generation started', [
                     'application_id' => $applicationId,
-                    'method'         => $method,
-                    'error'          => $e->getMessage(),
                 ]);
+
+                // Get the latest licence record for this application.
+                $licenceRecord = DB::table('cl_forma_lic')
+                    ->where('application_id', $applicationId)
+                    ->orderByDesc('id')
+                    ->first();
+
+                if (!$licenceRecord) {
+
+                    Log::error('Form A licence record not found for PDF generation', [
+                        'application_id' => $applicationId,
+                    ]);
+
+                    return false;
+                }
+
+                $licence = app(generateLicencepdfController::class);
+
+                $columns = [];
+
+                // English and Tamil PDF generation.
+                $pdfMethods = [
+                    'cert_pdf' => 'licencepdf_cl',
+                    'lic_pdf'  => 'licencepdf_cl_tamil',
+                ];
+
+                foreach ($pdfMethods as $column => $method) {
+
+                    try {
+
+                        Log::info('Generating licence PDF', [
+                            'application_id' => $applicationId,
+                            'method'         => $method,
+                        ]);
+
+                        $binary = $licence->{$method}($applicationId, true);
+
+                        if (!empty($binary)) {
+
+                            $columns[$column] = Crypt::encryptString($binary);
+
+                            Log::info('Licence PDF generated successfully', [
+                                'application_id' => $applicationId,
+                                'method'         => $method,
+                                'column'         => $column,
+                            ]);
+
+                        } else {
+
+                            Log::warning('Licence PDF generation returned empty data', [
+                                'application_id' => $applicationId,
+                                'method'         => $method,
+                            ]);
+                        }
+
+                    } catch (\Throwable $e) {
+
+                        Log::error('Licence PDF generation failed', [
+                            'application_id' => $applicationId,
+                            'method'         => $method,
+                            'error'          => $e->getMessage(),
+                            'file'           => $e->getFile(),
+                            'line'           => $e->getLine(),
+                        ]);
+                    }
+                }
+
+                if (empty($columns)) {
+
+                    Log::error('No licence PDFs were generated', [
+                        'application_id' => $applicationId,
+                    ]);
+
+                    return false;
+                }
+
+                // Update only the latest licence record.
+                DB::table('cl_forma_lic')
+                    ->where('id', $licenceRecord->id)
+                    ->update($columns + [
+                        'updated_at' => now(),
+                    ]);
+
+                Log::info('Licence PDF columns updated successfully', [
+                    'application_id' => $applicationId,
+                    'licence_id'     => $licenceRecord->id,
+                    'columns'        => array_keys($columns),
+                ]);
+
+                return true;
+
+            } catch (\Throwable $e) {
+
+                Log::error('Form A PDF storage process failed', [
+                    'application_id' => $applicationId,
+                    'error'          => $e->getMessage(),
+                    'file'           => $e->getFile(),
+                    'line'           => $e->getLine(),
+                ]);
+
+                return false;
             }
         }
-
-        if (!$columns) {
-            return false;
-        }
-
-        DB::table('cl_forma_lic')
-            ->where('id', $rowId)
-            ->update($columns + ['updated_at' => now()]);
-
-        return true;
-    }
 
     /**
      * Resolve application for secretary/president approval — CC meta first, legacy fallback.

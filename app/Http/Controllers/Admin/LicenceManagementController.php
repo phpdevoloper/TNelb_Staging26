@@ -326,6 +326,7 @@ class LicenceManagementController extends BaseController
                         'basic_fees'       => 0,
                         'lateFees'         => 0,
                         'late_months'      => 0,
+                        //  'qc_fees'         => 0,
                         'certificate_name' => $licence->licence_name ?? '',
                         'fees_start_date'  => date('d-m-Y'),
                     ],
@@ -341,6 +342,7 @@ class LicenceManagementController extends BaseController
                         'basic_fees'       => 0,
                         'lateFees'         => 0,
                         'late_months'      => 0,
+                        // 'qc_fees'      => 0,
                         'certificate_name' => $licence->licence_name ?? '',
                         'fees_start_date'  => date('d-m-Y'),
                     ],
@@ -364,6 +366,7 @@ class LicenceManagementController extends BaseController
                 $fees_details['total_fees'] = $paymentDetails[0]->total_fee;
                 $fees_details['lateFees'] = $paymentDetails[0]->late_fee;
                 $fees_details['late_months'] = $paymentDetails[0]->late_months;
+                // $fees_details['qc_fees'] = $paymentDetails[0]->qc_fees;
                 $fees_details['basic_fees'] = $paymentDetails[0]->base_fee;
                 $fees_details['certificate_name'] = $paymentDetails[0]->certificate_name;
                 $fees_details['fees_start_date'] = date("d-m-Y", strtotime($paymentDetails[0]->fees_start_date));

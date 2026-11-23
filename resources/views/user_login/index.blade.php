@@ -1,5 +1,5 @@
 @include('include.header')
-
+   
 <style>
     td {
         font-size: 15px;
@@ -1013,7 +1013,7 @@
                             </fieldset>
                         </div>
                         @endif
-
+                    
                         <!-- ---------------------------------------------------------- -->
                          @if (isset($workflows_cl) && $workflows_cl->isNotEmpty())
 
@@ -1095,6 +1095,8 @@
                                                         <td style="width: 18%;">
 
                                                             {{ $workflow->licence_display_name ?? 'N/A' }}
+
+                                                            
 
                                                             <br>
 
@@ -1266,7 +1268,7 @@
 
                                                                     @if($workflow->form_name == 'A')
 
-                                                                        <a href="{{ route('renew-form_ea', ['application_id' => $workflow->application_id]) }}">
+                                                                        <a href="{{ route('renew-form_ea_draft', ['application_id' => $workflow->application_id]) }}">
                                                                             <button class="btn btn-sm btn-info">
                                                                                 <i class="fa fa-pencil"></i> Draft
                                                                             </button>
@@ -1439,7 +1441,7 @@
 
                                                             @if (!empty($workflow->license_number) && $workflow->application_status == 'A')
 
-                                                                <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}"
+                                                                <a href="{{ route('admin.licencepdf_cl.stored', ['application_id' => $workflow->application_id]) }}"
                                                                 target="_blank">
 
                                                                     <span class="badge badge-info" style="font-size: 13px;">
@@ -1527,7 +1529,7 @@
     
                                                                     @if (!empty($workflow->license_number))
 
-                                                                        <a href="{{ route('admin.licencepdf_cl.pdf', [
+                                                                        <a href="{{ route('admin.licencepdf_cl.stored', [
                                                                             'application_id' => $workflow->application_id
                                                                         ]) }}"
                                                                         target="_blank">
@@ -1573,7 +1575,7 @@
 
                                                                 <span>
 
-                                                                    <a href="{{ route('admin.licencepdf_cl.pdf', ['application_id' => $workflow->application_id]) }}"
+                                                                    <a href="{{ route('admin.licencepdf_cl.stored', ['application_id' => $workflow->application_id]) }}"
                                                                     target="_blank">
 
                                                                         <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i>
@@ -2005,3 +2007,42 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 </script>
+
+@if(session('renewal_pending_alert'))
+    <script>
+        $(document).ready(function () {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Renewal Already Pending',
+                text: @json(session('renewal_pending_alert')),
+                confirmButtonText: 'OK',
+                customClass: {
+                    container: 'renewal-swal-container'
+                }
+            });
+        });
+    </script>
+@endif
+
+<style>
+    .renewal-swal-container {
+        z-index: 1111111 !important;
+        line-height: 30px!important;
+    }
+</style>
+
+@if(session('alteration_pending_alert'))
+    <script>
+        $(document).ready(function () {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Alteration Already Pending',
+                text: @json(session('alteration_pending_alert')),
+                confirmButtonText: 'OK',
+                 customClass: {
+                    container: 'renewal-swal-container'
+                }
+            });
+        });
+    </script>
+@endif
