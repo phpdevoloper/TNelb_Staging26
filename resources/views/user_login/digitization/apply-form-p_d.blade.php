@@ -12,7 +12,7 @@
     .fs-page-wrap { background: #f0f4f9; min-height: 100vh; padding-bottom: 48px; }
 
     /* ── Breadcrumb ───────────────────────────────────── */
-    .fs-breadcrumb-bar { background: #fff; border-bottom: 1px solid #e3e8f0; padding: 10px 0; }
+    .fs-breadcrumb-bar { background: #fff; border-bottom: 1px solid #556a8b; padding: 10px 0; }
     .fs-breadcrumb-bar #breadcrumb,
     .fs-breadcrumb-bar #breadcrumb li,
     .fs-breadcrumb-bar #breadcrumb li a { all: unset; }
@@ -217,7 +217,7 @@
                 <div class="header-titles">
                     <h5>Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
                     <h5 class="tamil-title">மின்சார உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழுக்கான விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - P / Certificate P</span>
+                    <span class="form-badge">FORM - P / Certificate D</span>
                 </div>
                 <div class="instructions-link">
                     <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>

@@ -157,7 +157,22 @@ class FormPController extends BaseController
             'ccnumber' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,19}$/'],
             'fissue' => 'required|date',
             'from_date' => 'required|date|after_or_equal:fissue',
-            'to_date' => 'required|date|after_or_equal:from_date',
+            // 'to_date' => 'required|date|after_or_equal:from_date',
+              'to_date' => [
+                    'required',
+                    'date',
+                    'after_or_equal:from_date',
+                    function ($attribute, $value, $fail) use ($request) {
+                        if (
+                            $request->filled('from_date') &&
+                            \Carbon\Carbon::parse($value)->gt(
+                                \Carbon\Carbon::parse($request->from_date)->addYears(4)
+                            )
+                        ) {
+                            $fail('Validity To date should not exceed 4 years from Validity From date.');
+                        }
+                    },
+                ],
             'cc_doc' => 'required|mimes:pdf|max:250',
             'cl_det' => 'nullable|in:yes,no',
             'form_name' => 'required|in:P',

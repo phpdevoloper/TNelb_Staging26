@@ -1441,7 +1441,7 @@ use Illuminate\Support\Facades\Auth;
                                         $form_name = 'WH';
                                         } elseif (Request::is('apply-form-p_d') || Request::is('apply_form_p_d')) {
                                         $cert_name = 'P';
-                                        $form_name = 'P';
+                                        $form_name = 'D';
                                         }
 
                                         @endphp
@@ -1473,7 +1473,7 @@ use Illuminate\Support\Facades\Auth;
                             <input type="hidden" name="cert_name" value="{{ $cert_name }}">
 
                             <section class="digi-section" aria-labelledby="digi-cert-section-title">
-                                <h6 class="digi-section-title" id="digi-cert-section-title">Certificate Details <span class="fill">*</span></h6>
+                                <h6 class="digi-section-title" id="digi-cert-section-title">Details of Competency Certificate <span class="fill">*</span></h6>
 
                                 <div class="digi-field">
                                     <label class="digi-field-label" for="digi_ccnumber">Certificate Number <span class="fill">*</span></label>
@@ -1515,7 +1515,7 @@ use Illuminate\Support\Facades\Auth;
                                 <div class="digi-field" style="margin-top:14px;">
                                     <label class="digi-field-label" for="digi_cc_doc">
                                         Upload Existing Certificate <span class="fill">*</span>
-                                        <span class="digi-field-hint">Note: Page No. 3 of CC Book</span>
+                                        {{-- <span class="digi-field-hint">Note: Page No. 3 of CC Book</span> --}}
                                     </label>
                                     <div class="digi-field-control">
                                         <input type="file" class="form-control" id="digi_cc_doc" name="cc_doc" accept="application/pdf">
@@ -1603,14 +1603,16 @@ use Illuminate\Support\Facades\Auth;
                                 </div>
                             </section>
 
-                            @php
-                            $showCl = Request::is('apply-form-w_d')
-                                || Request::is('apply-form-wh_d')
-                                || Request::is('apply-form-p_d')
-                                || Request::is('apply_form_p_d');
-                            @endphp
+                   @php
+                        $currentRoute = request()->segment(count(request()->segments()));
 
-                            <section class="digi-section" id="cl_section" {{ !$showCl ? 'style=display:none;' : '' }} aria-label="Current Contractor Licence Details">
+                        $showCl = in_array($currentRoute, [
+                            'apply-form-w_d',
+                            'apply-form-wh_d',
+                        ], true) && $currentRoute !== 'apply_form_p_d';
+                    @endphp
+                         @if($showCl)
+                            <section class="digi-section" id="cl_section"  aria-label="Current Contractor Licence Details">
                                 <div class="digi-qc-gate">
                                     <p class="digi-qc-question">
                                         Are you currently working with a contractor? If yes, please upload the current contractor licence details.
@@ -1680,6 +1682,7 @@ use Illuminate\Support\Facades\Auth;
                                     </div>
                                 </div>
                             </section>
+                            @endif
                         </form>
                     </div>
                 </div>

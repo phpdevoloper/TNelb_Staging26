@@ -1627,7 +1627,7 @@
                 <div class="header-titles">
                     <h5>Application for Supervisor Competency Certificate - New Application</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதிய விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - S</span>
+                    <span class="form-badge">FORM - S / Certificate C</span>
                 </div>
             </div>
 
@@ -1938,7 +1938,7 @@
                             <div id="previously_details" class="fs-toggle-panel" style="display:none;">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]*" data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
                                             placeholder="Certificate Number" value="" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
@@ -1999,7 +1999,7 @@
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                         <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
                                             data-type="supervisor" data-error="#certError" data-msg="#license_message"
                                             placeholder="Certificate Number" maxlength="80" value="{{ $oldCertNo }}">

@@ -48,6 +48,19 @@ final class CompetencySchema
         'P' => 'cc_form_p_cert',
     ];
 
+    /** @var list<string> Competency forms whose work experience is optional (S requires it). */
+    public const WORK_EXPERIENCE_OPTIONAL_FORMS = ['W', 'WH', 'P'];
+
+    /**
+     * Single source of truth for "is work experience optional for this form?".
+     * Used by every FormController save path (store, draft_update, ...) so the lists cannot drift.
+     */
+    public static function isWorkExperienceOptional(mixed $formName): bool
+    {
+        return is_string($formName)
+            && in_array(strtoupper(trim($formName)), self::WORK_EXPERIENCE_OPTIONAL_FORMS, true);
+    }
+
     public static function isSharedTable(string $table): bool
     {
         return in_array(strtolower(trim($table)), self::SHARED_TABLES, true);

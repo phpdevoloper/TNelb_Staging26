@@ -793,6 +793,7 @@
              id="registerWizard"
              data-wizard
              data-otp-url="{{ route('generate-otp') }}"
+             data-verify-url="{{ route('verify-otp') }}"
              data-store-url="{{ route('register.store') }}"
              data-otp-length="6">
 
@@ -854,7 +855,7 @@
                         <i class="fa fa-paper-plane" aria-hidden="true"></i> Send OTP
                     </button>
 
-                    <x-otp-input :length="6" :seconds="30" />
+                    <x-otp-input :length="6" :seconds="20" />
 
                     <x-info-box>OTP will be sent to the entered mobile number via SMS.</x-info-box>
 

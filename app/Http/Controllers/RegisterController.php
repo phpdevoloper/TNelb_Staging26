@@ -24,12 +24,18 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class RegisterController extends BaseController
 {
     protected $today;
+
+    // TESTING values — restore to 30 seconds / 5 per hour before go-live.
+    private const OTP_RESEND_SECONDS = 20;
+
+    private const OTP_HOURLY_CAP = 20;
 
     public function __construct()
     {
@@ -91,20 +97,35 @@ class RegisterController extends BaseController
 
         $mobile = $request->input('mobile');
 
-        // Check if OTP already exists and is not expired
-        $existingOtp = OtpVerification::where('mobile', $mobile)
-            ->where('otp_expiry', '>', now())
-            ->first();
+        // Resend rules (cache based, per mobile): at most OTP_HOURLY_CAP OTPs per hour,
+        // and OTP_RESEND_SECONDS between two requests (matches the timer on the page).
+        $hourKey = 'otp-hour:'.$mobile;
+        $coolKey = 'otp-cooldown:'.$mobile;
 
-        if ($existingOtp && ! $existingOtp->isExpired()) {
+        if (RateLimiter::tooManyAttempts($hourKey, self::OTP_HOURLY_CAP)) {
+            $wait = (int) ceil(RateLimiter::availableIn($hourKey) / 60);
+
             return response()->json([
                 'success' => false,
-                'message' => 'OTP already sent. Please wait before requesting a new one.',
+                'message' => "OTP limit reached for this mobile number. Please try again after {$wait} minute(s).",
             ], 429);
         }
 
+        if (RateLimiter::tooManyAttempts($coolKey, 1)) {
+            $wait = RateLimiter::availableIn($coolKey);
+
+            return response()->json([
+                'success' => false,
+                'message' => "Please wait {$wait} second(s) before requesting a new OTP.",
+                'retry_after' => $wait,
+            ], 429);
+        }
+
+        RateLimiter::hit($hourKey, 3600);
+        RateLimiter::hit($coolKey, self::OTP_RESEND_SECONDS);
+
         // Generate new OTP
-        $otp = rand(100000, 999999);
+        $otp = (string) random_int(100000, 999999);
         $otp_expiry = now()->addMinutes(5);
 
         // Delete old OTP if exists
@@ -119,12 +140,19 @@ class RegisterController extends BaseController
             'user_agent' => $request->userAgent(),
         ]);
 
-        return response()->json([
+        // TODO: send $otp by SMS once the gateway is configured.
+        $response = [
             'success' => true,
             'message' => 'OTP sent successfully',
-            'otp' => $otp,
-            'otp_expiry' => $otp_expiry,
-        ], 200);
+        ];
+
+        // Test OTP is exposed ONLY on local / staging, or when OTP_TEST_MODE=true,
+        // until the SMS gateway is ready.
+        if (app()->environment(['local', 'staging']) || config('app.otp_test_mode')) {
+            $response['otp'] = $otp;
+        }
+
+        return response()->json($response, 200);
     }
 
     /**
@@ -166,34 +194,29 @@ class RegisterController extends BaseController
             ], 422);
         }
 
-        // Check if already verified
-        if ($otpRecord->isAlreadyVerified()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'OTP already verified. Proceed to registration.',
-            ], 200);
-        }
+        // Atomically count this attempt; parallel requests cannot exceed the limit.
+        $claimed = OtpVerification::where('id', $otpRecord->id)
+            ->where('attempts', '<', 5)
+            ->increment('attempts');
 
-        // Check too many attempts (rate limiting)
-        if ($otpRecord->hasTooManyAttempts(5)) {
+        if ($claimed === 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'Too many failed attempts. Please request a new OTP.',
             ], 429);
         }
 
-        // Check OTP value
-        if ($otpRecord->otp !== $otp) {
-            $otpRecord->recordAttempt();
-
+        // Check OTP value (constant-time)
+        if (! hash_equals((string) $otpRecord->otp, (string) $otp)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid OTP. Please try again.',
             ], 422);
         }
 
-        // Mark OTP as verified
+        // Mark OTP as verified and bind it to this browser session
         $otpRecord->markAsVerified();
+        $request->session()->put('otp_verified_mobile', $mobile);
 
         return response()->json([
             'success' => true,
@@ -207,7 +230,14 @@ class RegisterController extends BaseController
 
         // Check if OTP was verified for this mobile
         $otpRecord = OtpVerification::where('mobile', $mobile)->first();
-        if (! $otpRecord || ! $otpRecord->is_verified) {
+        $sessionMatches = is_string($mobile)
+            && hash_equals((string) $request->session()->get('otp_verified_mobile', ''), $mobile);
+        $verifiedRecently = $otpRecord
+            && $otpRecord->is_verified
+            && $otpRecord->verified_at
+            && $otpRecord->verified_at->gt(now()->subMinutes(30));
+
+        if (! $sessionMatches || ! $verifiedRecently) {
             return response()->json([
                 'success' => false,
                 'message' => 'Please verify your OTP first',
@@ -304,6 +334,10 @@ class RegisterController extends BaseController
             'pincode' => $validated['pincode'],
             'login_id' => $newLoginId,
         ]);
+
+        // OTP is single-use: consume it so it cannot be replayed.
+        OtpVerification::where('mobile', $mobile)->delete();
+        $request->session()->forget('otp_verified_mobile');
 
         return response()->json([
             'success' => true,

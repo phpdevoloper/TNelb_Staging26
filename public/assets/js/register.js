@@ -17,10 +17,10 @@
     const parseDob = (value) => {
         const text = String(value ?? "").trim();
         let y, m, d;
-        let match = text.match(/^(d{1,2})[-/](d{1,2})[-/](d{4})$/);
+        let match = text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
         if (match) {
             [d, m, y] = [+match[1], +match[2], +match[3]];
-        } else if ((match = text.match(/^(d{4})-(d{2})-(d{2})$/))) {
+        } else if ((match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/))) {
             [y, m, d] = [+match[1], +match[2], +match[3]];
         } else {
             return null;
@@ -153,15 +153,16 @@
             this.root = document.querySelector("[data-wizard]");
             if (!this.root) return;
 
-            const { otpUrl = "", storeUrl = "" } = this.root.dataset;
-            this.urls = { otp: otpUrl, store: storeUrl };
+            const { otpUrl = "", verifyUrl = "", storeUrl = "" } =
+                this.root.dataset;
+            this.urls = { otp: otpUrl, verify: verifyUrl, store: storeUrl };
             this.csrf =
                 document.querySelector('meta[name="csrf-token"]')?.content ??
                 "";
 
-            if (!this.urls.otp || !this.urls.store) {
+            if (!this.urls.otp || !this.urls.verify || !this.urls.store) {
                 console.error(
-                    "[register] Missing data-otp-url / data-store-url on [data-wizard].",
+                    "[register] Missing data-otp-url / data-verify-url / data-store-url on [data-wizard].",
                 );
             }
             if (!this.csrf) {
@@ -367,6 +368,8 @@
                 '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> Sending OTP…',
             );
 
+            let otpSent = false;
+
             try {
                 const { ok, payload } = await this.post(this.urls.otp, body);
 
@@ -377,7 +380,11 @@
                         "Unable to send OTP.";
                     this.showErrors([{ field: "mobile", message }]);
                     console.error(`[register] generate-otp failed: ${message}`);
-                } else if (payload.otp) {
+                } else {
+                    otpSent = true;
+                }
+
+                if (otpSent && payload.otp) {
                     // Display OTP temporarily for testing (remove when SMS gateway is configured)
                     console.log(
                         `%c🔐 OTP for testing: ${payload.otp}`,
@@ -414,11 +421,14 @@
             } finally {
                 this.setBusy(sendBtn, false);
 
-                this.revealOtpSection();
-                this.resetOtpDigits();
-                this.startOtpTimer(
-                    Number(this.els.otpSection?.dataset.otpSeconds) || 5,
-                );
+                // Show the OTP boxes and start the resend timer only when the OTP was really sent.
+                if (otpSent) {
+                    this.revealOtpSection();
+                    this.resetOtpDigits();
+                    this.startOtpTimer(
+                        Number(this.els.otpSection?.dataset.otpSeconds) || 5,
+                    );
+                }
             }
         },
 
@@ -451,7 +461,7 @@
             );
 
             try {
-                const { ok, payload } = await this.post("/verify-otp", body);
+                const { ok, payload } = await this.post(this.urls.verify, body);
 
                 if (!ok || payload.success !== true) {
                     const message =

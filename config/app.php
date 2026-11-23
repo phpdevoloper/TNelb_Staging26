@@ -18,6 +18,13 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | Return the OTP in the generate-otp response (test mode, no SMS gateway yet).
+    | Always allowed on local / staging; elsewhere only when OTP_TEST_MODE=true.
+    | MUST be false / unset once the SMS gateway is live.
+    */
+    'otp_test_mode' => (bool) env('OTP_TEST_MODE', false),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

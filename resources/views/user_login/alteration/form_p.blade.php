@@ -460,6 +460,9 @@
         cursor: pointer;
         transition: background .15s ease, color .15s ease, border-color .15s ease;
         flex-shrink: 0;
+        /* Bootstrap .col-* are position:relative and come later in the DOM, so they painted over
+           this absolutely positioned button; lift it above the section content. */
+        z-index: 10;
     }
     .fs-section-edit-toggle:hover { background: #035ab3; color: #fff; border-color: #035ab3; }
     .fs-section-edit-toggle i { font-size: .9rem; }

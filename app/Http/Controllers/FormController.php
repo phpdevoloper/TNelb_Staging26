@@ -34,6 +34,7 @@ use App\Services\FormS\FormSApplicationWorkflowService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyMetaService;
 use App\Services\Competency\CompetencyQcQscService;
+use App\Services\Competency\CompetencySchema;
 use App\Services\Competency\FormWExperienceRules;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
@@ -3580,7 +3581,7 @@ class FormController extends BaseController
         $this->prepareFormPRequest($request);
 
 
-        $isWorkOptional = in_array($request->form_name, ['W', 'WH'], true);
+        $isWorkOptional = CompetencySchema::isWorkExperienceOptional($request->form_name);
         $isFormP = FormPSchema::isFormP($request->form_name ?? '');
         $educationLevelRule = ($request->form_name === 'S')
             ? 'required|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
@@ -4142,7 +4143,7 @@ class FormController extends BaseController
             : 'nullable|image|mimes:jpg,jpeg,png|max:50';
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
-        $isWorkOptional = in_array($request->form_name, ['W', 'WH', 'P'], true);
+        $isWorkOptional = CompetencySchema::isWorkExperienceOptional($request->form_name);
         $educationLevelRule = ($request->form_name === 'S')
             ? 'required|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
             : 'required|string|max:50';

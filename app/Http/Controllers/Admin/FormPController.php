@@ -1098,6 +1098,10 @@ class FormPController extends Controller
 
     public function approveApplicationformp(Request $request)
     {
+
+    // dd('Approval logic is not implemented yet. Please implement the logic for approving Form P applications.');exit;
+
+    // dd($request->all()); exit;
         $request->validate([
             'application_id' => 'required|string',
             'processed_by' => 'required|string',
@@ -1120,7 +1124,7 @@ class FormPController extends Controller
             ? DB::table($certTable)->where('application_id', $request->application_id)->first()
             : null;
         
-
+// dd($appl_type); exit;
         if ($appl_type === 'N' && $existingCcCert) {
             return response()->json([
                 'error' => 'Licence already exists for this application ID, so it cannot be approved again.',
@@ -1135,6 +1139,8 @@ class FormPController extends Controller
 
         DB::beginTransaction();
         try {
+
+        // dd($appl_type); exit;
             $processed = match (Auth::user()->name) {
                 'President' => 'PR',
                 'Secretary' => 'SE',
@@ -1148,20 +1154,24 @@ class FormPController extends Controller
             ]);
 
             $today = Carbon::today()->toDateString();
-            $licenseperiod = DB::table('mst_fees_validity')
-                ->where('licence_id', $licenceId)
-                ->where('form_type', $appl_type)
-                ->where('status', 1)
-                ->whereDate('validity_start_date', '<=', $today)
-                ->orderByDesc('validity_start_date')
-                ->first();
 
-            if (! $licenseperiod) {
-                return response()->json([
-                    'error' => 'No validity configuration found for Form P licence; defaulting to 0 months',
-                    'licence_id' => $licenceId,
-                    'form_type' => $appl_type,
-                ]);
+            if($appl_type == 'N' || $appl_type == 'R') {
+               
+                $licenseperiod = DB::table('mst_fees_validity')
+                    ->where('licence_id', $licenceId)
+                    ->where('form_type', $appl_type)
+                    ->where('status', 1)
+                    ->whereDate('validity_start_date', '<=', $today)
+                    ->orderByDesc('validity_start_date')
+                    ->first();
+
+                if (! $licenseperiod) {
+                    return response()->json([
+                        'error' => 'No validity configuration found for Form P licence; defaulting to 0 months',
+                        'licence_id' => $licenceId,
+                        'form_type' => $appl_type,
+                    ]);
+                }
             }
                 
 
@@ -1172,6 +1182,8 @@ class FormPController extends Controller
             $validFrom = null;
             $newSerial = null;
             $kept = $this->formPKeptCertificate($application, (string) $request->application_id, $appl_type);
+
+            
             if ($appl_type === 'R') {
                 $baseExpiry = Carbon::parse($kept['expires_at']);
                 $issuedAt = $kept['issued_at'];
@@ -1186,6 +1198,8 @@ class FormPController extends Controller
                 $issuedAt = $kept['issued_at'] ?: now()->format('Y-m-d H:i:s');
                 $expiresAt = $kept['expires_at'] ?: now()->copy()->addMonths($monthsToAdd)->format('Y-m-d');
             } elseif ($appl_type === 'D') {
+
+            // dd('Digitization approval logic is not implemented yet. Please implement the logic for digitization approval.');exit;
                 $digitized = $this->formPDigitizationRow(
                     (string) $request->application_id,
                     (string) ($application->login_id ?? '')

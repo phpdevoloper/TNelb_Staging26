@@ -24,6 +24,8 @@ final class FormWExperienceRules
     {
         $levels = is_array($request->work_level ?? null) ? $request->work_level : [];
         $exps = is_array($request->experience ?? null) ? $request->experience : [];
+        // Form P (and the saved row) post the duration as work_experience_total[]; persistence reads it first.
+        $totals = is_array($request->work_experience_total ?? null) ? $request->work_experience_total : [];
         $designations = is_array($request->designation ?? null) ? $request->designation : [];
         $fromDates = is_array($request->work_date_from ?? null) ? $request->work_date_from : [];
         $toDates = is_array($request->work_date_to ?? null) ? $request->work_date_to : [];
@@ -33,6 +35,7 @@ final class FormWExperienceRules
         $max = max(
             count($levels),
             count($exps),
+            count($totals),
             count($designations),
             count($fromDates),
             count($toDates),
@@ -43,6 +46,9 @@ final class FormWExperienceRules
             $section = strtolower(trim((string) ($sections[$i] ?? '')));
             $wl = trim((string) ($levels[$i] ?? ''));
             $ex = trim((string) ($exps[$i] ?? ''));
+            if ($ex === '') {
+                $ex = trim((string) ($totals[$i] ?? ''));
+            }
             $des = trim((string) ($designations[$i] ?? ''));
             $from = trim((string) ($fromDates[$i] ?? ''));
             $to = trim((string) ($toDates[$i] ?? ''));

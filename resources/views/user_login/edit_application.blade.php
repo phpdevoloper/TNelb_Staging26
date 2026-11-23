@@ -135,19 +135,7 @@
         color: #fff;
         text-transform: uppercase;
     }
-    .fs-card-header .instructions-link {
-        text-align: right;
-        margin-top: 0;
-        margin-bottom: -1px;
-        font-size: .82rem;
-        line-height: 1;
-    }
-    .fs-card-header .instructions-link a {
-        color: rgba(255,255,255,.9);
-        text-decoration: none;
-        border-bottom: 1px dashed rgba(255,255,255,.5);
-    }
-    .fs-card-header .instructions-link a:hover { color: #fff; border-bottom-color: #fff; }
+    
 
     /* ── Mandatory notice ─────────────────────────────── */
     .fs-mandatory-bar {
@@ -201,6 +189,9 @@
         cursor: pointer;
         transition: background .15s ease, color .15s ease, border-color .15s ease;
         flex-shrink: 0;
+        /* Bootstrap .col-* are position:relative and come later in the DOM, so they painted over
+           this absolutely positioned button; lift it above the section content. */
+        z-index: 10;
     }
     .fs-section-edit-toggle:hover { background: #035ab3; color: #fff; border-color: #035ab3; }
     .fs-section-edit-toggle i { font-size: .9rem; }
@@ -992,25 +983,13 @@
 @php
     $editEnglishTitle = isset($licence_name->licence_name) ? $licence_name->licence_name : 'Competency Certificate';
     if ($editFormName === 'S') {
-        $editTamilTitle = 'மேற்பார்வையாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்';
-        $editNotesPdf = 'assets/pdf/form_s_notes.pdf';
-        $editNotesLang = 'English';
-        $editNotesSize = '8 KB';
+        $editTamilTitle = 'மேற்பார்வையாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்';
     } elseif ($editFormName === 'W') {
-        $editTamilTitle = 'மின்கம்பியாளர் தகுதி சான்றிதழ் பெறுவதற்கான விண்ணப்பம்';
-        $editNotesPdf = 'assets/pdf/form_w_notes.pdf';
-        $editNotesLang = 'தமிழ்';
-        $editNotesSize = '38 KB';
+        $editTamilTitle = 'மின்கம்பியாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்';
     } elseif ($editFormName === 'WH') {
         $editTamilTitle = 'மின் கம்பி உதவியாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்';
-        $editNotesPdf = 'assets/pdf/form_wh_notes.pdf';
-        $editNotesLang = 'தமிழ்';
-        $editNotesSize = '38 KB';
     } else {
         $editTamilTitle = '';
-        $editNotesPdf = 'assets/pdf/form_s_notes.pdf';
-        $editNotesLang = 'English';
-        $editNotesSize = '8 KB';
     }
 
     $editApplTypeCode = strtoupper(trim((string) ($application_details->appl_type ?? 'N')));
@@ -1048,10 +1027,6 @@
                     @endif
                     <span class="form-badge">FORM - {{ $editFormName }} / Certificate {{ $editLicenseName }}</span>
                     <h5 class="draft-title">Draft Application</h5>
-                </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url($editNotesPdf)}}" target="_blank">{{ $editNotesLang }} <i class="fa fa-file-pdf-o"></i> ({{ $editNotesSize }})</a>
                 </div>
             </div>
 
@@ -1807,7 +1782,7 @@
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasSupervisorCert ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C12345 / CC2026041234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
@@ -1917,7 +1892,7 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, CB2026041234 / CWH2026041234)</span></div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
