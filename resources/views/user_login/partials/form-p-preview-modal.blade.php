@@ -444,11 +444,11 @@
                 <h2 class="prv-fp-title" id="prvFpTitle">
                     <i class="fa fa-file-text-o"></i>
                     Application Preview
-                    <span class="prv-fp-badge">FORM P</span>
+                    <span class="prv-fp-badge">Form P</span>
                     <span class="prv-fp-badge prv-fp-badge--renew" id="prvFpRenewBadge" style="{{ $formPPreviewIsRenewal ? '' : 'display:none;' }}">Renewal</span>
                     <span class="prv-fp-badge prv-fp-badge--renew" id="prvFpAltBadge" style="display:none;">Alteration</span>
                 </h2>
-                <div class="prv-fp-subtitle" id="prvFpSubtitle">Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.</div>
+                <div class="prv-fp-subtitle" id="prvFpSubtitle">“Confirm every section carefully before submitting the application. Use <strong>Back to Edit</strong> if anything needs correction.”<span class="prv-fp-subtitle-ta" lang="ta" style="display:block;margin-top:4px;">“விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.”</span></div>
             </div>
             <button type="button" class="prv-fp-close" id="prvFpCloseBtn" title="Close preview" aria-label="Close preview">&times;</button>
         </div>
@@ -469,7 +469,7 @@
                 <div class="prv-fp-meta-value" id="prvFpMetaAppId">—</div>
             </div>
             <div class="prv-fp-meta-card">
-                <div class="prv-fp-meta-label">Licence / Certificate</div>
+                <div class="prv-fp-meta-label">Type of Certificate</div>
                 <div class="prv-fp-meta-value" id="prvFpMetaLicence">—</div>
             </div>
         </div>
@@ -552,13 +552,13 @@
                         </table>
                     </div>
 
-                    <div class="prv-fp-subhead">(ii) Training Institute</div>
+                    <div class="prv-fp-subhead">(ii) Institution Name and Training duration</div>
                     <div class="prv-fp-table-wrap">
                         <table class="prv-fp-table">
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>Institute Name &amp; Address</th>
+                                    <th>Institution Name &amp; Address</th>
                                     <th>From</th>
                                     <th>To</th>
                                     <th>Year / Month / Day</th>
@@ -569,7 +569,7 @@
                         </table>
                     </div>
 
-                    <div class="prv-fp-subhead">(iii) Power Station Experience</div>
+                    <div class="prv-fp-subhead">(iii) Power Station to which the application is attached at present</div>
                     <div class="prv-fp-table-wrap">
                         <table class="prv-fp-table">
                             <thead>

@@ -662,6 +662,25 @@
                 opts.isFormP === true,
                 { feeExempt: false }
             );
+
+            // Form P: after a successful payment go to the dashboard, where the submitted application now is.
+            // The delay keeps the Download button usable on the success popup.
+            if (opts.isFormP === true) {
+                var seconds = 10;
+                var dashboardTarget = cfg.dashboardUrl || ((typeof BASE_URL !== 'undefined' ? BASE_URL : '') + '/dashboard');
+                var $note = $('<p id="ps_redirect_note" class="text-muted small text-center mt-2 mb-0"></p>');
+                $('#paymentSuccessModal .modal-body').first().append($note);
+                var tick = function () {
+                    $note.text('You will be taken to your dashboard in ' + seconds + ' second' + (seconds === 1 ? '' : 's') + '.');
+                    if (seconds <= 0) {
+                        window.location.href = dashboardTarget;
+                        return;
+                    }
+                    seconds--;
+                    setTimeout(tick, 1000);
+                };
+                tick();
+            }
         }
 
         function finishPending(message) {
@@ -853,7 +872,7 @@
         } else {
             url = (language === 'tamil')
                 ? `${(cfg.baseUrl || (typeof BASE_URL !== "undefined" ? BASE_URL : "")).replace(/\/$/, "")}/generateTamilPDF/${window.paymentAppId}`
-                : `${(cfg.baseUrl || (typeof BASE_URL !== "undefined" ? BASE_URL : "")).replace(/\/$/, "")}/generate-pdf/${window.paymentAppId}`;
+                : `${(cfg.baseUrl || (typeof BASE_URL !== "undefined" ? BASE_URL : "")).replace(/\/$/, "")}/application-pdf/${window.paymentAppId}`;
         }
         window.open(url, '_blank');
     }
@@ -956,6 +975,7 @@
                 const applicantName = params.get('applicant_name') || 'N/A';
                 const licenceName = params.get('licence_name') || 'N/A';
                 const formType = params.get('form_type') || 'New Application';
+                const returnedFormName = String(params.get('form_name') || '').toUpperCase();
                 const transactionDate = params.get('transaction_date')
                     || new Date().toLocaleDateString('en-GB');
 
@@ -971,7 +991,7 @@
                     amount,
                     formType,
                     licenceName,
-                    false,
+                    returnedFormName === 'P',
                     { feeExempt: false }
                 );
 
@@ -2020,9 +2040,15 @@
 
                 const $eduTable = $('#education-table');
                 if ($eduTable.length) $eduTable.next('.education-error').remove();
-                $box.find('.education-fields .edu-serial').each(function (idx) {
-                    $(this).text(String(idx + 1));
-                });
+                // Shared Form S table: renumber serials AND education_document[i] so file keys stay
+                // aligned with educational_level[] / edu_id[] after rows are dropped.
+                if (typeof window.fsRenumberEducationRows === 'function') {
+                    window.fsRenumberEducationRows();
+                } else {
+                    $box.find('.education-fields .edu-serial').each(function (idx) {
+                        $(this).text(String(idx + 1));
+                    });
+                }
             }
         }
 
@@ -2105,19 +2131,18 @@
                     padding: 16px 22px 14px; flex-shrink: 0;
                     display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
                 }
-                .prv-sw-modal-root .prv-sw-header-main { min-width: 0; }
+                .prv-sw-modal-root .prv-sw-header-main { min-width: 0; flex: 1 1 auto; text-align: left; }
                 .prv-sw-modal-root .prv-sw-title {
                     margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; line-height: 1.35;
                     display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
                 }
-                .prv-sw-modal-root .prv-sw-title .fa { opacity: .9; }
                 .prv-sw-modal-root .prv-sw-badge {
                     display: inline-block; background: rgba(255,255,255,.16);
                     border: 1px solid rgba(255,255,255,.32); color: #fff;
                     border-radius: 999px; padding: 2px 11px; font-size: .72rem; font-weight: 600;
                 }
                 .prv-sw-modal-root .prv-sw-badge--renew { background: rgba(255, 193, 7, .22); border-color: rgba(255, 220, 100, .45); }
-                .prv-sw-modal-root .prv-sw-subtitle { font-size: .78rem; color: rgba(255,255,255,.82); margin-top: 4px; line-height: 1.4; }
+                .prv-sw-modal-root .prv-sw-subtitle { font-size: .78rem; color: rgba(255,255,255,.82); margin-top: 4px; line-height: 1.5; }
                 .prv-sw-modal-root .prv-sw-close {
                     background: rgba(255,255,255,.14); border: none; color: #fff;
                     width: 34px; height: 34px; border-radius: 50%; font-size: 1.25rem;
@@ -2387,12 +2412,12 @@
                         <div class="prv-sw-header">
                             <div class="prv-sw-header-main">
                                 <h2 class="prv-sw-title" id="prvSwTitle">
-                                    <i class="fa fa-file-text-o"></i>
                                     Application Preview
                                     <span class="prv-sw-badge" id="prvSwFormBadge">FORM</span>
                                     <span class="prv-sw-badge prv-sw-badge--renew" id="prvSwRenewBadge" style="display:none;">Renewal</span>
                                 </h2>
-                                <div class="prv-sw-subtitle">Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.</div>
+                                <div class="prv-sw-subtitle">“Confirm every section carefully before submitting the application. Use Back to Edit if anything needs correction”.</div>
+                                <div class="prv-sw-subtitle" style="margin-top:4px;">“விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.”</div>
                             </div>
                             <button type="button" class="prv-sw-close" id="prvSwCloseBtn" title="Close preview" aria-label="Close preview">&times;</button>
                         </div>
@@ -2413,7 +2438,7 @@
                                 <div class="prv-sw-meta-value" id="prvSwMetaAppId">&mdash;</div>
                             </div>
                             <div class="prv-sw-meta-card">
-                                <div class="prv-sw-meta-label">Licence / Certificate</div>
+                                <div class="prv-sw-meta-label">Type of Certificate</div>
                                 <div class="prv-sw-meta-value" id="prvSwMetaLicence">&mdash;</div>
                             </div>
                         </div>
@@ -4157,7 +4182,7 @@
                 } else if (eduLevel.length) {
                     let formName = ($('#form_name').val() || '').toString().toUpperCase();
                     if (formName === 'S') {
-                        const allowed = ['DEE', 'BEE', 'MEE', 'AMIE', 'EX'];
+                        const allowed = ['DEE', 'BEE', 'MEE', 'AMIE', 'EXS'];
                         const val = (eduLevel.val() || '').toString().toUpperCase();
                         if (val !== '' && !allowed.includes(val)) {
                             eduLevel.after('<span class="error-message text-danger d-block mt-1">For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE, or Ex Serviceman options are allowed.</span>');

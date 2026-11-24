@@ -987,7 +987,7 @@
         @if($isFormP)
         <div class="summary-card">
                 <div class="summary-heading">
-                    <div class="bi-en">(ii) Institute in which the applicant has undergone training and the period</div>
+                    <div class="bi-en">(ii) Institution Name and Training duration</div>
                     <div class="bi-ta" lang="ta">பயிற்சி நிறுவனம்</div>
                 </div>
                 <table class="summary-table">
@@ -1019,7 +1019,7 @@
 
         <div class="summary-card">
             <div class="summary-heading">
-                <div class="bi-en">{{ $isFormP ? '(iii) Power Station to which he is attached at present' : '7. Details of Previous and Current Work experiences' }}</div>
+                <div class="bi-en">{{ $isFormP ? '(iii) Power Station to which the application is attached at present' : '7. Details of Previous and Current Work experiences' }}</div>
                 <div class="bi-ta" lang="ta">அனுபவ விவரங்கள்</div>
             </div>
             <table class="summary-table">

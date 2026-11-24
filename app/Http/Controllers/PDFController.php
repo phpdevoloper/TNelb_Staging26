@@ -40,6 +40,7 @@ use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\DocumentVersion\DocumentStorageService;
 
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -513,12 +514,15 @@ class PDFController extends Controller
 
     public function generateFormPPDF($newApplicationId)
     {
-        $form = TnelbFormP::where('application_id', $newApplicationId)->first();
+        // Current applications live in cc_form_p_meta; tnelb_form_p only holds older ones.
+        $form = $this->resolveApplicationFormForPdf((string) $newApplicationId)
+            ?? TnelbFormP::where('application_id', $newApplicationId)->first();
         $education = CC_Education::where('application_id', $newApplicationId)->get();
         $experience = CC_Experience::where('application_id', $newApplicationId)->get();
         $institutes = CC_Proof_doc::where('application_id', $newApplicationId)->get();
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
-        $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+        $payment = $this->getPayment((string) $newApplicationId)
+            ?? DB::table('payments')->where('application_id', $newApplicationId)->first();
 
         if (!$form) {
             return redirect()->back()->with('error', 'No records found!');
@@ -751,7 +755,7 @@ class PDFController extends Controller
         $html .= '<table class="form-p-grid form-p-section-hdr" cellpadding="0" cellspacing="0">
         <tr>
             <td class="fp-num"></td>
-            <td class="fp-section-span" colspan="4">(II) INSTITUTE IN WHICH THE APPLICANT HAS UNDERGONE THE TRAINING AND THE PERIOD</td>
+            <td class="fp-section-span" colspan="4">(II) INSTITUTION NAME AND TRAINING DURATION</td>
         </tr>
         </table>
         <div class="section-table">
@@ -777,7 +781,7 @@ class PDFController extends Controller
         $html .= '<table class="form-p-grid form-p-section-hdr" cellpadding="0" cellspacing="0">
         <tr>
             <td class="fp-num"></td>
-            <td class="fp-section-span" colspan="4">(III) POWER STATION TO WHICH HE IS ATTACHED AT PRESENT</td>
+            <td class="fp-section-span" colspan="4">(III) POWER STATION TO WHICH THE APPLICATION IS ATTACHED AT PRESENT</td>
         </tr>
         </table>
         <div class="section-table">
@@ -893,14 +897,17 @@ class PDFController extends Controller
     public function generateFormPPDFTA($newApplicationId)
     {
 
-        $form = TnelbFormP::where('application_id', $newApplicationId)->first();
+        // Current applications live in cc_form_p_meta; tnelb_form_p only holds older ones.
+        $form = $this->resolveApplicationFormForPdf((string) $newApplicationId)
+            ?? TnelbFormP::where('application_id', $newApplicationId)->first();
 
         // var_dump(format_date($form->previously_number));die;
         $education = CC_Education::where('application_id', $newApplicationId)->get();
         $experience = CC_Experience::where('application_id', $newApplicationId)->get();
         $institutes = CC_Proof_doc::where('application_id', $newApplicationId)->get();
         $applicant_photo = TnelbApplicantPhoto::where('application_id', $newApplicationId)->first();
-        $payment = DB::table('payments')->where('application_id', $newApplicationId)->first();
+        $payment = $this->getPayment((string) $newApplicationId)
+            ?? DB::table('payments')->where('application_id', $newApplicationId)->first();
 
         if (!$form) {
             return redirect()->back()->with('error', 'No records found!');
@@ -958,7 +965,7 @@ class PDFController extends Controller
             'S' => 'Application for Competency Certificate for Supervisor',
             'W' => 'Application for Competency Certificate for Wireman',
             'WH' => 'Application for Competency Certificate for Wireman Helper',
-            default => 'மின் உற்பத்தி நிலைய செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழுக்கான விண்ணப்பம்',
+            default => 'மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்',
         };
 
         $html = '
@@ -1029,7 +1036,7 @@ class PDFController extends Controller
         $html .= '</table>';
 
         // Experience
-        $html .= '<h4 class="ta">(ii). விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் காலம்</h4>
+        $html .= '<h4 class="ta">(ii). நிறுவனத்தின் பெயர் மற்றும் பயிற்சி காலம்</h4>
         <table class="tbl-bordered">
         <tr>
         <th class="ta">வரிைச எண</th><th class="ta">நிறுவனத்தின் பெயர் & முகவரி</th><th class="ta">பயிற்சி பெற்ற காலம்</th><th class="ta">தேதி முதல்</th><th class="ta">தேதி வரை</th>
@@ -1047,7 +1054,7 @@ class PDFController extends Controller
 
 
         // Section 5 (iii) – Tamil – தற்போது பணியாற்றி வரும் மின் நிலையம்
-        $html .= '<h4 class="ta">(iii). தற்போது பணியாற்றி வரும் மின் நிலையம்</h4>
+        $html .= '<h4 class="ta">(iii). விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம்</h4>
         <table class="tbl-bordered">
         <tr>
         <th class="ta">வரிசை எண்</th><th class="ta">மின் நிலையத்தின் பெயர்</th><th class="ta">தேதி முதல்</th><th class="ta">தேதி வரை</th><th class="ta">மொத்த ஆண்டுகள்</th><th class="ta">பதவி</th>
@@ -1203,6 +1210,71 @@ class PDFController extends Controller
             return null;
         }
     }
+    /**
+     * Decrypt (if needed) and expose image bytes to mPDF as a file path.
+     * Temp files are removed when the request ends.
+     */
+    private function materializeMpdfImageBytes(string $bytes, string $referencePath): ?string
+    {
+        if ($bytes === '') {
+            return null;
+        }
+
+        try {
+            if (SensitiveProofCryptService::isEncryptedProofDocumentPath($referencePath)) {
+                $bytes = app(SensitiveProofCryptService::class)->decryptFileContents($bytes);
+            }
+
+            $normalizedRef = trim(str_replace('\\', '/', $referencePath), '/');
+            $needsTemp = SensitiveProofCryptService::isEncryptedProofDocumentPath($referencePath)
+                || preg_match('#^FORM_[A-Z]+/#', $normalizedRef)
+                || ! is_file($referencePath);
+
+            if ($needsTemp) {
+                $ext = strtolower(pathinfo($referencePath, PATHINFO_EXTENSION) ?: '');
+                if ($ext === '' || $ext === 'bin') {
+                    $ext = 'jpg';
+                    if (str_starts_with($bytes, "\x89PNG")) {
+                        $ext = 'png';
+                    } elseif (str_starts_with($bytes, 'GIF8')) {
+                        $ext = 'gif';
+                    }
+                }
+
+                // tempnam() creates and reserves $base; keep it until the request ends so a concurrent
+                // request cannot be handed the same name and overwrite $base.<ext> with another person's image.
+                $base = tempnam(sys_get_temp_dir(), 'tnelb_pdf_img_');
+                if ($base === false) {
+                    return null;
+                }
+
+                $tmp = $base . '.' . $ext;
+                if (file_put_contents($tmp, $bytes) === false) {
+                    @unlink($tmp);
+                    @unlink($base);
+
+                    return null;
+                }
+
+                register_shutdown_function(static function () use ($base, $tmp) {
+                    @unlink($tmp);
+                    @unlink($base);
+                });
+
+                return $tmp;
+            }
+
+            return $referencePath;
+        } catch (\Throwable $e) {
+            Log::warning('Failed to decode image bytes for application PDF', [
+                'path' => $referencePath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
     private function resolveMpdfImagePath(?string $storedPath): ?string
     {
         $storedPath = trim(str_replace('\\', '/', (string) $storedPath));
@@ -1266,6 +1338,18 @@ class PDFController extends Controller
     public function generatePDF($application_id)
     {
         $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
+
+        // Only the applicant who owns the application may download its PDF (404 hides whether the id exists).
+        $sessionLoginId = trim((string) (Auth::user()->login_id ?? ''));
+        abort_unless(
+            $application
+                && Auth::check()
+                && $sessionLoginId !== ''
+                && $sessionLoginId === trim((string) ($application->login_id ?? '')),
+            404
+        );
+
+        $digi_details = null;
         [$applicant_photo, $applicant_sign] = $this->resolveLicensePdfApplicantMedia($application_id);
 
 
@@ -1295,7 +1379,7 @@ class PDFController extends Controller
 
         $applicant = app(CompetencyApplicationService::class)->licensePdfApplicant($application_id, $application);
         if (!$applicant) {
-            return back()->with('error', 'Application not found.');
+            abort(404, 'Application not found.');
         }
         $certificateList = app(CompetencyCertificateService::class)
             ->activeCertificatesForLogin((string) ($application->login_id ?? ''))
@@ -1590,11 +1674,11 @@ class PDFController extends Controller
         // var_dump($photoPath);exit;
         $qc = [];
 
-        if ($application->qc == 1) {
+        if (($application->qc ?? 0) == 1) {
             $qc[] = 'QC';
         }
 
-        if ($application->qsc == 1) {
+        if (($application->qsc ?? 0) == 1) {
             $qc[] = 'QSC';
         }
 
@@ -1610,7 +1694,7 @@ class PDFController extends Controller
 
         $oldCertificateRow = '';
 
-        if ($application && $application->appl_type === 'D') {
+        if ($application && $application->appl_type === 'D' && ! empty($digi_details)) {
 
             $employment = $digi_details->cl_type . ' - ' .
                 $digi_details->licence_no . ' - ' .
@@ -1628,7 +1712,7 @@ class PDFController extends Controller
                                 </div>
                             </td>
                             <td class="colon">:</td>
-                            <td class="val">' . $employment . '</td>
+                            <td class="val">' . e($employment) . '</td>
                         </tr>';
             }
         }
@@ -1677,12 +1761,12 @@ class PDFController extends Controller
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $applicant->name . '</td>
+                                    <td class="val">' . e($applicant->name) . '</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Father / Husband Name</div><div class="lbl-ta" lang="ta">தந்தை / கணவர் பெயர்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $applicant->fathers_name . '</td>
+                                    <td class="val">' . e($applicant->fathers_name) . '</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of Birth</div><div class="lbl-ta" lang="ta">பிறந்த தேதி</div></div></td>
@@ -1692,12 +1776,12 @@ class PDFController extends Controller
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Address</div><div class="lbl-ta" lang="ta">முகவரி</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $applicant->applicants_address . '</td>
+                                    <td class="val">' . e($applicant->applicants_address) . '</td>
                                 </tr>
                                  <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Certificate Name</div><div class="lbl-ta" lang="ta">சான்றிதழ் பெயர்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $licence_name->licence_name . '</td>
+                                    <td class="val">' . e($licence_name->licence_name ?? ($applicant->license_name ?? '-')) . '</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Type of Application</div><div class="lbl-ta" lang="ta">விண்ணப்ப வகை</div></div></td>

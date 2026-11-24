@@ -103,7 +103,7 @@
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
                                     <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }} </span> 
-                                        D.O.B : <span style="color:#098501;">{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }} years old) </span> Applied For : <span style="color:#098501;"> FORM {{ $applicant->form_name }} | License {{ $applicant->license_name }}</span> </h4>
+                                        D.O.B : <span style="color:#098501;">{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }} years old) </span> Applied For : <span style="color:#098501;"> {{ \App\Services\Competency\FormPSchema::ADMIN_TITLE }}</span> </h4>
                                 </div>
                             </div>
                         </div>
@@ -364,7 +364,7 @@
                                                 </table>
                                             </div>
 
-                                            <h6 class="mt-2 mb-2 fw-bold">Institute in which the applicant has undergone the training and the period</h6>
+                                            <h6 class="mt-2 mb-2 fw-bold">Institution Name and Training duration</h6>
                                             <div class="table-responsive">
                                                 <table class="table table-bordered">
                                                     <thead>
@@ -406,7 +406,7 @@
                                                 </table>
                                             </div>
 
-                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which he is attached at present</h6>
+                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which the application is attached at present</h6>
                                             <div class="table-responsive">
                                                 <table class="table table-bordered">
                                                     <thead>
@@ -585,8 +585,7 @@
                                                                     id="checklist_{{ $item->id }}"
                                                                     name="checklists[{{ $item->id }}]"
                                                                     value="1"
-                                                                    {{ ($checkedList_1[$item->id] ?? 0) == 1 ? 'checked' : '' }}
-                                                                    @if($isVerified) disabled @endif>
+                                                                    {{ ($checkedList_1[$item->id] ?? 0) == 1 ? 'checked' : '' }}>
                                                             </td>
                                                             <td class="text-center">
                                                                 <div class="d-flex align-items-center justify-content-center gap-2">
@@ -600,8 +599,7 @@
                                                                             id="status_{{ $item->id }}"
                                                                             name="status[{{ $item->id }}]"
                                                                             value="1"
-                                                                            {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'checked' : '' }}
-                                                                            @if($isVerified) disabled @endif>
+                                                                            {{ (isset($verifyList[$item->id]) ? $verifyList[$item->id] : 1) ? 'checked' : '' }}>
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -708,44 +706,6 @@
                 </div>
 
                     <div class="col-xl-4 col-md-12 col-sm-12 col-12 layout-spacing">
-                        <div class="statbox widget box box-shadow mb-2">
-                            <div class="row align-items-center">
-
-                                <div class="col-lg-12">
-                                    {{-- <div class="form-check form-switch">
-                                        <label class="form-check-label fw-bold text-end" for="flexSwitchCheckDefault">If you have any queries</label>
-                                        <input class="form-check-input" type="checkbox" role="switch" id="Queryswitch">
-                                    </div> --}}
-                                    <div class="switch-wrapper d-flex justify-content-between align-items-center">
-                                        <label class="switch-label mb-0 fw-bold text-end" for="Queryswitch">If you have any queries</label>
-                                        <div class="switch form-switch-custom switch-inline form-switch-primary form-switch-custom inner-text-toggle">
-                                            <div class="input-checkbox">
-                                                <span class="switch-chk-label label-left">Yes</span>
-                                                <input class="switch-input" type="checkbox" id="Queryswitch" role="switch">
-                                                <span class="switch-chk-label label-right">No</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="box box-shadow" id="queryOptions" style="display: none;">
-                                <div class="row mt-2">
-                                    <div class="col-lg-12">
-                                       <div class="form-group">
-                                         
-                                            {{-- <label class="fw-bold">Select Query Type:</label> --}}
-                                            <select class="form-control" id="queryType" name="queryType[]" multiple>
-                                                <option value="general">General Query</option>
-                                                <option value="technical">Technical Query</option>
-                                                <option value="other">Other</option>
-                                            </select>
-
-                                            <span id="query_error" class="text-danger"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         <div class="statbox widget box box-shadow">
                                 <div class="row">
                                     <div class="col-xl-12 col-md-12 col-sm-12 col-12">
@@ -1118,60 +1078,6 @@
 
 <script>
 
-    var switch_status = document.getElementById('Queryswitch');
-    var queryDropdown = document.getElementById('queryType');
-
-    function toggleQueryOptions() {
-        if (switch_status.checked) {
-            document.getElementById('queryOptions').style.display = 'block';
-        } else {
-            document.getElementById('queryOptions').style.display = 'none';
-            
-            // Clear all selections (works for multi-select)
-            for (let i = 0; i < queryDropdown.options.length; i++) {
-                queryDropdown.options[i].selected = false;
-            }
-
-            // If using jQuery plugins like Select2 / Bootstrap-select, refresh UI too
-            if ($(queryDropdown).hasClass("select2-hidden-accessible")) {
-                $(queryDropdown).val(null).trigger("change"); // Select2 reset
-            }
-        }
-    }
-
-    // Run on load
-    toggleQueryOptions();
-
-    // Run on change
-    switch_status.addEventListener('change', toggleQueryOptions);
-
-    // var switch_status = document.getElementById('Queryswitch');
-    // var queryDropdown = document.getElementById('queryType');
-
-    // if (switch_status.checked) {
-    //     document.getElementById('queryOptions').style.display = 'block';
-    // } else {
-    //     document.getElementById('queryOptions').style.display = 'none';
-    //     queryDropdown.selectedIndex = 0; // reset dropdown
-    // }
-
-
-
-    // var switch_status = document.getElementById('Queryswitch');
-    // var queryDropdown = $('#queryType');
-
-    // if (switch_status.checked) {
-    //     $('#queryOptions').show();
-    // } else {
-    //     $('#queryOptions').hide();
-    //     queryDropdown.val([]).trigger('change'); // clear all selected options
-    // }
-
-    // document.getElementById('Queryswitch').addEventListener('change', function() {
-    //     document.getElementById('queryOptions').style.display = this.checked ? 'block' : 'none';
-    // });
-
-
     $('#remarks').maxlength({
         placement: "top"
     });
@@ -1286,10 +1192,14 @@
         
 
 
+        // Shown to the President in the approval confirmation. Replace with ELB's wording when it is supplied.
+        var PRESIDENT_APPROVAL_WARNING = 'Please note: once approved, the certificate is issued and the application cannot be changed.';
+
         approveButton.click(function () {
             var applicationId = @json($applicant->application_id);
             var processedBy = @json(Auth::user()->name);
             var remarks = $("#remarks").val().trim();
+            var checklistPayload = formPChecklistPayload(); // checklist stays editable up to the President
 
 
             Swal.fire({
@@ -1301,7 +1211,7 @@
                 //         </label>
                 //     </div>
                 // `,
-                text: 'Confirm to this application has been reviewed and approved.',
+                text: 'Confirm to this application has been reviewed and approved. ' + PRESIDENT_APPROVAL_WARNING,
                 showCancelButton: true,
                 confirmButtonText: "Approved",
                 cancelButtonText: "Cancel",
@@ -1318,6 +1228,9 @@
                             application_id: applicationId,
                             processed_by: processedBy,
                             remarks: remarks || "No remarks provided",
+                            check_id: checklistPayload.check_id,
+                            checklists: checklistPayload.checklists,
+                            status: checklistPayload.status,
                         },
                         success: function (response) {
 
@@ -1365,18 +1278,11 @@
             var processedBy     = @json(Auth::user()->name);
             var role            = @json($nextForwardUser->name);
             var remarks         = $("#remarks").val().trim();
-            var queryswitch     = $("#Queryswitch").prop("checked");
             var checkboxStatus  = "Yes";
             var checklistPayload = formPChecklistPayload();
 
-            var queryType = null;
-            var query_status = "No";
 
             
-            if (queryswitch) {
-                queryType = $("#queryType").val() || null;
-                query_status = 'Yes';
-            }
 
             Swal.fire({
                 title: "Declaration",
@@ -1411,8 +1317,6 @@
                             check_id: checklistPayload.check_id,
                             checklists: checklistPayload.checklists,
                             status: checklistPayload.status,
-                            queryswitch: query_status, // Only "Yes" or "No"
-                            "queryType[]": queryType 
                         },
                         success: function (response) {
 
@@ -1463,7 +1367,6 @@
                 if (result.isConfirmed) {
                     // your existing ajax code
 
-                    var queryType = [];
 
                     var applicationId = @json($applicant->application_id);
                     var processedBy = @json(Auth::user()->name);
@@ -1478,20 +1381,8 @@
 
                     var checkboxStatus = "Yes";
                     var checklistPayload = formPChecklistPayload();
-                    let queryswitch = $("#Queryswitch").prop("checked");
-                    queryType = $("#queryType").val();
-                    let errorBox = $("#query_error");
 
-                    errorBox.text(""); // clear previous error
 
-                    if (queryswitch && queryType.length === 0) {
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "Please select at least one query type."
-                        });
-                        return;
-                    }
 
                     $.ajax({
                         url: '{{ route('admin.forwardApplicationformp',["role" => "__ROLE__"]) }}'.replace('__ROLE__', role),
@@ -1509,8 +1400,6 @@
                             check_id: checklistPayload.check_id,
                             checklists: checklistPayload.checklists,
                             status: checklistPayload.status,
-                            queryswitch: queryswitch ? "Yes" : "No",
-                            "queryType[]": queryType
                         },
                         success: function (response) {
                             if (response.status == "success") {
@@ -1544,21 +1433,16 @@
         // Handle confirm button inside modal
         $('#confirmReturnBtn').on('click', function () {
 
-            var queryType = [];
             
             var applicationId   = @json($applicant->application_id);
             var returnBy        = @json(Auth::user()->name);
             var forwardedTo     = @json($returnForwardUser->roles_id ?? 0);
             var remarks         = $("#remarks").val().trim();
-            // var queryswitch     = $("#Queryswitch").prop("checked");
 
 
             var checkboxStatus = "Yes";
             var checklistPayload = formPChecklistPayload();
             
-            let queryswitch = $("#Queryswitch").prop("checked");
-            queryType = $("#queryType").val();
-            let errorBox = $("#query_error");
 
 
             Swal.fire({
@@ -1585,8 +1469,6 @@
                             check_id        : checklistPayload.check_id,
                             checklists      : checklistPayload.checklists,
                             status          : checklistPayload.status,
-                            queryswitch     : queryswitch ? "Yes" : "No",
-                            "queryType[]": queryType 
                         },
                         success: function (response) {
                             if (response.status == "success") {

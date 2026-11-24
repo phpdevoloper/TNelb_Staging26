@@ -1351,6 +1351,14 @@
                         $addressVal = isset($application_details)
                             ? trim((string) ($application_details->applicant_address ?? $application_details->applicants_address ?? ''))
                             : (string) (Auth::user()->address ?? '');
+                        // The locked alteration block shows the PARENT's address (what is posted while "Edit" is
+                        // off) - never the draft's address or the registration profile.
+                        $altParentAddress = isset($parent_application_details)
+                            ? trim((string) ($parent_application_details->applicant_address ?? $parent_application_details->applicants_address ?? ''))
+                            : $addressVal;
+                        if (strcasecmp($altParentAddress, 'Not provided') === 0) {
+                            $altParentAddress = '';
+                        }
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1432,14 +1440,22 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
                                             </div>
                                         </div>
-                                        <div @unless($isAlterationMode) class="fs-view-grid-value-box" @endunless>
+                                        @if($isAlterationMode)
+                                            {{-- Structured address, locked until "Edit" is chosen (alteration.js toggles
+                                                 data-address-locked); applicant_address.js composes the hidden #applicants_address. --}}
+                                            @include('user_login.partials.applicant-address-fields', [
+                                                'addressSaved' => $altParentAddress,
+                                                'addressLocked' => true,
+                                                'addressNoProfileFallback' => true,
+                                            ])
+                                        @else
+                                        <div class="fs-view-grid-value-box">
                                             <textarea rows="3"
                                                 class="form-control"
-                                                id="applicants_address"
-                                                name="applicants_address"
                                                 maxlength="255"
-                                                @unless($isAlterationMode) readonly @endunless>{{ $isAlterationMode ? $addressVal : ($addressVal ?: 'Not provided') }}</textarea>
+                                                readonly>{{ $addressVal ?: 'Not provided' }}</textarea>
                                         </div>
+                                        @endif
                                         @if($isAlterationMode)
                                         @include('user_login.alteration.partials.alt-proof-upload', [
                                             'panelId' => 'fsAltAddressProofPanel',
@@ -1528,8 +1544,11 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                             </div>
                                         </div>
-                                        <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ $addressVal }}</textarea>
-                                        <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
+                                        {{-- Structured address; applicant_address.js composes it into hidden #applicants_address. --}}
+                                        @include('user_login.partials.applicant-address-fields', [
+                                            'addressSaved' => $addressVal,
+                                            'addressLocked' => false,
+                                        ])
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1560,268 +1579,15 @@
                         </div>
                     </div>
 
-                    {{-- ═══ SECTION 5 — Education ═══ --}}
-                    <div class="fs-section {{ $isAlterationMode ? 'fs-alt-frozen-section' : '' }}">
-                        <div class="fs-section-header">
-                            <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
-                            <div>
-                                <div class="fs-section-title">
-                                    Details of Technical Qualification passed by the applicant.
-                                    <span class="section-req">*</span>
-                                    <span class="section-hint">(Upload the documents)</span>
-                                </div>
-                                <div class="fs-section-tamil">விண்ணப்பதாரரின் தொழில்நுட்ப தேர்ச்சி மற்றும் தேர்ச்சி பற்றிய விவரங்கள் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
-                            </div>
-                        </div>
-                        <div class="fs-section-body">
-                            <div class="table-responsive">
-                                                <table class="table table-bordered {{ (isset($application_details->form_name) && $application_details->form_name == 'S') ? '' : 'table-striped' }}"
-                                                    id="education-table">
-                                                    <thead>
-                                                        <tr>
-                                                            <th rowspan="2">S.No</th>
-                                                            <th rowspan="2">Education Level</th>
-                                                            <th rowspan="2">Institution/School Name</th>
-                                                            <th colspan="2" class="text-center">Year of Passing</th>
-                                                            <th rowspan="2">Certificate No</th>
-                                                            <th class="text-center" rowspan="2">Upload Document
-                                                                <br><span class="file-limit text-success small">File type: PDF(Min 5 KB To Max 200 KB)</span>
-                                                            </th>
-                                                            <th class="text-center p-1" rowspan="2">
-                                                                <div class="form-s-actions-stack">
-                                                                    <button type="button"
-                                                                        class="btn-tbl-add add-more add-more-education py-1 px-2" title="Add row">
-                                                                        <i class="fa fa-plus"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </th>
-                                                        </tr>
-                                                        <tr>
-                                                            <th class="text-center">Month</th>
-                                                            <th class="text-center">Year</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody id="education-container">
-                                                        @if ($edu_details->isNotEmpty())
-                                                        @foreach ($edu_details as $edu_details)
-                                                        <tr class="education-fields text-center" data-edu-index="{{ $loop->index }}">
-                                                            <td class="edu-serial text-center">{{ $loop->iteration }}</td>
-                                                            <td>
-                                                                @php $formName = $application_details->form_name ?? ''; @endphp
-                                                                <select class="form-control" name="educational_level[]">
-                                                                    <option disabled {{ empty($edu_details->educational_level) ? 'selected' : '' }}>Select Education</option>
-                                                                    @if ($formName === 'S')
-                                                                        <option value="DEE" {{ $edu_details->educational_level == 'DEE' ? 'selected' : '' }}>Diploma(Electrical Engineering)</option>
-                                                                        <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical Engineering)</option>
-                                                                        <option value="MEE" {{ $edu_details->educational_level == 'MEE' ? 'selected' : '' }}>M.E(Electrical Engineering)</option>
-                                                                    @elseif ($formName === 'W')
-                                                                        <option value="NTC" {{ $edu_details->educational_level == 'NTC' ? 'selected' : '' }}>NTC</option>
-                                                                        <option value="Provisional" {{ $edu_details->educational_level == 'Provisional' ? 'selected' : '' }}>Provisional</option>
-                                                                        <option value="Ex-Serviceman" {{ $edu_details->educational_level == 'Ex-Serviceman' ? 'selected' : '' }}>Ex-Serviceman</option>
-                                                                        <option value="H to B" {{ $edu_details->educational_level == 'H to B' ? 'selected' : '' }}>H to B</option>
-                                                                        <option value="SCVT" {{ $edu_details->educational_level == 'SCVT' ? 'selected' : '' }}>SCVT</option>
-                                                                    @elseif ($formName === 'WH')
-                                                                        <option value="Up to 8th Standard" {{ $edu_details->educational_level == 'Up to 8th Standard' ? 'selected' : '' }}>Up to 8th Standard</option>
-                                                                        <option value="Wireman Helper Examination" {{ $edu_details->educational_level == 'Wireman Helper Examination' ? 'selected' : '' }}>Wireman Helper Examination</option>
-                                                                        <option value="ITI Certificate" {{ $edu_details->educational_level == 'ITI Certificate' ? 'selected' : '' }}>ITI Certificate</option>
-                                                                    @elseif ($formName === 'P')
-                                                                        <option value="BEM" {{ $edu_details->educational_level == 'BEM' ? 'selected' : '' }}>B.E(Mechanical)</option>
-                                                                        <option value="BEE" {{ $edu_details->educational_level == 'BEE' ? 'selected' : '' }}>B.E(Electrical)</option>
-                                                                        <option value="DiplomaM" {{ $edu_details->educational_level == 'DiplomaM' ? 'selected' : '' }}>Diploma(Mechanical)</option>
-                                                                        <option value="DiplomaE" {{ $edu_details->educational_level == 'DiplomaE' ? 'selected' : '' }}>Diploma(Electrical)</option>
-                                                                    @else
-                                                                        <option value="PG" {{ $edu_details->educational_level == 'PG' ? 'selected' : '' }}>PG</option>
-                                                                        <option value="UG" {{ $edu_details->educational_level == 'UG' ? 'selected' : '' }}>UG</option>
-                                                                        <option value="B.E" {{ $edu_details->educational_level == 'B.E' ? 'selected' : '' }}>B.E</option>
-                                                                        <option value="M.E" {{ $edu_details->educational_level == 'M.E' ? 'selected' : '' }}>M.E</option>
-                                                
-                                                                    @endif
-                                                                </select>
-                                                            </td>
-                                                            @php
-                                                                $isWH = (isset($application_details->form_name) && $application_details->form_name === 'WH');
-                                                                $isDraft = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $instituteDisplayValue = !empty(trim((string) ($edu_details->institute_name ?? '')))
-                                                                    ? $edu_details->institute_name
-                                                                    : ($isDraft && $isWH ? 'Dept of Employment & Training' : '');
-                                                            @endphp
-                                                            <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($instituteDisplayValue) !!}"></td>
-                                                            <td>
-                                                                <select name="month_of_passing[]" class="form-control">
-                                                                    <option value="">Select Month</option>
-                                                                    <option value="01" {{ ($edu_details->month_passing ?? '') == '01' ? 'selected' : '' }}>Jan</option>
-                                                                    <option value="02" {{ ($edu_details->month_passing ?? '') == '02' ? 'selected' : '' }}>Feb</option>
-                                                                    <option value="03" {{ ($edu_details->month_passing ?? '') == '03' ? 'selected' : '' }}>Mar</option>
-                                                                    <option value="04" {{ ($edu_details->month_passing ?? '') == '04' ? 'selected' : '' }}>Apr</option>
-                                                                    <option value="05" {{ ($edu_details->month_passing ?? '') == '05' ? 'selected' : '' }}>May</option>
-                                                                    <option value="06" {{ ($edu_details->month_passing ?? '') == '06' ? 'selected' : '' }}>Jun</option>
-                                                                    <option value="07" {{ ($edu_details->month_passing ?? '') == '07' ? 'selected' : '' }}>Jul</option>
-                                                                    <option value="08" {{ ($edu_details->month_passing ?? '') == '08' ? 'selected' : '' }}>Aug</option>
-                                                                    <option value="09" {{ ($edu_details->month_passing ?? '') == '09' ? 'selected' : '' }}>Sep</option>
-                                                                    <option value="10" {{ ($edu_details->month_passing ?? '') == '10' ? 'selected' : '' }}>Oct</option>
-                                                                    <option value="11" {{ ($edu_details->month_passing ?? '') == '11' ? 'selected' : '' }}>Nov</option>
-                                                                    <option value="12" {{ ($edu_details->month_passing ?? '') == '12' ? 'selected' : '' }}>Dec</option>
-                                                                </select>
-                                                            </td>
-                                                            <td>
-                                                                <select name="year_of_passing[]" class="form-control">
-                                                                    <option value="0" disabled {{ empty($edu_details->year_of_passing) ? 'selected' : '' }}>Select Year</option>
-                                                                    @php
-                                                                        $currentYear = date('Y');
-                                                                    @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
-                                                                        <option value="{{ $year }}" {{ $edu_details->year_of_passing == $year ? 'selected' : '' }}>
-                                                                            {{ $year }}
-                                                                        </option>
-                                                                    @endfor
-                                                                </select>
-                                                            </td>
-                                                            <td>
-                                                                <input type="text"
-                                                                    class="form-control certificate-input"
-                                                                    name="certificate_no[]"
-                                                                    maxlength="20"
-                                                                    required
-                                                                    value="{{ $edu_details->certificate_no ?? $edu_details->percentage ?? '' }}">
-                                                                <span class="error text-danger certificate-error"></span>
-                                                            </td>
-                                                            <td>
-                                                                <div class="file-section text-center">
-                                                                    @if (!empty($edu_details->upload_document))
-                                                                        <div class="edu-doc-container d-flex align-items-center justify-content-center">
-                                                                            <a class="text-primary" href="{{ competency_document_url($edu_details->upload_document ?? null, 'education', (int) ($edu_details->id ?? 0), 'certificate') ?? '#' }}" target="_blank">
-                                                                                <i class="fa fa-file-pdf-o" style="color: red"></i> View Document
-                                                                            </a>
-                                                                            {{-- <button type="button" class="btn btn-sm btn-danger ml-2 remove-doc_edu_confirm">Remove</button> --}}
-                                                                        </div>
-                                                                        <div class="edu-doc-input d-none">
-                                                                            <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
-                                                                                <input type="file" class="form-control" name="education_document[{{ $loop->index }}]" accept="{{ (isset($application_details->form_name) && $application_details->form_name == 'S') ? '.pdf,application/pdf' : '.pdf,application/pdf,image/jpeg,image/png' }}">
-                                                                            </div>
-                                                                        </div>
-                                                                    @else
-                                                                        <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
-                                                                            <input type="file" class="form-control" name="education_document[{{ $loop->index }}]" accept="{{ (isset($application_details->form_name) && $application_details->form_name == 'S') ? '.pdf,application/pdf' : '.pdf,application/pdf,image/jpeg,image/png' }}">
-                                                                        </div>
-                                                                    @endif
-                                                                </div>
-                                                            </td>
-
-                                                            <td class="form-s-actions-cell text-center p-1">
-                                                                <div class="form-s-actions-stack">
-                                                                    <button type="button" class="btn btn-danger btn-sm remove-education remove_edu py-1 px-2" data-edu_id = "{{ $edu_details->id }}" data-url= "{{ route('delete_education') }}" title="Remove row">
-                                                                        <i class="fa fa-trash-o"></i>
-                                                                    </button>
-                                                                </div>
-                                                                <!-- Keep IDs inside a cell to avoid invalid table markup causing dropped/misaligned inputs -->
-                                                                <input type="hidden" name="edu_id[]" value="{{ $edu_details->id }}">
-                                                                <input type="hidden" name="existing_document[]" value="{{ $edu_details->upload_document }}">
-                                                                <input type="hidden" class="removed-document-edu" name="removed_document[]" value="0">
-                                                            </td>
-                                                        </tr>
-                                                        @endforeach
-                                                        @else
-                                                        <tr class="education-fields text-center" data-edu-index="0">
-                                                            <td class="edu-serial text-center">1</td>
-                                                            <td>
-                                                                @php $formName = $application_details->form_name ?? ''; @endphp
-                                                                <select class="form-control" name="educational_level[]">
-                                                                    <option selected disabled>Select Education</option>
-                                                                    @if ($formName === 'S')
-                                                                        <option value="DEE">Diploma(Electrical Engineering)</option>
-                                                                        <option value="BEE">B.E(Electrical Engineering)</option>
-                                                                        <option value="MEE">M.E(Electrical Engineering)</option>
-                                                                    @elseif ($formName === 'W')
-                                                                        <option value="NTC">NTC</option>
-                                                                        <option value="Provisional">Provisional</option>
-                                                                        <option value="Ex-Serviceman">Ex-Serviceman</option>
-                                                                        <option value="H to B">H to B</option>
-                                                                        <option value="SCVT">SCVT</option>
-                                                                    @elseif ($formName === 'WH')
-                                                                        <option value="Up to 8th Standard">Up to 8th Standard</option>
-                                                                        <option value="Wireman Helper Examination">Wireman Helper Examination</option>
-                                                                        <option value="ITI Certificate">ITI Certificate</option>
-                                                                    @elseif ($formName === 'P')
-                                                                        <option value="BEM">B.E(Mechanical)</option>
-                                                                        <option value="BEE">B.E(Electrical)</option>
-                                                                        <option value="DiplomaM">Diploma(Mechanical)</option>
-                                                                        <option value="DiplomaE">Diploma(Electrical)</option>
-                                                                    @else
-                                                                        <option value="PG">PG</option>
-                                                                        <option value="UG">UG</option>
-                                                                        <option value="B.E">B.E</option>
-                                                                        <option value="M.E">M.E</option>
-                                                                        <option value="Diploma">Diploma</option>
-                                                                        <option value="+2">+2</option>
-                                                                        <option value="10">10</option>
-                                                                    @endif
-                                                                </select>
-                                                            </td>
-                                                            @php
-                                                                $isWHEmptyRow = isset($application_details->form_name) && $application_details->form_name === 'WH';
-                                                                $isDraftEmptyRow = isset($application_details->payment_status) && strtolower(trim((string) $application_details->payment_status)) === 'draft';
-                                                                $defaultInstituteForEmptyRow = ($isDraftEmptyRow && $isWHEmptyRow) ? 'Dept of Employment & Training' : '';
-                                                            @endphp
-                                                            <td><input type="text" class="form-control" name="institute_name[]" value="{!! e($defaultInstituteForEmptyRow) !!}"></td>
-                                                            <td>
-                                                                <select name="month_of_passing[]" class="form-control">
-                                                                    <option value="">Select Month</option>
-                                                                    <option value="01">Jan</option>
-                                                                    <option value="02">Feb</option>
-                                                                    <option value="03">Mar</option>
-                                                                    <option value="04">Apr</option>
-                                                                    <option value="05">May</option>
-                                                                    <option value="06">Jun</option>
-                                                                    <option value="07">Jul</option>
-                                                                    <option value="08">Aug</option>
-                                                                    <option value="09">Sep</option>
-                                                                    <option value="10">Oct</option>
-                                                                    <option value="11">Nov</option>
-                                                                    <option value="12">Dec</option>
-                                                                </select>
-                                                            </td>
-                                                            <td>
-                                                                <select name="year_of_passing[]" class="form-control">
-                                                                    <option value="0">Select Year</option>
-                                                                    @php
-                                                                        $currentYear = date('Y');
-                                                                    @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
-                                                                        <option value="{{ $year }}">{{ $year }}</option>
-                                                                    @endfor
-                                                                </select>
-                                                            </td>
-                                                            <td>
-                                                                <input type="text"
-                                                                    class="form-control certificate-input"
-                                                                    name="certificate_no[]"
-                                                                    maxlength="20"
-                                                                    required>
-                                                                <span class="error text-danger certificate-error"></span>
-                                                            </td>
-                                                            <td>
-                                                                <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
-                                                                    <input type="file" class="form-control" name="education_document[0]" accept="{{ (isset($application_details->form_name) && $application_details->form_name == 'S') ? '.pdf,application/pdf' : '.pdf,application/pdf,image/jpeg,image/png' }}">
-                                                                </div>
-                                                            </td>
-                                                            <td class="form-s-actions-cell text-center p-1">
-                                                                <div class="form-s-actions-stack">
-                                                                    <button type="button" class="btn btn-danger btn-sm remove-education py-1 px-2" title="Remove row">
-                                                                        <i class="fa fa-trash-o"></i>
-                                                                    </button>
-                                                                </div>
-                                                                <input type="hidden" name="edu_id[]" value="">
-                                                                <input type="hidden" name="existing_document[]" value="">
-                                                                <input type="hidden" class="removed-document-edu" name="removed_document[]" value="0">
-                                                            </td>
-                                                        </tr>
-                                                        @endif
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                        </div>
-                    </div>
-                    {{-- /SECTION 5 --}}
+                    {{-- ═══ SECTION 6 — Education ═══ --}}
+                    @include('user_login.partials.form-s-education-section', [
+                        'eduMode' => 'alteration',
+                        'eduSectionNo' => 6,
+                        'eduRows' => $edu_details,
+                        'eduApplicationId' => (int) ($application_details->id ?? 0),
+                        'eduFrozen' => (bool) ($isAlterationMode ?? false),
+                    ])
+                    {{-- /SECTION 6 --}}
 
                     @php
                         $workQuestionNo = ($application_details->form_name ?? '') === 'S' ? 7 : 6;
@@ -2696,6 +2462,8 @@
     })();
 </script>
 @endif
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
+<script src="{{ url('assets/js/form_s_education.js') }}?v={{ filemtime(public_path('assets/js/form_s_education.js')) }}"></script>
 <script src="{{ url('assets/js/alteration.js') }}"></script>
 
 <script>
@@ -2931,127 +2699,6 @@
             }
         } catch (e) {
             // ignore; popup/payment flow will handle service errors
-        }
-    });
-
-    // Add more education row
-    $(document).on('click', function(e) {
-        if (!e.target.closest(".add-more-education") && !e.target.closest(".remove-education")) return;
-        const refreshEducationSerials = () => {
-            $('#education-container .education-fields td:first-child').each(function(index) {
-                $(this).text(index + 1);
-            });
-        };
-
-        if (e.target.closest(".add-more-education")) {
-            let container = document.getElementById("education-container");
-            if (!container) return;
-            let educationRows = container.querySelectorAll(".education-fields");
-            const isSForm = "{{ $application_details->form_name ?? '' }}" === 'S';
-            const isWHForm = "{{ $application_details->form_name ?? '' }}" === 'WH';
-            const isWOrWHForm = "{{ $application_details->form_name ?? '' }}" === 'W' || isWHForm;
-
-            if (educationRows.length >= 5) {
-                $('#education-table').next('.education-error').remove();
-
-                $('<div class="text-danger mt-2 education-error">You can add a maximum of 5 education entries.</div>')
-                .insertAfter('#education-table');
-
-                setTimeout(() => {
-                    $('.education-error').fadeOut();
-                }, 7000);
-                // alert("You can add a maximum of 5 education entries.");
-                return;
-            }
-
-            let currentYear = new Date().getFullYear();
-            let yearOptions = '<option value="">Select Year</option>';
-            for (let year = currentYear; year >= 1980; year--) {
-                yearOptions += `<option value="${year}">${year}</option>`;
-            }
-
-            // calculate next serial number + stable 0-based index for file upload mapping
-            let serialNo = $('#education-container .education-fields').length + 1;
-            let eduIdx = $('#education-container .education-fields').length;
-
-            let newRow = `
-            <tr class="education-fields text-center" data-edu-index="${eduIdx}">
-                <td class="edu-serial text-center">${serialNo}</td>
-                <td> 
-                    <select class="form-control" name="educational_level[]" required>
-                        <option value="">Select Education</option>
-                        ${isSForm
-                            ? '<option value="DEE">Diploma(Electrical Engineering)</option><option value="BEE">B.E(Electrical Engineering)</option><option value="MEE">M.E(Electrical Engineering)</option>'
-                            : (isWOrWHForm
-                                ? '<option value="Up to 8th Standard">Up to 8th Standard</option><option value="Wireman Helper(H) Certificate">Wireman Helper(H) Certificate</option><option value="ITI Certificate">ITI Certificate</option>'
-                                : '<option value="PG">PG</option><option value="UG">UG</option><option value="B.E">B.E</option><option value="M.E">M.E</option>' + (isWHForm ? '<option value="8">8</option>' : ''))}
-                    </select>
-                </td>
-                <td><input type="text" class="form-control" name="institute_name[]" required value="${isWHForm ? 'Dept of Employment & Training' : ''}"></td>
-                <td>
-                    <select name="month_of_passing[]" class="form-control" required>
-                        <option value="">Select Month</option>
-                        <option value="01">Jan</option>
-                        <option value="02">Feb</option>
-                        <option value="03">Mar</option>
-                        <option value="04">Apr</option>
-                        <option value="05">May</option>
-                        <option value="06">Jun</option>
-                        <option value="07">Jul</option>
-                        <option value="08">Aug</option>
-                        <option value="09">Sep</option>
-                        <option value="10">Oct</option>
-                        <option value="11">Nov</option>
-                        <option value="12">Dec</option>
-                    </select>
-                </td>
-                <td>
-                    <select name="year_of_passing[]" class="form-control" required>
-                        ${yearOptions}
-                    </select>
-                </td>
-                <td>
-                    <input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" placeholder="Certificate No" required>
-                    <span class="error text-danger certificate-error"></span>
-                </td>
-                <td>
-                    <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">
-                        <input type="file" class="form-control education-file" name="education_document[${eduIdx}]" accept="${isSForm ? '.pdf,application/pdf' : '.pdf,application/pdf,image/jpeg,image/png'}" required>
-                    </div>
-                </td>
-                <td class="form-s-actions-cell text-center p-1">
-                    <div class="form-s-actions-stack">
-                        <button type="button" class="btn btn-danger btn-sm remove-education py-1 px-2" title="Remove row">
-                            <i class="fa fa-trash-o"></i>
-                        </button>
-                    </div>
-                    <input type="hidden" name="edu_id[]" value="">
-                    <input type="hidden" name="existing_document[]" value="">
-                    <input type="hidden" class="removed-document-edu" name="removed_document[]" value="0">
-                </td>
-            </tr> `;
-            $('#education-container').append(newRow);
-            refreshEducationSerials();
-
-        }
-
-        if (e.target.closest(".remove-education")) {
-            // if (educationRows.length <= 1) {
-
-            //     $('#education-table').next('.education-error').remove();
-
-            //     $('<div class="text-danger mt-2 education-error">You must have at least one education entry.</div>')
-            //     .insertAfter('#education-table');
-
-            //     setTimeout(() => {
-            //         $('.education-error').fadeOut();
-            //     }, 7000);
-
-            //     // alert("You must have at least one education entry.");
-            //     return;
-            // }
-            e.target.closest("tr").remove();
-            refreshEducationSerials();
         }
     });
 

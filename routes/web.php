@@ -203,13 +203,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/get-form-instructions_alter', [FormAAlteration::class, 'getFormInstructions_alter']);
 
      Route::get('/forma-alter_draft/{application_id}', [FormAAlteration::class, 'forma_alter_draft'])
+        ->middleware('owns.application')
     ->name('forma_alter_draft');
 
 
 
     Route::get('/apply-form-a_return/{application_id}', [ReturnapplicantController::class, 'returnforma'])->name('apply-form-a_return');
 
-    Route::get('/apply-form-a_renewal_draft/{application_id}', [EA_RenewalController::class, 'edit_renewaldraft'])->name('apply-form-a_renewal_draft');
+    Route::get('/apply-form-a_renewal_draft/{application_id}', [EA_RenewalController::class, 'edit_renewaldraft'])->middleware('owns.application')->name('apply-form-a_renewal_draft');
 
     # Return store ea
     Route::post('/forma/storereturn', [ReturnapplicantController::class, 'storereturn'])->name('forma.storereturn');
@@ -223,7 +224,7 @@ Route::middleware(['auth'])->group(function () {
     # formSA
     Route::get('/apply-form-sa', [FormSAController::class, 'index'])->name('apply-form-sa');
 
-    Route::get('/renew-form_esa/{application_id}', [FormSAController::class, 'renew_form_esa'])->name('renew-form_esa');
+    Route::get('/renew-form_esa/{application_id}', [FormSAController::class, 'renew_form_esa'])->middleware('owns.application')->name('renew-form_esa');
 
     Route::post('/formsa/storerecords', [FormSAController::class, 'storerecords'])->name('formsa.storerecords');
 
@@ -236,7 +237,7 @@ Route::middleware(['auth'])->group(function () {
 
        Route::get('/apply-form-sa_renewal_draft/{application_id}', [FormSAController::class, 'edit_renewaldraft'])->name('apply-form-sa_renewal_draft');
 
-    Route::get('/generatesa-pdf/{login_id}', [PDFFormAController::class, 'generatesaPDF'])->name('generatesa.pdf');
+    Route::get('/generatesa-pdf/{login_id}', [PDFFormAController::class, 'generatesaPDF'])->middleware('owns.application')->name('generatesa.pdf');
 
 
     # FormSB
@@ -248,16 +249,16 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/formsb/storerenewal', [FormSBController::class, 'storerenewal'])->name('formsb.storerenewal');
 
-    Route::get('/generatesb-pdf/{login_id}', [PDFFormSBController::class, 'generatesbPDF'])->name('generatesb.pdf');
+    Route::get('/generatesb-pdf/{login_id}', [PDFFormSBController::class, 'generatesbPDF'])->middleware('owns.application')->name('generatesb.pdf');
 
-    Route::get('/renew-form_esb/{application_id}', [FormSBController::class, 'renew_form_esb'])->name('renew-form_esb');
+    Route::get('/renew-form_esb/{application_id}', [FormSBController::class, 'renew_form_esb'])->middleware('owns.application')->name('renew-form_esb');
 
     Route::get('/apply-form-sb_renewal_draft/{application_id}', [FormSBController::class, 'edit_renewaldraft'])->name('apply-form-sb_renewal_draft');
 
     # FormB
     Route::get('/apply-form-b', [FormBController::class, 'index'])->name('apply-form-b');
 
-     Route::get('/renew-form_eb/{application_id}', [FormBController::class, 'renew_form_eb'])->name('renew-form_eb');
+     Route::get('/renew-form_eb/{application_id}', [FormBController::class, 'renew_form_eb'])->middleware('owns.application')->name('renew-form_eb');
 
     Route::get('/apply-form-b_draft/{application_id}', [FormBController::class, 'draft'])->name('apply-form-b_draft');
 
@@ -265,18 +266,19 @@ Route::middleware(['auth'])->group(function () {
 
      Route::post('/formb/storerenewal', [FormBController::class, 'storerenewal'])->name('formb.storerenewal');
 
-     Route::get('/generateb-pdf/{login_id}', [PDFFormSBController::class, 'generatebPDF'])->name('generateb.pdf');
+     Route::get('/generateb-pdf/{login_id}', [PDFFormSBController::class, 'generatebPDF'])->middleware('owns.application')->name('generateb.pdf');
 
     # successpage
 
     Route::get('/successpage', [RegisterController::class, 'successpage'])->name('successpage');
 
     Route::get('/editApplication/{application_id}', [FormController::class, 'editApplication'])->name('edit-application');
-    Route::get('/application-preview/{application_id}', [FormController::class, 'previewApplication'])->name('dashboard.application.preview');
+    Route::get('/application-preview/{application_id}', [FormController::class, 'previewApplication'])->middleware('owns.application')->name('dashboard.application.preview');
     Route::get('/application-preview/{application_id}/proof/{type}', [FormController::class, 'previewApplicationProof'])
         ->where('type', 'aadhaar|pan')
+        ->middleware('owns.application')
         ->name('dashboard.application.proof');
-    Route::get('/application-timeline/{application_id}', [FormController::class, 'previewApplicationTimeline'])->name('dashboard.application.timeline');
+    Route::get('/application-timeline/{application_id}', [FormController::class, 'previewApplicationTimeline'])->middleware('owns.application')->name('dashboard.application.timeline');
 
     Route::get('/edit_application/{application_id}', [FormController::class, 'edit_application'])->name('edit_application');
     Route::get('/edit_returned_application/{application_id}', [FormController::class, 'editReturnedApplication'])->name('edit_returned_application');
@@ -292,15 +294,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/renew_form/{application_id}', [EA_RenewalController::class, 'renew_form'])->name('renew_form');
     Route::get('/renew-form_ea/{application_id}', [EA_RenewalController::class, 'renew_form_ea'])->name('renew-form_ea');
 
-    Route::get('/renew-form_ea_draft/{application_id}', [EA_RenewalController::class, 'renew_form_ea_draft'])->name('renew-form_ea_draft');
+    Route::get('/renew-form_ea_draft/{application_id}', [EA_RenewalController::class, 'renew_form_ea_draft'])->middleware('owns.application')->name('renew-form_ea_draft');
 
     # draft form
     Route::get('/apply-form-a_draft/{application_id}', [EA_RenewalController::class, 'edit'])->name('apply-form-a_draft');
 
 
-    Route::get('/apply-form-a_d_draft/{application_id}', [FormADigitizationController::class, 'draft_edit'])->name('apply-form-a_d_draft');
+    Route::get('/apply-form-a_d_draft/{application_id}', [FormADigitizationController::class, 'draft_edit'])->middleware('owns.application')->name('apply-form-a_d_draft');
 
-    Route::get('/apply-form-a_renewal_draft/{application_id}', [EA_RenewalController::class, 'edit_renewaldraft'])->name('apply-form-a_renewal_draft');
+    Route::get('/apply-form-a_renewal_draft/{application_id}', [EA_RenewalController::class, 'edit_renewaldraft'])->middleware('owns.application')->name('apply-form-a_renewal_draft');
 
       # New Modified Routes added here
     Route::get('forms/new_application/{form_code}', [FormController::class, 'new_application'])->name('forms.new_application');
@@ -341,7 +343,7 @@ Route::middleware(['auth'])->group(function () {
 
 
     # Contractor Application preview
-    Route::get('/contractor-application-preview/{application_id}', [PreviewController::class, 'index'])->name('contractor.application.preview');
+    Route::get('/contractor-application-preview/{application_id}', [PreviewController::class, 'index'])->middleware('owns.application')->name('contractor.application.preview');
 
 });
 
@@ -397,20 +399,20 @@ Route::post('/forma/storerenewal', [FormAController::class, 'storerenewal'])->na
 
 Route::put('/forma/update/{appl_id}', [FormAController::class, 'update'])->name('forma.update');
 
-Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->name('payment-receipt.pdf');
+Route::get('/payment-receipt/{login_id}', [PDFController::class, 'paymentDetails'])->middleware(['auth', 'owns.application'])->name('payment-receipt.pdf');
 
-Route::get('/payment-receipt_cl/{login_id}', [PDFFormAController::class, 'paymentDetails_cl'])->name('payment-receipt_cl.pdf');
+Route::get('/payment-receipt_cl/{login_id}', [PDFFormAController::class, 'paymentDetails_cl'])->middleware(['auth', 'owns.application'])->name('payment-receipt_cl.pdf');
 
-Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->name('generate.tamil.pdf');
+Route::get('/generateTamilPDF/{login_id}', [PDFController::class, 'generateTamilPDF'])->middleware(['auth', 'owns.application'])->name('generate.tamil.pdf');
 
-Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->name('generatea.pdf');
-Route::get('/generateaTamilPDF/{login_id}', [PDFFormAController::class, 'generateaTamilPDF'])->name('generatea.tamil.pdf');
+Route::get('/generatea-pdf/{login_id}', [PDFFormAController::class, 'generateaPDF'])->middleware(['auth', 'owns.application'])->name('generatea.pdf');
+Route::get('/generateaTamilPDF/{login_id}', [PDFFormAController::class, 'generateaTamilPDF'])->middleware(['auth', 'owns.application'])->name('generatea.tamil.pdf');
 
-Route::get('/test-pdf/{login_id}', [LicensepdfController::class, 'generateLicensePDF'])->name('test.pdf');
+Route::get('/test-pdf/{login_id}', [LicensepdfController::class, 'generateLicensePDF'])->middleware(['auth', 'owns.application'])->name('test.pdf');
 # Dynamic Form Access
 
 Route::get('/apply-form/{form_name}/{application_id}', [RegisterController::class, 'apply_form'])->name('apply-form');
-Route::get('/payment-receipt/{loginId}', [PDFController::class, 'downloadPaymentReceipt'])->name('paymentreceipt.pdf');
+Route::get('/payment-receipt/{loginId}', [PDFController::class, 'downloadPaymentReceipt'])->middleware(['auth', 'owns.application'])->name('paymentreceipt.pdf');
 
 
 
@@ -425,8 +427,8 @@ Route::post('/verifylicenseformAea', [LicenseController::class, 'verifylicensefo
 
 # Renuwal PDF
 
-Route::get('/generaterenewal-pdf/{login_id}', [PDFRenewalController::class, 'generaterenewalPDF'])->name('generaterenewal.pdf');
-Route::get('/generaterenewalTamilPDF/{login_id}', [PDFRenewalController::class, 'generaterenewalTamilPDF'])->name('generaterenewal.tamil.pdf');
+Route::get('/generaterenewal-pdf/{login_id}', [PDFRenewalController::class, 'generaterenewalPDF'])->middleware(['auth', 'owns.application'])->name('generaterenewal.pdf');
+Route::get('/generaterenewalTamilPDF/{login_id}', [PDFRenewalController::class, 'generaterenewalTamilPDF'])->middleware(['auth', 'owns.application'])->name('generaterenewal.tamil.pdf');
 
 # Payment
 
@@ -516,20 +518,23 @@ Route::get('/noticeboardcontent/{news_id}', [LoginController::class, 'noticeboar
 
 Route::get('/form/get-form-cost', [FormController::class, 'getFormCost'])->name('getFormCost');
 # fees
-Route::get('/generate-pdf/{application_id}', [LicensepdfController::class, 'generatePDF'])->name('generate.pdf');
+Route::get('/generate-pdf/{application_id}', [LicensepdfController::class, 'generatePDF'])->middleware(['auth', 'owns.application'])->name('generate.pdf');
+# Application (submission) PDF shown in the success popup. /generate-pdf above is the ISSUED licence PDF
+# and needs an issued certificate row, so it fails for a just-submitted application.
+Route::get('/application-pdf/{application_id}', [PDFController::class, 'generatePDF'])->middleware(['auth', 'owns.application'])->name('generate.application.pdf');
 
 # Form P submit Routes
-Route::post('/form_p/store', [FormPController::class, 'store'])->name('form_p.store');
-Route::post('/form_p/saveDraft', [FormPController::class, 'saveDraft'])->name('form_p.saveDraft');
-Route::post('/form_p/update', [FormPController::class, 'update'])->name('form_p.update');
-Route::post('/form_p/draft_renewal_submit/{appl_id?}', [FormPController::class, 'draft_renewal_submit_p'])->name('form_p.draft_renewal_submit');
+Route::post('/form_p/store', [FormPController::class, 'store'])->middleware('auth')->name('form_p.store');
+Route::post('/form_p/saveDraft', [FormPController::class, 'saveDraft'])->middleware('auth')->name('form_p.saveDraft');
+Route::post('/form_p/update', [FormPController::class, 'update'])->middleware('auth')->name('form_p.update');
+Route::post('/form_p/draft_renewal_submit/{appl_id?}', [FormPController::class, 'draft_renewal_submit_p'])->middleware('auth')->name('form_p.draft_renewal_submit');
 Route::get('/editApplication_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit-application_p');
 Route::get('/edit_returned_application_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit_returned_application_p');
 Route::post('/payment/updatePaymentFormP', [PaymentController::class, 'updatePaymentFormP'])->name('payment.updatePaymentFormP');
 Route::post('/delete_institute', [FormPController::class, 'delete_institute'])->name('delete_institute');
-Route::get('/generate-pdf-p/{login_id}', [PDFController::class, 'generateFormPPDF'])->name('generateformP.pdf');
-Route::get('/generatePDFFormP/{login_id}', [PDFController::class, 'generatePDFFormP'])->name('generatePDFFormP.pdf');
-Route::get('/generatePDFFormPTA/{login_id}', [PDFController::class, 'generateFormPPDFTA'])->name('generatePDFFormP-ta.pdf');
+Route::get('/generate-pdf-p/{login_id}', [PDFController::class, 'generateFormPPDF'])->middleware(['auth', 'owns.application'])->name('generateformP.pdf');
+Route::get('/generatePDFFormP/{login_id}', [PDFController::class, 'generatePDFFormP'])->middleware(['auth', 'owns.application'])->name('generatePDFFormP.pdf');
+Route::get('/generatePDFFormPTA/{login_id}', [PDFController::class, 'generateFormPPDFTA'])->middleware(['auth', 'owns.application'])->name('generatePDFFormP-ta.pdf');
 
 
 # staff QC dob check

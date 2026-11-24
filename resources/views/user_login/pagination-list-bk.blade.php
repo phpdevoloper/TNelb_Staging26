@@ -224,6 +224,7 @@
                     <div class="dash-app-id-wrap">
                         <a href="{{ $previewUrl }}"
                            class="js-app-preview-link"
+                           target="_blank" rel="noopener"
                            title="View application preview">
                             {{ $workflow->application_id }}
                         </a>

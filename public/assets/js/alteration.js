@@ -238,6 +238,67 @@
         newWorkRows().remove();
     }
 
+    /* ── Structured applicant address (Form S; partial applicant-address-fields) ──────────────
+       The six parts are composed by applicant_address.js into the hidden #applicants_address.
+       While "Edit address" is off the block is locked (data-address-locked="1", parts disabled)
+       and the hidden value stays the parent's address. Other alteration forms keep the textarea. */
+    var ADDRESS_PART_IDS = ['address_line1', 'address_line2', 'city', 'state', 'district', 'pincode'];
+    var parentAddressParts = null;
+
+    function hasStructuredAddress() {
+        return $('#fs-address-block').length > 0;
+    }
+
+    function captureParentAddressParts() {
+        if (!hasStructuredAddress() || parentAddressParts) return;
+        parentAddressParts = {};
+        ADDRESS_PART_IDS.forEach(function (id) {
+            parentAddressParts[id] = $('#' + id).val() || '';
+        });
+    }
+
+    /* Spacing / comma-spacing insensitive comparison, so an untouched address is never "altered". */
+    function normalizeAddress(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim().replace(/\s*,\s*/g, ', ');
+    }
+
+    function sameAddress(a, b) {
+        return normalizeAddress(a) === normalizeAddress(b);
+    }
+
+    /* Always read the freshly composed value (this handler can run before applicant_address.js). */
+    function currentAddress() {
+        if (hasStructuredAddress() && typeof window.fsComposeApplicantAddress === 'function') {
+            window.fsComposeApplicantAddress();
+        }
+        return ($('#applicants_address').val() || '').trim();
+    }
+
+    function setAddressEditable(editable) {
+        if (!hasStructuredAddress()) return;
+        $('#fs-address-block').attr('data-address-locked', editable ? '0' : '1');
+        ADDRESS_PART_IDS.forEach(function (id) {
+            $('#' + id).prop('disabled', !editable).prop('readonly', !editable);
+        });
+        if (editable) {
+            $('#district').prop('disabled', $('#state').val() !== 'Tamil Nadu');
+        }
+    }
+
+    /* Put the parts back to the parent's address and lock the block again. */
+    function lockAddressToParent() {
+        if (!hasStructuredAddress()) return;
+        captureParentAddressParts();
+        $('#fs-address-block').attr('data-address-locked', '0');
+        ADDRESS_PART_IDS.forEach(function (id) {
+            $('#' + id).val(parentAddressParts[id]);
+        });
+        $('#state').trigger('change'); // re-syncs the district row
+        setAddressEditable(false);
+        $('#applicants_address').val(parentAddress);
+        $('#applicants_address_error, #address_line1_error, #address_line2_error, #city_error, #state_error, #district_error, #pincode_error').text('');
+    }
+
     function applyAlterationOptions(scrollTarget) {
         var optName = $('#fsAltOptName').is(':checked');
         var optAddress = $('#fsAltOptAddress').is(':checked');
@@ -256,10 +317,19 @@
         }
 
         if (optAddress) {
-            $('#applicants_address').prop('readonly', false);
+            if (hasStructuredAddress()) {
+                captureParentAddressParts();
+                setAddressEditable(true);
+            } else {
+                $('#applicants_address').prop('readonly', false);
+            }
             $('#fsAltAddressProofPanel').addClass('is-visible');
         } else {
-            $('#applicants_address').val(parentAddress).prop('readonly', true);
+            if (hasStructuredAddress()) {
+                lockAddressToParent();
+            } else {
+                $('#applicants_address').val(parentAddress).prop('readonly', true);
+            }
             $('#fsAltAddressProofPanel').removeClass('is-visible');
             clearAltProofInput('#address_alteration_proof');
         }
@@ -290,10 +360,15 @@
         var optAddress = $('#fsAltOptAddress').is(':checked');
         var optWork = $('#fsAltOptWork').is(':checked');
         var name = ($('#Applicant_Name').val() || '').trim();
-        var addr = ($('#applicants_address').val() || '').trim();
+        var addr = currentAddress();
         if (addr === 'Not provided') addr = '';
         var alterName = optName && name !== parentName;
-        var alterAddress = optAddress && addr !== parentAddress;
+        var alterAddress = optAddress && !sameAddress(addr, parentAddress);
+        if (optAddress && !alterAddress && hasStructuredAddress()) {
+            // Edit chosen but nothing really changed: post the parent's address verbatim so the
+            // server's comparison cannot see a formatting-only difference.
+            $('#applicants_address').val(parentAddress);
+        }
         var alterWork = optWork && (hasNewWorkRows() || hasEditedExistingWorkRows());
 
         $('#alter_name').val(alterName ? '1' : '0');
@@ -306,6 +381,7 @@
 
     function lockNonAlterableFields() {
         $('#Applicant_Name, #applicants_address').prop('readonly', true);
+        setAddressEditable(false);
         $('.fs-alt-existing-work').show();
         $('#work-exp-add-btn-previous').prop('disabled', true);
         $('#fsAltNameProofPanel, #fsAltAddressProofPanel').removeClass('is-visible');
@@ -319,6 +395,7 @@
         alterationForm$()
             .find('input, textarea, select, button')
             .not('#Applicant_Name, #applicants_address, #name_alteration_proof, #address_alteration_proof')
+            .not('#fs-address-block input, #fs-address-block select')
             .not('#fsAltOptName, #fsAltOptAddress, #fsAltOptWork')
             .not(newWorkFieldSelector)
             .each(function () {
@@ -384,8 +461,8 @@
         }
 
         if (flags.alterAddress) {
-            var addr = ($('#applicants_address').val() || '').trim();
-            if (!addr || addr === parentAddress) {
+            var addr = currentAddress();
+            if (!addr || sameAddress(addr, parentAddress)) {
                 Swal.fire('Validation', 'Enter a new address different from the current address.', 'warning');
                 return false;
             }
@@ -770,7 +847,12 @@
         if (!$('.fs-alt-form').length) return;
 
         parentName = ($('#fs_alt_parent_name').val() || $('#Applicant_Name').val() || '').trim();
-        parentAddress = ($('#fs_alt_parent_address').val() || $('#applicants_address').val() || '').trim();
+        // The parent's address comes ONLY from the hidden parent field when it exists: an empty parent
+        // address must stay empty (never the registration profile / draft value shown in the form).
+        var $parentAddr = $('#fs_alt_parent_address');
+        parentAddress = ($parentAddr.length ? ($parentAddr.val() || '') : ($('#applicants_address').val() || '')).trim();
+        if (parentAddress.toLowerCase() === 'not provided') parentAddress = '';
+        captureParentAddressParts();
 
         clearNewWorkRows();
         initProofCompact();
@@ -787,7 +869,7 @@
 
         initAlterationEditableMode();
 
-        $('#Applicant_Name, #applicants_address').on('input change', syncAlterFlagsFromForm);
+        $('#Applicant_Name, #applicants_address, #fs-address-block input, #fs-address-block select').on('input change', syncAlterFlagsFromForm);
 
         if (isFormPAlteration()) {
             $('#Applicant_Name').on('input', function () {

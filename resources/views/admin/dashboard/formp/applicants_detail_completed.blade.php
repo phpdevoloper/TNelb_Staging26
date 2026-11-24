@@ -69,7 +69,7 @@
                                         Applicant Id : <span> {{ $applicant->application_id }}</span>
                                         Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }} </span>
                                         D.O.B : <span style="color:#098501;">{{ $applicant->d_o_b }} ({{ $applicant->age }} years old) </span>
-                                        Applied For : <span style="color:#098501;"> {{ $applicant->form_name }}  | License {{ $applicant->license_name }}</span>
+                                        Applied For : <span style="color:#098501;"> {{ \App\Services\Competency\FormPSchema::ADMIN_TITLE }}</span>
                                     </h4>
                                 </div>
                             </div>

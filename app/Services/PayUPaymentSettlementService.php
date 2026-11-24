@@ -92,7 +92,16 @@ class PayUPaymentSettlementService
 
             $metaService = app(CompetencyMetaService::class);
             if ($metaService->supportsForm((string) ($form->form_name ?? ''))) {
-                $form->update(['payment_status' => 'Y']);
+                $updates = ['payment_status' => 'Y'];
+
+                // The first successful payment is the submission: a draft becomes a submitted application
+                // (initiate() already flips D to P when Pay Now is pressed; this covers any path that skipped it).
+                if (strtoupper(trim((string) ($form->app_status ?? ''))) === 'D') {
+                    $updates['app_status'] = 'P';
+                    $updates['submitted_date'] = now();
+                }
+
+                $form->update($updates);
             }
         });
     }

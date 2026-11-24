@@ -247,14 +247,6 @@ $(document).ready(function() {
 
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
-        // Aadhaar input only exists on Form A pages; guard so competency forms don't throw.
-        if (document.getElementById('aadhaar')) {
-            new Cleave('#aadhaar', {
-                delimiter: ' ',
-                blocks: [4, 4, 4],
-                numericOnly: true
-            });
-        }
 
 
         const dobInput = document.getElementById('d_o_b');
@@ -290,40 +282,6 @@ $(document).ready(function() {
                 dobInput.addEventListener('blur', () => validateDOB(dobInput.value));
             }
         }
-
-
-        $('#previously_number').on('keyup', function () {
-            if (this.closest && this.closest('#competency_form_p')) {
-                var formPLicenseError = document.getElementById('licenseError');
-                if (formPLicenseError) formPLicenseError.textContent = '';
-                return;
-            }
-            const value = $(this).val().trim().toUpperCase();
-            $(this).val(value);
-            const regex = /^(B|H|LB|LWH)\d+$/;
-
-            $('#license_messagdfde').text();
-
-            if (value === '') {
-                licenseError.textContent = 'License Number is Required';
-                return; // ✅ Stop further checks if empty
-            }
-
-            if (!regex.test(value)) {
-                licenseError.textContent = 'Invalid License Number';
-            } else {
-                licenseError.textContent = ''; // ✅ Clear error when valid
-            }
-        });
-
-        $('#previously_date').on('change', function() {
-            const value = $(this).val().trim();
-
-            if (value !== '') {
-                $('#dateError').text(''); // ✅ Clear error if not empty
-                // You can add other logic here if needed
-            }
-        });
 
     });
 
@@ -2689,7 +2647,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         } else {
             url = (language === 'tamil')
                 ? `${BASE_URL}/generateTamilPDF/${window.paymentAppId}`
-                : `${BASE_URL}/generate-pdf/${window.paymentAppId}`;
+                : `${BASE_URL}/application-pdf/${window.paymentAppId}`;
         }
         window.open(url, '_blank');
     }

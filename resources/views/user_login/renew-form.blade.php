@@ -1011,6 +1011,9 @@
                                 ?? $application_details->applicant_address
                                 ?? ''));
                         }
+                        // Saved application address only; the structured-address partial parses it
+                        // (or shows it as legacy text) and falls back to the registration profile when empty.
+                        $addressSavedVal = $addressVal;
                         if ($addressVal === '') {
                             $addressVal = trim((string) (Auth::user()->address ?? ''));
                         }
@@ -1155,8 +1158,16 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                             </div>
                                         </div>
+                                        @if ($renewFormName === 'S')
+                                        {{-- Structured address; applicant_address.js composes it into hidden #applicants_address. --}}
+                                        @include('user_login.partials.applicant-address-fields', [
+                                            'addressSaved' => $addressSavedVal,
+                                            'addressLocked' => false,
+                                        ])
+                                        @else
                                         <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ $addressVal }}</textarea>
                                         <span id="applicants_address_error" class="text-danger"></span>
+                                        @endif
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1193,6 +1204,14 @@
                         $showRenewWork = true;
                     @endphp
                     {{-- ═══ SECTION 2 — Education ═══ --}}
+                    @if ($isRenewS)
+                        @include('user_login.partials.form-s-education-section', [
+                            'eduMode' => 'renewal',
+                            'eduSectionNo' => 6,
+                            'eduRows' => $edu_details,
+                            'eduApplicationId' => (int) ($application_details->id ?? 0),
+                        ])
+                    @else
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $renewFormName === 'S' ? 6 : 5 }}</span>
@@ -1389,6 +1408,7 @@
                             </div>
                         </div>
                     </div>
+                    @endif
                     {{-- /SECTION 5 --}}
 
                     @if($showRenewWork)
@@ -1914,6 +1934,11 @@
     @include('include.footer')
 </footer>
 </div>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
+@if ($isRenewS)
+<script src="{{ url('assets/js/form_s_education.js') }}?v={{ filemtime(public_path('assets/js/form_s_education.js')) }}"></script>
+@endif
 
 <script>
     window.toggleSectionEdit = function(btn) {
@@ -2156,6 +2181,8 @@
 
     // Add more education row
     $(document).on('click', '.add-more-education, .remove-education', function(e) {
+        // Form S rows are handled by form_s_education.js (template cloned from the shared partial).
+        if (@json($isRenewS)) { return; }
         e.preventDefault();
         const refreshEducationSerials = () => {
             $('#education-container .education-fields .edu-serial').each(function(index) {

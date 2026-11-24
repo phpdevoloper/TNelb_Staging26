@@ -1263,10 +1263,12 @@
                         <h5 class="draft-title">Draft Application</h5>
                     @endif
                 </div>
+                @if(strtoupper((string) $editFormName) !== 'P') {{-- Form P pages carry no header instructions link --}}
                 <div class="instructions-link">
                     <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
                     <a href="{{url($editNotesPdf)}}" target="_blank">{{ $editNotesLang }} <i class="fa fa-file-pdf-o"></i> ({{ $editNotesSize }})</a>
                 </div>
+                @endif
             </div>
 
             {{-- ── Mandatory notice ── --}}
@@ -1816,13 +1818,13 @@
                                                 </table>
                                             </div>
                             @if(($application_details->form_name ?? '') === 'P')
-                            <div class="fs-field-label mb-2 mt-4">(ii) Institute in which the applicant has undergone training and the period</div>
-                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் பயிற்சி பெற்ற காலம்</div>
+                            <div class="fs-field-label mb-2 mt-4">(ii) Institution Name and Training duration</div>
+                            <div class="fs-field-tamil mb-2">நிறுவனத்தின் பெயர் மற்றும் பயிற்சி காலம்</div>
                             <div class="fs-table-wrap mb-2">
                                 <table class="table table-bordered" id="institute-table">
                                     <thead>
                                         <tr>
-                                            <th>Institute Name &amp; Address</th>
+                                            <th>Institution Name &amp; Address</th>
                                             <th>From date</th>
                                             <th>To date</th>
                                             <th>Year / Month / Day</th>
@@ -1863,7 +1865,7 @@
                         <div class="fs-section-header">
                             <div>
                                 <div class="fs-section-title">
-                                    (iii) Power Station to which he is attached at present
+                                    (iii) Power Station to which the application is attached at present
                                     <span class="section-hint">(Upload the documents)</span>
                                     @if($isAlterationMode)
                                     <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit power station experience">
@@ -2729,9 +2731,8 @@
                                     I request that I may be granted a Wireman Helper Competency Certificate.
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br>எனக்கு மின்கம்பி உதவியாளர் தகுதி சான்றிதழ் எனக்கு வழங்குமாறு வேண்டுகிறேன்.</span>
                                 @elseif ($formName === 'P')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span><br>
-                                    I request that I may be granted a Power Generating Station Operation and maintenance Competency Certificate.
-                                    <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன். <br>மின்சாரம் உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழை எனக்கு வழங்குமாறு நான் கேட்டுக்கொள்கிறேன்.</span>
+                                    I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.</span>
                                 @else
                                     I hereby declare that the particulars stated above are correct and true to the best of my knowledge.
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>

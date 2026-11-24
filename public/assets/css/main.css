@@ -1659,7 +1659,7 @@ color:#fff;
 .apply-card label {
   display: inline-block;
   max-width: 100%;
-  margin-bottom: 5px;
+  /* margin-bottom: 5px; */
   font-size: 16px;
   font-weight: 600;
 }

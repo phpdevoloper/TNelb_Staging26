@@ -141,76 +141,6 @@
     bindImageUploadPreview('upload_photo', 'photo_preview', 'upload_photo_name', 'photo_placeholder');
     bindImageUploadPreview('upload_sign', 'sign_preview', 'upload_sign_name', 'sign_placeholder');
 
-    document.addEventListener('click', function (e) {
-        var container = document.getElementById('education-container');
-        if (!container) {
-            return;
-        }
-
-        var educationRows = container.querySelectorAll('.education-fields');
-        var refreshEducationSerials = function () {
-            container.querySelectorAll('.education-fields .edu-serial').forEach(function (cell, idx) {
-                cell.textContent = String(idx + 1);
-            });
-        };
-
-        if (e.target.closest('.add-more')) {
-            if (educationRows.length >= 5) {
-                $('#education-table').next('.education-error').remove();
-                $('<div class="text-danger mt-2 education-error">You can add a maximum of 5 education entries.</div>').insertAfter('#education-table');
-                setTimeout(function () { $('.education-error').fadeOut(); }, 7000);
-                return;
-            }
-            var newRow = document.createElement('tr');
-            newRow.classList.add('education-fields');
-            newRow.innerHTML =
-                '<td class="edu-serial text-center">' + (educationRows.length + 1) + '</td>' +
-                '<td><select class="form-control" name="educational_level[]" required>' +
-                '<option selected disabled>Select Education</option>' +
-                '<option value="DEE">Diploma(Electrical Engineering)</option>' +
-                '<option value="BEE">B.E(Electrical Engineering)</option>' +
-                '<option value="MEE">M.E(Electrical Engineering)</option>' +
-                '<option value="AMIE">A pass in AMIE</option>' +
-                '<option value="EX">Ex Serviceman</option>' +
-                '</select></td>' +
-                '<td><input type="text" class="form-control" name="institute_name[]" maxlength="80" required></td>' +
-                '<td><select name="month_of_passing[]" class="form-control" required>' +
-                '<option value="">Select Month</option>' +
-                '<option value="01">Jan</option><option value="02">Feb</option><option value="03">Mar</option>' +
-                '<option value="04">Apr</option><option value="05">May</option><option value="06">Jun</option>' +
-                '<option value="07">Jul</option><option value="08">Aug</option><option value="09">Sep</option>' +
-                '<option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>' +
-                '</select></td>' +
-                '<td><select name="year_of_passing[]" class="form-control" required>' +
-                '<option value="0">Select Year</option>' +
-                Array.from({ length: new Date().getFullYear() - 1979 }, function (_, i) {
-                    var year = new Date().getFullYear() - i;
-                    return '<option value="' + year + '">' + year + '</option>';
-                }).join('') +
-                '</select></td>' +
-                '<td><input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" required>' +
-                '<span class="error text-danger certificate-error" style="font-size:.75rem;"></span></td>' +
-                '<td><div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined" data-upload-kind="education">' +
-                '<input type="file" class="form-control" name="education_document[]" accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"></div></td>' +
-                '<td class="form-s-actions-cell text-center p-1"><div class="form-s-actions-stack">' +
-                '<button type="button" class="btn-tbl-remove remove-education py-1 px-2" title="Remove row"><i class="fa fa-trash-o"></i></button>' +
-                '</div></td>';
-            container.appendChild(newRow);
-            refreshEducationSerials();
-        }
-
-        if (e.target.closest('.remove-education')) {
-            if (educationRows.length <= 1) {
-                $('#education-table').next('.education-error').remove();
-                $('<div class="text-danger mt-2 education-error">You must have at least one education entry.</div>').insertAfter('#education-table');
-                setTimeout(function () { $('.education-error').fadeOut(); }, 7000);
-                return;
-            }
-            e.target.closest('tr').remove();
-            refreshEducationSerials();
-        }
-    });
-
     $('#verify_form_s').on('click', function () {
         var licenseError = document.getElementById('licenseError');
         var licenseNumber = $('#certificate_no').val().trim().toUpperCase();
@@ -370,7 +300,8 @@ var EDU_LEVEL_MAP = {
     BEE: 'B.E(Electrical Engineering)',
     MEE: 'M.E(Electrical Engineering)',
     AMIE: 'A pass in AMIE',
-    EX: 'Ex Serviceman'
+    EXS: 'Ex Serviceman',
+    EX: 'Ex Serviceman' // legacy code, kept so older rows still show a label
 };
 var MONTH_MAP = {
     '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun',

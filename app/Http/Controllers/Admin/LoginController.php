@@ -1948,6 +1948,25 @@ class LoginController extends Controller
 
         return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff'));
     }
+    
+    /**
+     * Licence / certificate name (mst_licences.licence_name, e.g. "Supervisor Competency Certificate")
+     * for a form code such as S, W, WH, P (mst_licences.form_code).
+     * Returns null when the code is empty, no row matches, or licence_name is blank.
+     */
+    private function getLicenceNameByFormCode($form_code): ?string
+    {
+        $code = strtoupper(trim((string) $form_code));
+        if ($code === '') {
+            return null;
+        }
+
+        $certificate = MstLicence::whereRaw('UPPER(TRIM(form_code)) = ?', [$code])->first();
+
+        $licenceName = trim((string) ($certificate->licence_name ?? ''));
+
+        return $licenceName !== '' ? $licenceName : null;
+    }
 
 
     // showApplicantDetails
@@ -1969,10 +1988,13 @@ class LoginController extends Controller
         $formSWorkflowAppPk = null;
         $formSMasterWorkflowAppPk = null;
         $parentApplicantForAlter = null;
-        $formName = strtoupper((string) ($applicant->form_name ?? ''));
+        // $formCode (S, W, WH, P...) drives storage/workflow checks; $formName is the licence name shown on the page.
+        $formCode = strtoupper(trim((string) ($applicant->form_name ?? '')));
+        $formName = $this->getLicenceNameByFormCode($formCode) ?? $formCode;
 
-
-        if (CompetencyDocumentSupport::usesVersionedStorage($formName)) {
+        $applicant->formName = $formName;
+        
+        if (CompetencyDocumentSupport::usesVersionedStorage($formCode)) {
 
             $workflowApp = CC_Forms_Meta::findByApplicationId($applicant_id);
             if ($workflowApp) {

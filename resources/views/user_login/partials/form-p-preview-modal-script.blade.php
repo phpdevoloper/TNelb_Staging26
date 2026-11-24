@@ -166,7 +166,7 @@
         if (subtitle) {
             subtitle.innerHTML = isAlteration
                 ? 'Review every section carefully before submitting this alteration. Use <strong>Back to Edit</strong> if anything needs correction.'
-                : 'Review every section carefully before proceeding to payment. Use <strong>Back to Edit</strong> if anything needs correction.';
+                : '“Confirm every section carefully before submitting the application. Use <strong>Back to Edit</strong> if anything needs correction.”<span class="prv-fp-subtitle-ta" lang="ta" style="display:block;margin-top:4px;">“விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.”</span>';
         }
         if (confirmBtn) {
             confirmBtn.innerHTML = isAlteration

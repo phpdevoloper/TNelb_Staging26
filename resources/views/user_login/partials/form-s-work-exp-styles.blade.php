@@ -573,7 +573,9 @@
     .work-fields.fs-till-relieve-open .work-row-done-btn {
         pointer-events: auto !important;
     }
-    .work-fields.fs-till-relieve-open .work-card-field[data-field="relieve"] .form-s-file-upload-wrap {
+    /* :not(.d-none) - when a saved relieving letter is shown (View / Remove) the script hides the upload box
+       with .d-none until "Remove" is clicked; this rule must not force it back into view. */
+    .work-fields.fs-till-relieve-open .work-card-field[data-field="relieve"] .form-s-file-upload-wrap:not(.d-none) {
         display: flex !important;
         pointer-events: auto !important;
     }

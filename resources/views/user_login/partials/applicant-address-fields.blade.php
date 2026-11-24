@@ -30,10 +30,11 @@
     ];
     $addrDistricts = [
         'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul',
-        'Erode', 'Kancheepuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Nagapattinam',
-        'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Salem',
-        'Sivagangai', 'Tenkasi', 'Thanjavur', 'The Nilgiris', 'Theni', 'Tirunelveli', 'Tiruppur',
-        'Tiruvallur', 'Tiruvannamalai', 'Vellore', 'Viluppuram', 'Virudhunagar',
+        'Erode', 'Kallakurichi', 'Kancheepuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai',
+        'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'The Nilgiris', 'Perambalur',
+        'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivagangai', 'Tenkasi', 'Thanjavur',
+        'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur',
+        'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar',
     ];
 
     /*
@@ -77,16 +78,19 @@
     };
 
     $addrLocked = (bool) ($addressLocked ?? false);
+    // Alteration (locked) block: show the PARENT's address only; an empty parent address stays empty
+    // instead of falling back to the registration profile.
+    $addrNoFallback = (bool) ($addressNoProfileFallback ?? false);
     $addrSavedRaw = trim((string) ($addressSaved ?? ''));
     $addrLegacy = null;
 
-    if ($addrSavedRaw !== '') {
+    if ($addrSavedRaw !== '' || $addrNoFallback) {
         // Edit views: rebuild the parts from the saved application address.
-        $addrParts = $addrParse($addrSavedRaw);
+        $addrParts = $addrSavedRaw === '' ? null : $addrParse($addrSavedRaw);
         if ($addrParts === null) {
             // Legacy free text: fields start empty, the old text is shown read-only and
             // stays in the hidden input until the structured address is complete.
-            $addrLegacy = $addrSavedRaw;
+            $addrLegacy = $addrSavedRaw !== '' ? $addrSavedRaw : null;
             $addrParts = ['line1' => '', 'line2' => '', 'city' => '', 'state' => '', 'district' => '', 'pincode' => ''];
         }
         $addrLine1 = $addrParts['line1'];

@@ -156,7 +156,7 @@ async function showInstructPopup(licence_code,login_id) {
                                 ${payRow('Type of Application', licence_name)}
                                 ${payRow('Type of Form', formTypeLabel)}
                                 ${payRow('Date', transactionDate)}
-                                ${payRow('Application Fees', 'Rs. ' + amount, { color: '#0d6efd', weight: '700' })}
+                                ${payRow('Application Fees', 'Rs. ' + (actual_fees != null && actual_fees !== '' ? actual_fees : amount), { color: '#0d6efd', weight: '700' })}
                                 ${lateFeeRow}
                                 ${payRow('Total', 'Rs. ' + amount, { weight: '700', last: true })}
                             </div>
@@ -310,6 +310,46 @@ async function showInstructPopup(licence_code,login_id) {
     }
 }
 
+/**
+ * Date of Birth rules shared with Form S: a valid date, not in the future, year of birth not before 1935,
+ * age between 18 and 100. Also refreshes #age. Returns { $field, message } for the first problem, or null.
+ */
+function validateFormPDob() {
+    var $dob = $('#d_o_b');
+    if (!$dob.length) return null;
+
+    var str = String($dob.val() || '').trim();
+    if (str === '') {
+        return { $field: $dob, message: 'Date of Birth is required.' };
+    }
+
+    var dob = null;
+    var m = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+    var iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m) {
+        dob = new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        if (dob.getDate() !== parseInt(m[1], 10) || dob.getMonth() !== parseInt(m[2], 10) - 1) dob = null;
+    } else if (iso) {
+        dob = new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10));
+    }
+    if (!dob || isNaN(dob.getTime())) {
+        return { $field: $dob, message: 'Please select a valid Date of Birth.' };
+    }
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var age = today.getFullYear() - dob.getFullYear();
+    var monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+    $('#age').val(age);
+
+    if (dob > today) return { $field: $dob, message: 'Date of Birth cannot be in the future.' };
+    if (dob.getFullYear() < 1935) return { $field: $dob, message: 'Year of birth cannot be earlier than 1935.' };
+    if (age < 18) return { $field: $('#age'), message: 'Minimum age should be 18 years and above.' };
+    if (age > 100) return { $field: $('#age'), message: 'Age must be between 18 and 100.' };
+    return null;
+}
+
 function formPDateFieldRaw($input) {
     var el = $input && $input.length ? $input.get(0) : null;
     var stored = el ? String(el.getAttribute('data-raw') || '').trim() : '';
@@ -393,6 +433,89 @@ function refreshFormPInstituteDurations() {
         var diff = applyFormPRowYmd($row, fromDate, toDate);
         $row.find('input[name="duration[]"]').val(diff ? (diff.y + '.' + diff.m + '.' + diff.d) : '');
     });
+}
+
+/**
+ * Chronology between Date of Birth, year of passing, training and power-station experience.
+ * Mirrors App\Services\Competency\FormPChronology (the server re-checks on every save):
+ *  - year of passing at least 18 years after the year of birth, and not in the future;
+ *  - training / power-station From dates not earlier than the latest month of passing;
+ *  - experience cannot start before age 18; no From/To date in the future.
+ * @returns {{isValid: boolean, firstErrorField: (jQuery|null)}}
+ */
+function validateFormPChronology() {
+    var isValid = true;
+    var firstErrorField = null;
+
+    function fail($field, message) {
+        if (!$field || !$field.length) return;
+        $field.after($('<span class="error-message text-danger d-block mt-1"></span>').text(message));
+        if (!firstErrorField) firstErrorField = $field;
+        isValid = false;
+    }
+    function dayStart(d) {
+        return d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : null;
+    }
+    function parseDob(str) {
+        str = String(str || '').trim();
+        var m = str.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+        if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+        var iso = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        return iso ? new Date(parseInt(iso[1], 10), parseInt(iso[2], 10) - 1, parseInt(iso[3], 10)) : null;
+    }
+
+    var dob = parseDob($('#d_o_b').val());
+    if (dob && isNaN(dob.getTime())) dob = null;
+    var today = dayStart(new Date());
+    var latest = null; // first day of the latest month of passing
+
+    $('#education-container .education-fields').each(function () {
+        var $row = $(this);
+        var $year = $row.find('select[name="year_of_passing[]"]');
+        var year = parseInt($year.val(), 10) || 0;
+        var month = parseInt($row.find('select[name="month_of_passing[]"]').val(), 10) || 0;
+        if (year <= 0) return;
+
+        if (dob && year < dob.getFullYear() + 18) {
+            fail($year, 'Year of passing must be at least 18 years after the year of birth.');
+        } else if (year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth() + 1)) {
+            fail($year, 'Year of passing cannot be in the future.');
+        }
+
+        var monthStart = new Date(year, (month >= 1 && month <= 12 ? month : 1) - 1, 1);
+        if (!latest || monthStart > latest) latest = monthStart;
+    });
+
+    var earliestExperience = dob ? new Date(dob.getFullYear() + 18, dob.getMonth(), dob.getDate()) : null;
+
+    function checkPeriod($from, $to, label, earliestStart) {
+        var from = dayStart(parseFormPInstituteIsoDate(formPDateFieldRaw($from)));
+        var to = dayStart(parseFormPInstituteIsoDate(formPDateFieldRaw($to)));
+        if (from) {
+            if (from > today) {
+                fail($from, label + ' From date cannot be in the future.');
+            } else if (earliestStart && from < earliestStart) {
+                fail($from, label + ' cannot start before age 18 (Date of Birth: ' + $('#d_o_b').val() + ').');
+            } else if (latest && from < latest) {
+                var mm = String(latest.getMonth() + 1).padStart(2, '0');
+                fail($from, label + ' From date cannot be earlier than the latest year of passing (' + mm + '/' + latest.getFullYear() + ').');
+            }
+        }
+        if (to && to > today) {
+            fail($to, label + ' To date cannot be in the future.');
+        }
+    }
+
+    $('#institute-container .institute-fields').each(function () {
+        var $row = $(this);
+        checkPeriod($row.find('input[name="from_date[]"]'), $row.find('input[name="to_date[]"]'), 'Training', null);
+    });
+    $('#work-container .work-fields').each(function () {
+        var $row = $(this);
+        checkPeriod($row.find('.work-date-from'), $row.find('.work-date-to'), 'Experience', earliestExperience);
+    });
+
+    return { isValid: isValid, firstErrorField: firstErrorField };
 }
 
 function showFormPInstituteFieldError($field, message, firstErrorField) {
@@ -658,11 +781,10 @@ $(document).ready(function () {
         let isValid = true;
         let firstErrorField = null;
 
-        let dobEl = $('#d_o_b');
-        if (dobEl.length && dobEl.val() === "") {
-            let errorMsg = $('<span class="error-message text-danger d-block mt-1">Date of Birth is required.</span>');
-            dobEl.after(errorMsg);
-            if (!firstErrorField) firstErrorField = dobEl;
+        let dobError = validateFormPDob();
+        if (dobError) {
+            dobError.$field.after($('<span class="error-message text-danger d-block mt-1"></span>').text(dobError.message));
+            if (!firstErrorField) firstErrorField = dobError.$field;
             isValid = false;
         }
 
@@ -793,6 +915,13 @@ $(document).ready(function () {
             isValid = false;
             if (!firstErrorField) {
                 firstErrorField = workDateCheck.firstErrorField;
+            }
+        }
+        var chronologyCheck = validateFormPChronology();
+        if (!chronologyCheck.isValid) {
+            isValid = false;
+            if (!firstErrorField) {
+                firstErrorField = chronologyCheck.firstErrorField;
             }
         }
 
@@ -1090,7 +1219,7 @@ $(document).ready(function () {
 
     $('#closePopup').on('click', function () {
         $('#pdfPopup').fadeOut(function () {
-            window.location.href = "{{ route('dashboard') }}";
+            window.location.href = (window.COMPETENCY_FORM_CONFIG && window.COMPETENCY_FORM_CONFIG.dashboardUrl) || (BASE_URL + '/dashboard');
         });
     });
 
@@ -1157,12 +1286,10 @@ $(document).ready(function () {
         }
 
 
-        if (dob === "") {
-            let errorMsg = $(
-                '<span class="error-message text-danger d-block mt-1">Date of Birth is required.</span>'
-            );
-            $('#d_o_b').after(errorMsg);
-            if (!firstErrorField) firstErrorField = errorMsg;
+        let dobError = validateFormPDob();
+        if (dobError) {
+            dobError.$field.after($('<span class="error-message text-danger d-block mt-1"></span>').text(dobError.message));
+            if (!firstErrorField) firstErrorField = dobError.$field;
             isValid = false;
         }
 
@@ -1225,6 +1352,13 @@ $(document).ready(function () {
             isValid = false;
             if (!firstErrorField) {
                 firstErrorField = workDraftDateCheck.firstErrorField;
+            }
+        }
+        var chronologyDraftCheck = validateFormPChronology();
+        if (!chronologyDraftCheck.isValid) {
+            isValid = false;
+            if (!firstErrorField) {
+                firstErrorField = chronologyDraftCheck.firstErrorField;
             }
         }
 

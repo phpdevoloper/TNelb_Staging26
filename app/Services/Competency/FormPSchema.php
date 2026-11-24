@@ -16,6 +16,12 @@ final class FormPSchema
 
     public const FORM_ID = 6;
 
+    /**
+     * Title shown to staff on the Form P admin screens (display only; the stored form_name stays 'P'
+     * because dashboards and queries branch on it).
+     */
+    public const ADMIN_TITLE = 'Form P/Certificate D';
+
     public const META_TABLE = 'cc_form_p_meta';
 
     public const WORKFLOW_TABLE = 'cc_workflow_formp';

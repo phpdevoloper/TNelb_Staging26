@@ -216,12 +216,8 @@
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
-                    <h5 class="tamil-title">மின்சார உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழுக்கான விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - P / Certificate P</span>
-                </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{url('assets/pdf/form_p_notes.pdf')}}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
+                    <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                    <span class="form-badge">Form P</span>
                 </div>
             </div>
 
@@ -291,8 +287,9 @@
                                             <div class="fs-section-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருக்க வேண்டும்)</span></div>
                                         </div>
                                     </div>
-                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255">{{Auth::user()->address}}</textarea>
-                                    <span id="applicants_address_error" class="text-danger error" style="font-size:.78rem;"></span>
+                                    {{-- Structured address (shared with Form S and the edit views);
+                                         applicant_address.js composes the parts into the hidden #applicants_address. --}}
+                                    @include('user_login.partials.applicant-address-fields')
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="fs-dob-age-badge-row">
@@ -406,8 +403,8 @@
                             </div>
 
                             {{-- (ii) Institute table --}}
-                            <div class="fs-field-label mb-2">(ii) Institute in which the applicant has undergone training and the period <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
-                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் பயிற்சி பெற்ற காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            <div class="fs-field-label mb-2">(ii) Institution Name and Training duration <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-tamil mb-2">நிறுவனத்தின் பெயர் மற்றும் பயிற்சி காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="fs-table-wrap mb-4">
                                 <table class="table table-bordered" id="institute-table">
                                     <thead>
@@ -445,8 +442,12 @@
                             </div>
 
                             {{-- (iii) Power Station table --}}
-                            <div class="fs-field-label mb-2">(iii) Power Station to which he is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
-                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் பயிற்சி பெற்ற காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
+                                Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
+                                <br><span class="tamil-note" lang="ta">தேவை: மின் உற்பத்தி நிலையத் தலைவரால் (தலைமைப் பொறியாளர் நிலைக்குக் குறையாத அதிகாரி) வழங்கப்பட்ட செல்லுபடியாகும் அனுபவச் சான்றிதழைப் பதிவேற்ற வேண்டும்.</span>
+                            </div>
                             <div class="fs-table-wrap mb-4">
                                 <table class="table table-bordered" id="work-table">
                                     <thead>
@@ -631,9 +632,8 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
-                                I request that I may be granted a Power Generating Station Operation and Maintenance Competency Certificate.<span class="req">*</span>
-                                <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.<br>மின்சாரம் உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழை எனக்கு வழங்குமாறு நான் கேட்டுக்கொள்கிறேன்.</span>
+                                I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.</span>
                             </div>
                         </label>
                         <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>
@@ -914,3 +914,5 @@
     </script>
     @include('user_login.partials.form-p-preview-modal-script')
 </footer>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>

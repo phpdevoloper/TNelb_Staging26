@@ -1106,12 +1106,18 @@ class FormPController extends Controller
             'application_id' => 'required|string',
             'processed_by' => 'required|string',
             'remarks' => 'nullable|string',
+            'check_id' => 'nullable|array',
+            'checklists' => 'nullable|array',
+            'status' => 'nullable|array',
         ]);
 
         $application = $this->findFormPApplication($request->application_id);
         if (! $application) {
             return response()->json(['error' => 'Application not found.'], 404);
         }
+
+        // The checklist stays editable up to the President: keep whatever the President saw/changed.
+        $this->saveFormPChecklist($request, $application);
 
         $appl_type = strtoupper(trim((string) ($application->appl_type ?? 'N')));
         $licenceId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');

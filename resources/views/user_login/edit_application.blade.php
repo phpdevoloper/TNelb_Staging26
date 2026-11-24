@@ -1284,6 +1284,16 @@
                     </div>
 
                     {{-- ═══ SECTION 5 — Education ═══ --}}
+                    @if (($application_details->form_name ?? '') === 'S')
+                        @include('user_login.partials.form-s-education-section', [
+                            'eduMode' => 'edit',
+                            'eduSectionNo' => 6,
+                            'eduRows' => $edu_details,
+                            'eduApplicationId' => (int) ($application_details->id ?? 0),
+                            'eduLockSaved' => (bool) ($isRenewalDraftEdit ?? false),
+                            'eduDocRemovable' => true,
+                        ])
+                    @else
                     <div class="fs-section">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ $formName === 'S' ? 6 : 5 }}</span>
@@ -1559,6 +1569,7 @@
                                             </div>
                         </div>
                     </div>
+                    @endif
                     {{-- /SECTION 5 --}}
 
                     @php
@@ -1782,7 +1793,7 @@
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasSupervisorCert ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
@@ -1892,7 +1903,7 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
@@ -2151,6 +2162,9 @@
 </div>
 {{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
 <script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
+@if (($application_details->form_name ?? '') === 'S')
+<script src="{{ url('assets/js/form_s_education.js') }}?v={{ filemtime(public_path('assets/js/form_s_education.js')) }}"></script>
+@endif
 <script>
     window.toggleSectionEdit = function(btn) {
         var section = btn.closest('.fs-section');
@@ -2393,6 +2407,8 @@
 
     // Add more education row
     $(document).on('click', function(e) {
+        // Form S rows are handled by form_s_education.js (template cloned from the shared partial).
+        if ("{{ $application_details->form_name ?? '' }}" === 'S') return;
         if (!e.target.closest(".add-more-education") && !e.target.closest(".remove-education")) return;
         const refreshEducationSerials = () => {
             $('#education-container .education-fields td:first-child').each(function(index) {

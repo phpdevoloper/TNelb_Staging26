@@ -776,10 +776,11 @@
 
     $districts = [
         'Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul',
-        'Erode', 'Kancheepuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Nagapattinam',
-        'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Salem',
-        'Sivagangai', 'Tenkasi', 'Thanjavur', 'The Nilgiris', 'Theni', 'Tirunelveli', 'Tiruppur',
-        'Tiruvallur', 'Tiruvannamalai', 'Vellore', 'Viluppuram', 'Virudhunagar',
+        'Erode', 'Kallakurichi', 'Kancheepuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai',
+        'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'The Nilgiris', 'Perambalur',
+        'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivagangai', 'Tenkasi', 'Thanjavur',
+        'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur',
+        'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar',
     ];
 
     $salutations = ['Mr', 'Ms', 'Mrs'];

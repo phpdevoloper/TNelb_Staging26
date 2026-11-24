@@ -9,6 +9,7 @@ use App\Services\PayUService;
 use App\Services\FormS\FormSSubmissionGuard;
 use App\Models\PaymentTransactionModel;
 use App\Services\PayUPaymentSettlementService;
+use App\Services\Competency\PaymentFeeService;
 use Illuminate\Support\Facades\Log;
 
 class PayUPaymentController extends BaseController
@@ -35,13 +36,18 @@ class PayUPaymentController extends BaseController
             // Paying is what submits a Form S application (it is saved as a draft until now), so
             // re-check the SAVED data here: DOB / passing year / experience chronology and the
             // Board meeting row. Nothing is charged or recorded when this fails.
-            if (strtoupper(trim((string) ($form->form_name ?? ''))) === 'S') {
+            $formCode = strtoupper(trim((string) ($form->form_name ?? '')));
+
+            // Only the applicant who owns the application may pay for it (Forms S and P).
+            if (in_array($formCode, ['S', 'P'], true)) {
                 // Do not reveal another applicant's saved data through the check message.
                 $ownerId = (string) ($form->login_id ?? '');
                 if ($ownerId === '' || $ownerId !== (string) (auth()->user()->login_id ?? '')) {
                     return back()->with('error', 'Application not found');
                 }
+            }
 
+            if ($formCode === 'S') {
                 if ($dataError = FormSSubmissionGuard::checkSavedApplication($form)) {
                     // initiate() is posted into the PayU popup window, so show the reason there.
                     return response()->view('user_login.payments.payu-error', ['message' => $dataError], 422);
@@ -54,6 +60,35 @@ class PayUPaymentController extends BaseController
             $applicationFee = $request->filled('actual_fees')
                 ? (int) round((float) $request->input('actual_fees'))
                 : max(0, (int) round($amount) - $lateFee);
+
+            // Form P: the amount charged always comes from the fee tables, never from the browser.
+            if ($formCode === 'P') {
+                $fee = app(PaymentFeeService::class)->calculate(
+                    (string) ($form->appl_type ?? 'N'),
+                    (string) ($form->certificate_name ?? 'P'),
+                    (string) ($form->certificate_no ?? '')
+                );
+                if ($fee === null || $fee['total'] <= 0) {
+                    Log::warning('PayU initiate: Form P fee could not be determined', ['application_id' => $applicationId]);
+
+                    return response()->view('user_login.payments.payu-error', [
+                        'message' => 'The application fee could not be determined. Please try again or contact the Board.',
+                    ], 422);
+                }
+
+                if (abs($amount - $fee['total']) > 0.009) {
+                    Log::warning('PayU initiate: Form P amount from browser ignored', [
+                        'application_id' => $applicationId,
+                        'browser_amount' => $amount,
+                        'server_amount' => $fee['total'],
+                    ]);
+                }
+
+                $amount = (float) $fee['total'];
+                $lateFee = $fee['late_fee'];
+                $lateMonths = $fee['late_months'];
+                $applicationFee = $fee['base'];
+            }
 
             $txnid = 'TN' . strtoupper(Str::random(18));
             PaymentTransactionModel::create([
@@ -383,6 +418,8 @@ class PayUPaymentController extends BaseController
             'applicant_name' => $form->applicant_name ?? 'N/A',
             'licence_name' => $form->certificate_name ?? ($form->form_name ?? 'N/A'),
             'form_type' => $formType,
+            // Lets the dashboard return path pick the right PDF routes (Form P has its own).
+            'form_name' => strtoupper(trim((string) ($form->form_name ?? ''))),
             'transaction_date' => now()->format('d/m/Y'),
         ];
     }

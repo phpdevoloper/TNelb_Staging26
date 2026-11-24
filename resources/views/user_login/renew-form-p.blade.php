@@ -334,13 +334,9 @@
             <div class="fs-card-header">
                 <div class="header-titles">
                     <h5>Renewal Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
-                    <h5 class="tamil-title">மின்சார உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழ் புதுப்பித்தல் விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - P / Certificate P</span>
+                    <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                    <span class="form-badge">Form P</span>
                     <span class="form-substatus">{{ $isRenewFormP ? 'Renewal' : ($isReturned ? 'Correct and resubmit' : 'Draft') }}</span>
-                </div>
-                <div class="instructions-link">
-                    <span class="text-white font-weight-bold" style="font-size:.82rem;">Instructions &nbsp;</span>
-                    <a href="{{ url('assets/pdf/form_p_notes.pdf') }}" target="_blank">English <i class="fa fa-file-pdf-o"></i> (8 KB)</a>
                 </div>
             </div>
 
@@ -591,14 +587,14 @@
                             </div>
 
                             {{-- (ii) Institute table --}}
-                            <div class="fs-field-label mb-2">(ii) Institute in which the applicant has undergone the training and the period <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
-                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் பயிற்சி பெற்ற நிறுவனம் மற்றும் பயிற்சி பெற்ற காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            <div class="fs-field-label mb-2">(ii) Institution Name and Training duration <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-tamil mb-2">நிறுவனத்தின் பெயர் மற்றும் பயிற்சி காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="fs-table-wrap mb-4">
                                 <table class="table table-bordered" id="institute-table">
                                     <thead>
                                         <tr>
                                             <th>S.No</th>
-                                            <th style="width:22%">Institute Name &amp; Address</th>
+                                            <th style="width:22%">Institution Name &amp; Address</th>
                                             <th>From date</th>
                                             <th>To date</th>
                                             <th>Year / Month / Day</th>
@@ -679,8 +675,12 @@
                             </div>
 
                             {{-- (iii) Power Station table --}}
-                            <div class="fs-field-label mb-2">(iii) Power Station to which he is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
-                            <div class="fs-field-tamil mb-2">தற்போது பணியாற்றும் மின்சார நிலையம் மற்றும் பயிற்சி பெற்ற காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                            <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
+                                Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
+                                <br><span class="tamil-note" lang="ta">தேவை: மின் உற்பத்தி நிலையத் தலைவரால் (தலைமைப் பொறியாளர் நிலைக்குக் குறையாத அதிகாரி) வழங்கப்பட்ட செல்லுபடியாகும் அனுபவச் சான்றிதழைப் பதிவேற்ற வேண்டும்.</span>
+                            </div>
                             <div class="fs-table-wrap mb-4">
                                 <table class="table table-bordered" id="work-table">
                                     <thead>
@@ -968,9 +968,8 @@
                             <input type="checkbox" id="declarationCheckbox" required>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                <span>I hereby declare that the particulars stated above are correct and true to the best of my knowledge.</span><br>
-                                <span>I request that I may be granted a Power Generating Station Operation and Maintenance Competency Certificate.</span><br>
-                                <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன். <br>மின்சாரம் உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழை எனக்கு வழங்குமாறு நான் கேட்டுக்கொள்கிறேன்.</span>
+                                <span>I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.</span><br>
+                                <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.</span>
                             </div>
                         </label>
                         <span id="checkboxError" class="text-danger mt-2 d-block" style="display:none!important;font-size:.82rem;">Please check the declaration box before proceeding.</span>
@@ -986,9 +985,7 @@
                     <input type="hidden" id="license_name" name="license_name" value="P">
                     <input type="hidden" id="form_id" name="form_id" value="6">
                     <input type="hidden" id="appl_type" name="appl_type" value="{{ $isRenewFormP ? 'R' : ($application_details->appl_type ?? 'N') }}">
-                    @if($isRenewFormP)
-                        <input type="hidden" id="amount" name="amount" value="750">
-                    @endif
+                    {{-- The fee is computed on the server (PaymentFeeService / calc_fees); no amount is posted from here. --}}
 
                     {{-- ── Action buttons ── --}}
                     <div class="fs-action-bar">

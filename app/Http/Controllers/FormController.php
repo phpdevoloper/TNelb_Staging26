@@ -39,6 +39,7 @@ use App\Services\Competency\FormWExperienceRules;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Services\Competency\FormPSchema;
+use App\Services\Competency\FormPChronology;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSSubmissionGuard;
 use App\Services\FormS\FormSProofDocumentService;
@@ -1093,14 +1094,14 @@ class FormController extends BaseController
     }
 
     /**
-     * Form S only: date of birth cannot be earlier than 1 Jan 1935.
+     * Forms S and P: date of birth cannot be earlier than 1 Jan 1935.
      * Accepts DD-MM-YYYY, DD/MM/YYYY and YYYY-MM-DD (via CalendarDate::ymd).
      *
      * @return list<\Closure>
      */
     private function dobMinYearRule(mixed $formName): array
     {
-        if ($formName !== 'S') {
+        if (! in_array($formName, ['S', 'P'], true)) {
             return [];
         }
 
@@ -2579,6 +2580,7 @@ class FormController extends BaseController
         $validator = Validator::make($request->all(), []);
         $this->validateFormPInstituteDates($request, $validator, $requireComplete);
         $this->validateFormPWorkExperienceDates($request, $validator, $requireComplete);
+        $this->validateFormPChronology($request, $validator);
         if ($validator->fails()) {
             throw \Illuminate\Validation\ValidationException::withMessages($validator->errors()->toArray());
         }
@@ -2637,6 +2639,21 @@ class FormController extends BaseController
                     'To date must be greater than or equal to From date.'
                 );
             }
+        }
+    }
+
+    /**
+     * Form P: Date of Birth / year of passing / training / power-station chronology
+     * (see App\Services\Competency\FormPChronology). Runs on every save path, drafts included.
+     */
+    private function validateFormPChronology(Request $request, \Illuminate\Validation\Validator $validator): void
+    {
+        if (! FormPSchema::isFormP($request->form_name ?? '')) {
+            return;
+        }
+
+        foreach (FormPChronology::errorsForInput($request->all()) as $field => $message) {
+            $validator->errors()->add($field, $message);
         }
     }
 
@@ -3584,7 +3601,7 @@ class FormController extends BaseController
         $isWorkOptional = CompetencySchema::isWorkExperienceOptional($request->form_name);
         $isFormP = FormPSchema::isFormP($request->form_name ?? '');
         $educationLevelRule = ($request->form_name === 'S')
-            ? 'required|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
+            ? 'required|string|in:DEE,BEE,MEE,AMIE,EXS|max:50'
             : 'required|string|max:50';
 
         $rules = [
@@ -3803,6 +3820,7 @@ class FormController extends BaseController
             $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
             $this->validateFormPInstituteDates($request, $validator, true);
+            $this->validateFormPChronology($request, $validator);
         });
         $validator->validate();
 
@@ -3878,7 +3896,9 @@ class FormController extends BaseController
                 'form_name'           => $request->form_name,
                 'form_id'             => $request->form_id,
                 'certificate_name'        => $request->license_name,
-                'app_status'              => 'P',
+                // Form P: the silent save made on "Proceed to Payment" is a draft until the payment starts
+                // (PayUPaymentController::initiate flips D to P) and settles (settleSuccess).
+                'app_status'              => (FormPSchema::isFormP($request->form_name ?? '') && strtolower(trim((string) $action)) === 'draft') ? 'D' : 'P',
                 'appl_type'           => $appl_type,
                 'payment_status'      => $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type, null, $request),
                 'wcc_no'      => $request->competency_certificate_no,
@@ -4145,7 +4165,7 @@ class FormController extends BaseController
 
         $isWorkOptional = CompetencySchema::isWorkExperienceOptional($request->form_name);
         $educationLevelRule = ($request->form_name === 'S')
-            ? 'required|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
+            ? 'required|string|in:DEE,BEE,MEE,AMIE,EXS|max:50'
             : 'required|string|max:50';
 
         $pancardRule = $this->isCompetencyForm($request->form_name)
@@ -4317,6 +4337,7 @@ class FormController extends BaseController
             $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
             $this->validateFormPInstituteDates($request, $validator, true);
+            $this->validateFormPChronology($request, $validator);
         });
         $validator->validate();
 
@@ -4654,15 +4675,46 @@ class FormController extends BaseController
     public function delete_education(Request $request)
     {
         try {
-            $id = $request->input('edu_id'); // Get edu_id from AJAX request
+            $loginId = trim((string) (Auth::user()->login_id ?? ''));
+            if ($loginId === '') {
+                return response()->json(['status' => 'error', 'message' => 'Unauthorized.'], 403);
+            }
 
-            $education = CC_Education::find($id);
+            $id = filter_var($request->input('edu_id'), FILTER_VALIDATE_INT);
+            if ($id === false || $id <= 0) {
+                return response()->json(['status' => 'error', 'message' => 'Invalid education record.'], 422);
+            }
+
+            // Only the applicant who owns the record may delete it (cc_edu.login_id).
+            $education = CC_Education::where('edu_id', $id)
+                ->where('login_id', $loginId)
+                ->first();
 
             if (!$education) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Education record not found!'
                 ], 404);
+            }
+
+            // Returned application: the Education section may be locked (only other sections were queried).
+            $educationAppId = (string) ($education->application_id ?? '');
+            if ($educationAppId !== '') {
+                $educationApplicant = app(CompetencyApplicationService::class)->findApplicantWithPayment($educationAppId);
+                $educationStatus = strtoupper(trim((string) ($educationApplicant->status ?? $educationApplicant->app_status ?? '')));
+                if ($educationStatus === 'QU') {
+                    $educationLog = ReturnedApplicationEditScope::latestReturnLogRow($educationAppId);
+                    $educationSections = ReturnedApplicationEditScope::editableSectionsFromReasons(
+                        $educationLog ? ReturnedApplicationEditScope::parseQueryTypesJson($educationLog->query_types ?? null) : []
+                    );
+                    if (! ReturnedApplicationEditScope::isFullUnlock($educationSections)
+                        && ! in_array(ReturnedApplicationEditScope::SECTION_EDUCATION, $educationSections, true)) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => 'The education section is locked for this returned application.',
+                        ], 403);
+                    }
+                }
             }
 
             // Delete uploaded file if it exists
@@ -4759,7 +4811,7 @@ class FormController extends BaseController
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
             $educationLevelRuleDraft = ($request->form_name === 'S')
-                ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
+                ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EXS|max:50'
                 : 'nullable|string|max:50';
 
             $request->validate([
@@ -5124,7 +5176,7 @@ class FormController extends BaseController
         $uploadSignRule = 'nullable|image|mimes:jpg,jpeg,png|max:50';
 
         $educationLevelRuleDraft = ($request->form_name === 'S')
-            ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EX|max:50'
+            ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EXS|max:50'
             : 'nullable|string|max:50';
 
 
@@ -5561,7 +5613,7 @@ public function update(Request $request, $id)
             }
             $existingAppStatus = strtoupper(trim((string) ($form?->app_status ?? '')));
             $appStatusOnSave = 'P';
-            if ($action === 'draft' && in_array($applTypeForStatus, ['D', 'A'], true)) {
+            if ($action === 'draft' && (in_array($applTypeForStatus, ['D', 'A'], true) || FormPSchema::isFormP($request->form_name ?? ''))) {
                 $appStatusOnSave = in_array($existingAppStatus, ['P', 'A', 'F', 'RF', 'QU', 'RE', 'C'], true)
                     ? $existingAppStatus
                     : 'D';

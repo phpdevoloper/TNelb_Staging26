@@ -567,6 +567,14 @@ class FormSAlterationService
         return $normalized;
     }
 
+    /** Whitespace / comma-spacing insensitive form used only to decide whether an address really changed. */
+    protected function normalizeAddressForCompare(string $address): string
+    {
+        $address = preg_replace('/\s+/u', ' ', trim($address)) ?? '';
+
+        return trim(preg_replace('/\s*,\s*/u', ', ', $address) ?? '');
+    }
+
     protected function metaAddress(?object $row): string
     {
         if (! $row) {
@@ -841,7 +849,8 @@ class FormSAlterationService
         $newAddress = $this->requestAlterationAddress($request);
 
         $alterName = $request->input('alter_name') === '1' || ($newName !== '' && $newName !== $parentName);
-        $alterAddress = $request->input('alter_address') === '1' || ($newAddress !== '' && $newAddress !== $parentAddress);
+        $alterAddress = $request->input('alter_address') === '1'
+            || ($newAddress !== '' && $this->normalizeAddressForCompare($newAddress) !== $this->normalizeAddressForCompare($parentAddress));
         $alterWork = $this->requestHasWorkAlteration($request);
 
         if (!$alterName && !$alterAddress && !$alterWork) {

@@ -222,7 +222,7 @@
                                                 <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i> தமிழ்
                                             </a>
 
-                                            <a href="{{ route('generate.pdf', ['login_id' => $workflow->application_id]) }}"
+                                            <a href="{{ route('generate.pdf', ['application_id' => $workflow->application_id]) }}"
                                                 target="_blank" style="font-weight:500;">&nbsp;
                                                 <i class="fa fa-file-pdf-o" style="font-size:20px;color:red"></i> English
                                             </a>

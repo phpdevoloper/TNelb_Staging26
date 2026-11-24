@@ -463,6 +463,11 @@ $(document).on("click", "#digitizationSubmit", function () {
                 } else {
                     $("#certcode").val("");
                     $("#applicants_address").val("");
+                    $("#address_line1, #address_line2, #city, #state, #district, #pincode").val("");
+                    $("#state").trigger("change");
+                    if (typeof window.fsComposeApplicantAddress === "function") {
+                        window.fsComposeApplicantAddress();
+                    }
                 }
 
                 $("#digitizationForm")[0].reset();

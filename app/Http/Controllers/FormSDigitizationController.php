@@ -102,7 +102,7 @@ class FormSDigitizationController extends BaseController
             'cert_name' => 'C',
         ]);
         $request->validate([
-            'ccnumber'   => 'required|digits_between:1,5',
+            'ccnumber'   => 'required|digits_between:1,6',
             'fissue'     => 'required|date',
             'from_date'  => 'required|date|after_or_equal:fissue',
             'to_date'    => 'required|date|after_or_equal:from_date',

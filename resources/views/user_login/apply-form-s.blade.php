@@ -1739,100 +1739,7 @@
                     </div>
 
                     {{-- ═══ SECTION 6 — Education ═══ --}}
-                    <div class="fs-section">
-                        <div class="fs-section-header">
-                            <span class="fs-section-num">6</span>
-                            <div>
-                                <div class="fs-section-title">
-                                    Details of Technical Qualification passed by the applicant.
-                                    <span class="section-req">*</span>
-                                    <span class="section-hint">(Upload the documents)</span>
-                                </div>
-                                <div class="fs-section-tamil">விண்ணப்பதாரரின் தொழில்நுட்ப தேர்ச்சி மற்றும் தேர்ச்சி பற்றிய விவரங்கள் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
-                            </div>
-                        </div>
-                        <div class="fs-section-body">
-                            <div class="fs-table-wrap">
-                                <table class="table table-bordered" id="education-table">
-                                    <thead>
-                                        <tr>
-                                            <th rowspan="2">S.No</th>
-                                            <th rowspan="2">Education Level</th>
-                                            <th rowspan="2">University / Institute</th>
-                                            <th colspan="2" class="text-center">Month & Year of Passing</th>
-                                            <th rowspan="2">Certificate No</th>
-                                            <th class="text-center" rowspan="2">Upload Document
-                                                <br><span class="file-limit">File type: PDF(Min 5 KB To Max 200 KB)</span>
-                                            </th>
-                                            <th class="text-center p-1" rowspan="2">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-add add-more py-1 px-2" title="Add row">
-                                                        <i class="fa fa-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </th>
-                                        </tr>
-                                        {{-- <tr>
-                                            <th class="text-center">Month</th>
-                                            <th class="text-center">Year</th>
-                                        </tr> --}}
-                                    </thead>
-                                    <tbody id="education-container">
-                                        <tr class="education-fields">
-                                            <td class="edu-serial text-center">1</td>
-                                            <td>
-                                                <select class="form-control" name="educational_level[]">
-                                                    <option selected disabled>Select Education</option>
-                                                    <option value="DEE">Diploma(Electrical Engineering)</option>
-                                                    <option value="BEE">B.E(Electrical Engineering)</option>
-                                                    <option value="MEE">M.E(Electrical Engineering)</option>
-                                                    <option value="AMIE">A pass in AMIE</option>
-                                                    <option value="EX">Ex Serviceman</option>
-                                                </select>
-                                            </td>
-                                            <td><input type="text" class="form-control" name="institute_name[]" maxlength="80"></td>
-                                            <td>
-                                                <select name="month_of_passing[]" class="form-control">
-                                                    <option value="">Select Month</option>
-                                                    <option value="01">Jan</option><option value="02">Feb</option>
-                                                    <option value="03">Mar</option><option value="04">Apr</option>
-                                                    <option value="05">May</option><option value="06">Jun</option>
-                                                    <option value="07">Jul</option><option value="08">Aug</option>
-                                                    <option value="09">Sep</option><option value="10">Oct</option>
-                                                    <option value="11">Nov</option><option value="12">Dec</option>
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <select name="year_of_passing[]" class="form-control">
-                                                    <option value="0">Select Year</option>
-                                                    @php $currentYear = date('Y'); @endphp
-                                                    @for ($year = $currentYear; $year >= 1980; $year--)
-                                                        <option value="{{ $year }}">{{ $year }}</option>
-                                                    @endfor
-                                                </select>
-                                            </td>
-                                            <td>
-                                                <input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" required>
-                                                <span class="error text-danger certificate-error" style="font-size:.75rem;"></span>
-                                            </td>
-                                            <td>
-                                                <div class="form-s-file-upload-wrap form-s-file-upload-wrap--combined">
-                                                    <input type="file" class="form-control" name="education_document[]" accept=".pdf,application/pdf">
-                                                </div>
-                                            </td>
-                                            <td class="form-s-actions-cell text-center p-1">
-                                                <div class="form-s-actions-stack">
-                                                    <button type="button" class="btn-tbl-remove remove-education py-1 px-2" title="Remove row">
-                                                        <i class="fa fa-trash-o"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                    @include('user_login.partials.form-s-education-section', ['eduMode' => 'new', 'eduSectionNo' => 6])
 
                     {{-- ═══ SECTION 7 — Work Experience (7a Previous / 7b Current) ═══ --}}
                     <div class="fs-section">
@@ -1965,7 +1872,7 @@
                                 </div>
                                 <div class="mt-1">
                                     <span id="verify_result"></span>
-                                    <span id="license_messagdfde"></span>
+                                    <span id="license_message"></span>
                                 </div>
                             </div>
                         </div>
@@ -2002,7 +1909,7 @@
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                         <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
                                             data-type="supervisor" data-error="#certError" data-msg="#license_message"
-                                            placeholder="Certificate Number" maxlength="80" value="{{ $oldCertNo }}">
+                                            placeholder="Certificate Number" maxlength="5" value="{{ $oldCertNo }}">
                                         <input type="hidden" id="cert_verify" name="cert_verify" value="0">
                                         <span id="license_message" class="mt-1"></span>
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
@@ -2505,6 +2412,7 @@
     <script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
     {{-- COMPETENCY_FORM_CONFIG (footer) supplies env-safe AJAX URLs; form_s.js reads that first. --}}
     <script src="{{ url('assets/js/form_s.js') }}?v={{ filemtime(public_path('assets/js/form_s.js')) }}"></script>
+    <script src="{{ url('assets/js/form_s_education.js') }}?v={{ filemtime(public_path('assets/js/form_s_education.js')) }}"></script>
     <script>
         (function () {
             var BOARD_MEMBER_TYPE = 'board_member_tnelb';

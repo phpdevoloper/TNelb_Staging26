@@ -1372,6 +1372,20 @@
                     </div>
 
                     {{-- ═══ SECTION 6 — Education (Form S) / SECTION 5 — Education (others) ═══ --}}
+                    @if (($application_details->form_name ?? '') === 'S')
+                        @include('user_login.partials.form-s-education-section', [
+                            'eduMode' => 'edit',
+                            'eduSectionNo' => 6,
+                            'eduRows' => $edu_details,
+                            'eduApplicationId' => (int) ($application_details->id ?? 0),
+                            'eduLockSaved' => false,
+                            'eduDocRemovable' => true,
+                            'eduShowAdd' => ! (($returnedIsPartial ?? false) && ! $retCanEdit('education')),
+        'eduRowsLocked' => (($returnedIsPartial ?? false) && ! $retCanEdit('education')),
+                            'eduSectionClass' => trim($retLockClass('education')),
+                            'eduReturnSection' => 'education',
+                        ])
+                    @else
                     <div class="fs-section{{ $retLockClass('education') }}" data-return-section="education">
                         <div class="fs-section-header">
                             <span class="fs-section-num">{{ in_array($formName, ['S', 'W'], true) ? 6 : 5 }}</span>
@@ -1639,6 +1653,7 @@
                                             </div>
                         </div>
                     </div>
+                    @endif
                     {{-- /SECTION 5 --}}
 
                     @php
@@ -2231,6 +2246,9 @@
 </div>
 {{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
 <script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
+@if (($application_details->form_name ?? '') === 'S')
+<script src="{{ url('assets/js/form_s_education.js') }}?v={{ filemtime(public_path('assets/js/form_s_education.js')) }}"></script>
+@endif
 <script>
     window.toggleSectionEdit = function(btn) {
         var section = btn.closest('.fs-section');
@@ -2491,6 +2509,8 @@
 
     // Add more education row
     $(document).on('click', function(e) {
+        // Form S rows are handled by form_s_education.js (template cloned from the shared partial).
+        if ("{{ $application_details->form_name ?? '' }}" === 'S') return;
         if (!e.target.closest(".add-more-education") && !e.target.closest(".remove-education")) return;
         const refreshEducationSerials = () => {
             $('#education-container .education-fields td:first-child').each(function(index) {

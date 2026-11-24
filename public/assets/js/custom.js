@@ -3,10 +3,10 @@ $(document).ready(function () {
     // License verfication for FORM -w , FORM - WH ----------------------
 
    const regexRules = {
-        license: /^\d+$/,
-        certificate: /^\d+$/,
-        supervisor: /^\d+$/,
-        helper: /^\d+$/,
+        license:     /^\d+$/,                      // unchanged
+        certificate: /^(\d+|CB\d{11})$/i,          // 123213  or  CB20260900003
+        supervisor:  /^(\d+|CC\d{11})$/i,          // 123213  or  CC20260900010
+        helper:      /^(\d+|CH\d{11})$/i,          // 123213  or  CH20260900010
     };
 
     // ✅ Toggle Yes/No for all sections
@@ -23,6 +23,7 @@ $(document).ready(function () {
 
     // ✅ Common Keyup Validation
     $(document).on("input", ".verify-input", function () {
+
         let value = ($(this).val() || "").replace(/\D/g, "");
         $(this).val(value);
 
@@ -348,8 +349,8 @@ $(document).ready(function () {
                 const file = educationUpload[0].files[0]; // ✅ use raw DOM element
                 if (file) {
                     const allowedType = 'application/pdf';
-                    const minSize = 5 * 1024;   // 5 KB
-                    const maxSize = 250 * 1024; // 250 KB
+                    const minSize = 1 * 1024;   // 1 KB
+                    const maxSize = 200 * 1024; // 200 KB
 
                     if (file.type !== allowedType) {
                         $educationErrorTarget.after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for Education upload.</span>');
