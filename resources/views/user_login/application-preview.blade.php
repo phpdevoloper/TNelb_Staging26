@@ -26,14 +26,17 @@
         background:
             radial-gradient(900px 280px at 0% 0%, rgba(3, 90, 179, 0.07), transparent 60%),
             #eef3f8;
-        padding-bottom: 2.75rem;
+        padding-bottom: 3rem;
+        font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Noto Sans Tamil', 'Latha', 'Nirmala UI', system-ui, sans-serif;
+        line-height: 1.5;
+        overflow-x: hidden;
     }
     .apv-hero {
         position: relative;
         overflow: hidden;
         background: linear-gradient(128deg, #02356f 0%, #035ab3 52%, #0b7ad6 100%);
         color: #fff;
-        padding: 1.05rem 0 2.35rem;
+        padding: 1rem 0 2.5rem;
     }
     .apv-hero::before,
     .apv-hero::after {
@@ -66,25 +69,33 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.65rem;
+        gap: 0.75rem;
         flex-wrap: wrap;
-        margin-bottom: 1.15rem;
+        margin-bottom: 1.5rem;
     }
     .apv-btn {
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
+        justify-content: center;
+        gap: 0.5rem;
+        height: 2.25rem;
+        margin: 0;
         color: #fff;
         background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.28);
+        border: 1px solid rgba(255, 255, 255, 0.32);
         border-radius: 999px;
-        padding: 0.42rem 0.95rem;
-        font-size: 0.84rem;
+        padding: 0 1rem;
+        font-family: inherit;
+        font-size: 0.875rem;
         font-weight: 600;
-        line-height: 1.2;
+        line-height: 1;
+        white-space: nowrap;
         text-decoration: none;
         cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
     }
+    .apv-btn .fa { font-size: 0.875rem; line-height: 1; }
     .apv-btn:hover,
     .apv-btn:focus-visible {
         background: rgba(255, 255, 255, 0.22);
@@ -96,57 +107,66 @@
         box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
     }
     .apv-kicker {
-        margin: 0 0 0.3rem;
-        font-size: 0.72rem;
+        margin: 0 0 0.25rem;
+        font-size: 0.6875rem;
         font-weight: 700;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.12em;
+        line-height: 1.4;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.78);
+        color: rgba(255, 255, 255, 0.8);
     }
     .apv-title {
         margin: 0;
         max-width: 42rem;
-        font-size: clamp(1.45rem, 1.1rem + 1.4vw, 2rem);
+        font-family: inherit;
+        font-size: clamp(1.375rem, 1.1rem + 1.2vw, 1.875rem);
         font-weight: 700;
-        line-height: 1.2;
+        line-height: 1.25;
         color: #fff;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.01em;
+        overflow-wrap: anywhere;
     }
     .apv-chips {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.55rem;
+        align-items: stretch;
+        gap: 0.75rem;
         margin-top: 1rem;
     }
     .apv-chip {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         min-width: 0;
+        min-height: 3.25rem;
         background: rgba(255, 255, 255, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 0.7rem;
-        padding: 0.45rem 0.75rem 0.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.875rem;
     }
     .apv-chip-label {
         display: block;
-        margin-bottom: 0.12rem;
-        font-size: 0.64rem;
+        margin-bottom: 0.125rem;
+        font-size: 0.6875rem;
         font-weight: 700;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.05em;
+        line-height: 1.4;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.72);
+        color: rgba(255, 255, 255, 0.8);
     }
     .apv-chip-value {
         display: block;
-        font-size: 0.9rem;
-        font-weight: 700;
-        line-height: 1.3;
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1.4;
         word-break: break-word;
     }
     .apv-sheet {
-        margin-top: -1.15rem;
+        margin-top: -1.25rem;
     }
     @media (max-width: 575.98px) {
         .apv-hero { padding-bottom: 2rem; }
-        .apv-actions { margin-bottom: 0.9rem; }
+        .apv-actions { margin-bottom: 1rem; }
         .apv-chip { flex: 1 1 100%; }
     }
     @media print {

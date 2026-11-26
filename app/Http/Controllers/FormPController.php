@@ -12,6 +12,7 @@ use App\Models\TnelbApplicantPhoto;
 use App\Models\TnelbApplicantsSign;
 use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
+use App\Services\ApplicationOwnerResolver;
 use App\Services\CcDigitizationLinkService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyDocumentSupport;
@@ -155,8 +156,9 @@ class FormPController extends BaseController
         ]);
         $request->validate([
             'ccnumber' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,19}$/'],
-            'fissue' => 'required|date',
-            'from_date' => 'required|date|after_or_equal:fissue',
+            // Date of First Issue / Validity From cannot be in the future (Validity To may be).
+            'fissue' => 'required|date|before_or_equal:today',
+            'from_date' => 'required|date|before_or_equal:today|after_or_equal:fissue',
             // 'to_date' => 'required|date|after_or_equal:from_date',
               'to_date' => [
                     'required',
@@ -179,6 +181,8 @@ class FormPController extends BaseController
             'cert_name' => 'required|in:P',
         ], [
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
+            'fissue.before_or_equal' => 'Date of First Issue cannot be a future date.',
+            'from_date.before_or_equal' => 'Validity From date cannot be a future date.',
         ]);
 
         $toDate = Carbon::parse($request->to_date);
@@ -863,6 +867,18 @@ class FormPController extends BaseController
                     'status' => 'error',
                     'message' => 'Institute record not found!',
                 ], 404);
+            }
+
+            // Only the logged-in applicant who owns the application this row belongs to may delete it.
+            // A row with no resolvable application / owner is refused (fail closed).
+            $owningApplicationId = trim((string) ($institute->application_id ?? ''));
+            $loginId = (string) (auth()->user()->login_id ?? '');
+            if ($owningApplicationId === ''
+                || ! app(ApplicationOwnerResolver::class)->isOwnedBy($owningApplicationId, $loginId)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'You are not allowed to delete this record.',
+                ], 403);
             }
 
             $filePath = $institute->upload_doc ?? $institute->upload_document ?? null;

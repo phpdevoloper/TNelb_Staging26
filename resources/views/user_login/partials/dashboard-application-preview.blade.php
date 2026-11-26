@@ -231,13 +231,13 @@
                     <table class="dash-prv-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Education Level</th>
-                                <th>Institution</th>
-                                <th>Month</th>
-                                <th>Year</th>
-                                <th>Certificate No.</th>
-                                <th>Document</th>
+                                <th class="dash-prv-col-sno">#</th>
+                                <th class="dash-prv-col-level dash-prv-td-left">Education Level</th>
+                                <th class="dash-prv-td-left">Institution</th>
+                                <th class="dash-prv-col-month">Month</th>
+                                <th class="dash-prv-col-year">Year</th>
+                                <th class="dash-prv-col-cert">Certificate No.</th>
+                                <th class="dash-prv-col-doc">Document</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -284,12 +284,12 @@
                     <table class="dash-prv-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Institute Name &amp; Address</th>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Year / Month / Day</th>
-                                <th>Document</th>
+                                <th class="dash-prv-col-sno">#</th>
+                                <th class="dash-prv-td-left">Institute Name &amp; Address</th>
+                                <th class="dash-prv-col-date">From</th>
+                                <th class="dash-prv-col-date">To</th>
+                                <th class="dash-prv-col-dur">Year / Month / Day</th>
+                                <th class="dash-prv-col-doc">Document</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -321,16 +321,16 @@
 
                 <div class="dash-prv-subhead">(iii) Power Station Experience</div>
                 <div class="dash-prv-table-wrap">
-                    <table class="dash-prv-table">
+                    <table class="dash-prv-table dash-prv-ps-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Power Station</th>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Year / Month / Day</th>
-                                <th>Designation</th>
-                                <th>Document</th>
+                                <th class="dash-prv-col-sno">#</th>
+                                <th class="dash-prv-td-left">Power Station</th>
+                                <th class="dash-prv-col-date dash-prv-td-left">From</th>
+                                <th class="dash-prv-col-date dash-prv-td-left">To</th>
+                                <th class="dash-prv-col-dur dash-prv-td-left">Year / Month / Day</th>
+                                <th class="dash-prv-col-desig dash-prv-td-left">Designation</th>
+                                <th class="dash-prv-col-doc">Document</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -352,9 +352,9 @@
                                         @endif
                                     </td>
                                     <td class="dash-prv-td-left">{{ $dashTxt($station) !== '' ? $station : '—' }}</td>
-                                    <td>{{ $fmtDate($exp->from_date ?? null) !== '' ? $fmtDate($exp->from_date) : '—' }}</td>
-                                    <td>{{ $fmtDate($exp->to_date ?? null) !== '' ? $fmtDate($exp->to_date) : '—' }}</td>
-                                    <td>{{ $durTxt !== '' ? $durTxt : '—' }}</td>
+                                    <td class="dash-prv-td-left">{{ $fmtDate($exp->from_date ?? null) !== '' ? $fmtDate($exp->from_date) : '—' }}</td>
+                                    <td class="dash-prv-td-left">{{ $fmtDate($exp->to_date ?? null) !== '' ? $fmtDate($exp->to_date) : '—' }}</td>
+                                    <td class="dash-prv-td-left dash-prv-ps-dur">{{ $durTxt !== '' ? $durTxt : '—' }}</td>
                                     <td class="dash-prv-td-left">{{ $dashTxt($exp->designation ?? '') !== '' ? $exp->designation : '—' }}</td>
                                     <td>
                                         @if ($supportUrl)
@@ -427,13 +427,13 @@
                     <table class="dash-prv-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Education Level</th>
-                                <th>University / Institute</th>
-                                <th>Month</th>
-                                <th>Year</th>
-                                <th>Certificate No.</th>
-                                <th>Document</th>
+                                <th class="dash-prv-col-sno">#</th>
+                                <th class="dash-prv-col-level dash-prv-td-left">Education Level</th>
+                                <th class="dash-prv-td-left">University / Institute</th>
+                                <th class="dash-prv-col-month">Month</th>
+                                <th class="dash-prv-col-year">Year</th>
+                                <th class="dash-prv-col-cert">Certificate No.</th>
+                                <th class="dash-prv-col-doc">Document</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -477,7 +477,7 @@
                     <span class="dash-prv-section-num dash-prv-section-num--sub">{{ $isFormS ? '7a' : '7' }}</span>
                     <div>
                         <div class="dash-prv-section-title">{{ $isFormS ? 'Previous and Current Work experiences' : 'Details of Previous and Current Work experiences' }}</div>
-                        <div class="dash-prv-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்</div>
+                        <div class="dash-prv-section-tamil">{{ $isFormS ? 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள்' : 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்' }}</div>
                     </div>
                 </div>
                 <div class="dash-prv-section-body">
@@ -564,7 +564,7 @@
                     <span class="dash-prv-section-num dash-prv-section-num--sub">9</span>
                     <div>
                         <div class="dash-prv-section-title">Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.</div>
-                        <div class="dash-prv-section-tamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.</div>
+                        <div class="dash-prv-section-tamil">இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதிச் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.</div>
                     </div>
                 </div>
                 <div class="dash-prv-section-body">

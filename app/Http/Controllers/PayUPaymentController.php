@@ -10,11 +10,13 @@ use App\Services\FormS\FormSSubmissionGuard;
 use App\Models\PaymentTransactionModel;
 use App\Services\PayUPaymentSettlementService;
 use App\Services\Competency\PaymentFeeService;
+use App\Services\Competency\FormPPaymentStatusRules;
+use App\Services\Payments\PayUCallbackRules;
 use Illuminate\Support\Facades\Log;
 
 class PayUPaymentController extends BaseController
 {
-    public function initiate(Request $request, PayUService $payU)
+    public function initiate(Request $request, PayUService $payU, PayUPaymentSettlementService $settlement)
     {
         try {
             $request->validate([
@@ -63,6 +65,21 @@ class PayUPaymentController extends BaseController
 
             // Form P: the amount charged always comes from the fee tables, never from the browser.
             if ($formCode === 'P') {
+                // Never charge twice: refuse when already paid / fee-exempt or an attempt already succeeded.
+                if ($settlement->isApplicationPaid((string) $applicationId, $form)) {
+                    return response()->view('user_login.payments.payu-error', [
+                        'message' => 'The fee for this application has already been paid. No further payment is needed.',
+                    ], 409);
+                }
+
+                // Earlier attempts still open: ask PayU what happened to them before starting another one.
+                $prior = $settlement->checkPriorFormPAttempts((string) $applicationId);
+                if (! ($prior['allowed'] ?? false)) {
+                    return response()->view('user_login.payments.payu-error', [
+                        'message' => $prior['message'] ?? 'An earlier payment attempt is still being processed. Please try again later.',
+                    ], 409);
+                }
+
                 $fee = app(PaymentFeeService::class)->calculate(
                     (string) ($form->appl_type ?? 'N'),
                     (string) ($form->certificate_name ?? 'P'),
@@ -103,8 +120,13 @@ class PayUPaymentController extends BaseController
             ]);
 
             // Pay Now means the applicant has submitted; renewal draft saves may still have app_status D.
-            if (strtoupper(trim((string) ($form->app_status ?? ''))) === 'D') {
-                $form->update(['app_status' => 'P']);
+            // Form P is the exception: it stays a D/N draft until the payment succeeds (settleSuccess).
+            $statusAfterInitiate = FormPPaymentStatusRules::statusAfterInitiate(
+                $formCode,
+                (string) ($form->app_status ?? '')
+            );
+            if ($statusAfterInitiate !== null) {
+                $form->update(['app_status' => $statusAfterInitiate]);
             }
 
             $data = [
@@ -314,11 +336,15 @@ class PayUPaymentController extends BaseController
                     'unmappedstatus' => $callback['unmappedstatus'] ?? null,
                 ]);
 
+                // Kept for audit only, nested so it can never be read back as a gateway answer; a trusted
+                // callback already stored is left exactly as it was.
                 $paymentTxn->update([
-                    'gateway_response' => json_encode(array_merge($callback, [
-                        '_callback_source' => $source,
-                        '_validation_error' => $validation['reason'],
-                    ])),
+                    'gateway_response' => json_encode(PayUCallbackRules::storedValueAfterRejectedCallback(
+                        $paymentTxn->gateway_response,
+                        $callback,
+                        $source,
+                        $validation['reason'] ?? null
+                    )),
                 ]);
 
                 return $this->renderPaymentFailure(

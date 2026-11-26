@@ -71,44 +71,141 @@ class CC_Board_Details extends Model
             return null;
         }
 
-        $orgs = [];
+        $rows = [];
         $matched = false;
 
         static::query()
             ->whereDate('bm_date', $ymd)
             ->get(['bm_id', 'bm_no', 'bm_date', 'bm_member', 'bm_members'])
-            ->each(static function (self $row) use ($no, &$orgs, &$matched): void {
+            ->each(static function (self $row) use ($no, &$rows, &$matched): void {
                 $rawNo = $row->getAttributes()['bm_no'] ?? $row->bm_no;
                 if (static::normalizeMeetingNo($rawNo) !== $no) {
                     return;
                 }
 
                 $matched = true;
-                $org = trim((string) ($row->bm_member ?? ''));
-                if ($org === '') {
-                    return;
-                }
-
-                $orgs[$org] ??= [];
-                foreach (preg_split('/[,;|\n]+/', (string) ($row->bm_members ?? '')) ?: [] as $name) {
-                    $name = trim((string) $name);
-                    if ($name !== '' && ! in_array($name, $orgs[$org], true)) {
-                        $orgs[$org][] = $name;
-                    }
-                }
+                $rows[] = [(string) ($row->bm_member ?? ''), (string) ($row->bm_members ?? '')];
             });
 
-        if (! $matched) {
+        return $matched ? static::groupOrganisations($rows) : null;
+    }
+
+    /**
+     * Representing Organisation dropdown order given by ELB (Form S New item 13 / Digitisation item 15).
+     * Organisations not in this list follow, alphabetically.
+     */
+    public const ORGANISATION_ORDER = [
+        'President',
+        'Secretary',
+        'GM/HR/TANGEDCO',
+        'SE/TANGEDCO/Ennore',
+        'DGM/NLC',
+        'DOTE/CPT HOD',
+        'SE/TANGEDCO/Central',
+        'GM/HRM.TANGEDCO',
+        'SE/Ennore',
+        'SE/PWD',
+        'SE/CEA',
+        'Employment & Training',
+        'NPTI',
+        'GM/NLC',
+    ];
+
+    /**
+     * [organisation => [member names]] from raw (bm_member, bm_members) pairs. Organisations that differ
+     * only in case / spaces ("president" / "President") are merged under the ELB spelling (or the first one
+     * seen); members are de-duplicated case-insensitively and sorted. Pure, so it can be unit-tested.
+     *
+     * @param  list<array{0:string,1:string}>  $rows
+     * @return array<string, list<string>>
+     */
+    public static function groupOrganisations(array $rows): array
+    {
+        $canonical = [];
+        foreach (self::ORGANISATION_ORDER as $name) {
+            $canonical[self::organisationKey($name)] = $name;
+        }
+
+        $labels = [];
+        $members = [];
+        foreach ($rows as [$org, $memberList]) {
+            $org = trim((string) preg_replace('/\s+/', ' ', (string) $org));
+            if ($org === '') {
+                continue;
+            }
+
+            $key = self::organisationKey($org);
+            $labels[$key] ??= $canonical[$key] ?? $org;
+            $members[$key] ??= [];
+            foreach (preg_split('/[,;|\n]+/', (string) $memberList) ?: [] as $name) {
+                $name = trim((string) $name);
+                if ($name !== '') {
+                    $members[$key][mb_strtolower($name, 'UTF-8')] ??= $name;
+                }
+            }
+        }
+
+        $rank = array_flip(array_keys($canonical));
+        $keys = array_keys($labels);
+        usort($keys, static function (string $a, string $b) use ($rank, $labels): int {
+            $ra = $rank[$a] ?? PHP_INT_MAX;
+            $rb = $rank[$b] ?? PHP_INT_MAX;
+
+            return $ra !== $rb ? $ra <=> $rb : strcasecmp($labels[$a], $labels[$b]);
+        });
+
+        $orgs = [];
+        foreach ($keys as $key) {
+            $names = array_values($members[$key]);
+            sort($names);
+            $orgs[$labels[$key]] = $names;
+        }
+
+        return $orgs;
+    }
+
+    /**
+     * The organisation key in a lookupMeeting() result that matches $org ignoring case / extra spaces,
+     * so values saved as "president" still match "President". Null when the meeting has no such organisation.
+     *
+     * @param  array<string, list<string>>  $meeting
+     */
+    public static function findOrganisation(array $meeting, string $org): ?string
+    {
+        $wanted = self::organisationKey($org);
+        if ($wanted === '') {
             return null;
         }
 
-        ksort($orgs);
-        foreach ($orgs as &$names) {
-            sort($names);
+        foreach (array_keys($meeting) as $name) {
+            if (self::organisationKey((string) $name) === $wanted) {
+                return (string) $name;
+            }
         }
-        unset($names);
 
-        return $orgs;
+        return null;
+    }
+
+    /** True when $member is one of $members, ignoring case and surrounding spaces. */
+    public static function hasMember(array $members, string $member): bool
+    {
+        $wanted = mb_strtolower(trim($member), 'UTF-8');
+        if ($wanted === '') {
+            return false;
+        }
+
+        foreach ($members as $name) {
+            if (mb_strtolower(trim((string) $name), 'UTF-8') === $wanted) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function organisationKey(string $org): string
+    {
+        return mb_strtolower(trim((string) preg_replace('/\s+/', ' ', $org)), 'UTF-8');
     }
 
     /**

@@ -108,16 +108,21 @@ Route::get('captcha/image', function () {
 
 Route::get('/reload-captcha', [LoginController::class, 'reloadCaptcha']);
 
+# Payment maintenance (testing tool: edits/deletes payment rows for ANY application).
+// Super Admin login only, and never registered in production. Not linked from any page.
+if (! app()->isProduction()) {
+    Route::middleware(['auth:admin', 'admin.role:Super Admin'])->group(function () {
+        Route::get('/payment-maintenance', [PaymentMaintenanceController::class, 'index'])->name('payment.maintenance');
+        Route::post('/payment-maintenance/update-status', [PaymentMaintenanceController::class, 'updatePaymentStatus'])->name('payment.maintenance.update_status');
+        Route::delete('/payment-maintenance/cc-payments', [PaymentMaintenanceController::class, 'deleteCcPayments'])->name('payment.maintenance.delete_cc_payments');
+        Route::delete('/payment-maintenance/payment-transactions', [PaymentMaintenanceController::class, 'deletePaymentTransactions'])->name('payment.maintenance.delete_payment_transactions');
+    });
+}
+
 # Protected Routes (Logged-in Users Only)
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/user_login', [RegisterController::class, 'user_login'])->name('user_login');
-
-    # Payment maintenance (testing only — logged-in users)
-    Route::get('/payment-maintenance', [PaymentMaintenanceController::class, 'index'])->name('payment.maintenance');
-    Route::post('/payment-maintenance/update-status', [PaymentMaintenanceController::class, 'updatePaymentStatus'])->name('payment.maintenance.update_status');
-    Route::delete('/payment-maintenance/cc-payments', [PaymentMaintenanceController::class, 'deleteCcPayments'])->name('payment.maintenance.delete_cc_payments');
-    Route::delete('/payment-maintenance/payment-transactions', [PaymentMaintenanceController::class, 'deletePaymentTransactions'])->name('payment.maintenance.delete_payment_transactions');
 
     Route::get('/apply-form-s', [RegisterController::class, 'apply_form_s'])->name('apply-form-s');
     Route::get('/form-s/board-meeting/verify', [FormController::class, 'verifyBoardMeeting'])
@@ -348,29 +353,33 @@ Route::middleware(['auth'])->group(function () {
 });
 
 # Form Submit & PDF Routes
-Route::post('/form/store', [FormController::class, 'store'])->name('form.store');
-Route::post('/form_w/store', [FormWController::class, 'store'])->name('form_w.store');
-Route::post('/form_wh/store', [FormWHController::class, 'store'])->name('form_wh.store');
-Route::post('/form/draft_submit/{appl_id}', [FormController::class, 'draft_submit'])->name('form.draft_submit');
-Route::post('/form/draft_update/{appl_id}', [FormController::class, 'draft_update'])->name('form.draft-update');
-Route::post('/form_w/draft_update/{appl_id}', [FormWController::class, 'draftUpdate'])->name('form_w.draft-update');
-Route::post('/form_wh/draft_update/{appl_id}', [FormWHController::class, 'draftUpdate'])->name('form_wh.draft-update');
-Route::post('/form/submit_returned_application/{appl_id}', [FormController::class, 'submitReturnedApplication'])->name('form.submit_returned_application');
-Route::post('/form/draft_submit', [FormController::class, 'draft_submit'])->name('form.draft_submit');
-Route::post('/form_w/draft_submit', [FormWController::class, 'draftSubmit'])->name('form_w.draft_submit');
-Route::post('/form_w/draft_submit/{appl_id}', [FormWController::class, 'draftSubmit']);
-Route::post('/form_wh/draft_submit', [FormWHController::class, 'draftSubmit'])->name('form_wh.draft_submit');
-Route::post('/form_wh/draft_submit/{appl_id}', [FormWHController::class, 'draftSubmit']);
-Route::post('/form/draft_renewal_submit/{appl_id}', [FormController::class, 'draft_renewal_submit'])
-    ->name('form.draft_renewal_submit');
-Route::post('/form_w/draft_renewal_submit/{appl_id}', [FormWController::class, 'draftRenewalSubmit'])
-    ->name('form_w.draft_renewal_submit');
-Route::post('/form_wh/draft_renewal_submit/{appl_id}', [FormWHController::class, 'draftRenewalSubmit'])
-    ->name('form_wh.draft_renewal_submit');
+// Competency (S / W / WH, and P via FormController) persist routes: logged-in applicants only.
+// FormController binds login_id to the session user and checks ownership of any existing application id.
+Route::middleware(['auth'])->group(function () {
+    Route::post('/form/store', [FormController::class, 'store'])->name('form.store');
+    Route::post('/form_w/store', [FormWController::class, 'store'])->name('form_w.store');
+    Route::post('/form_wh/store', [FormWHController::class, 'store'])->name('form_wh.store');
+    Route::post('/form/draft_submit/{appl_id}', [FormController::class, 'draft_submit'])->name('form.draft_submit');
+    Route::post('/form/draft_update/{appl_id}', [FormController::class, 'draft_update'])->name('form.draft-update');
+    Route::post('/form_w/draft_update/{appl_id}', [FormWController::class, 'draftUpdate'])->name('form_w.draft-update');
+    Route::post('/form_wh/draft_update/{appl_id}', [FormWHController::class, 'draftUpdate'])->name('form_wh.draft-update');
+    Route::post('/form/submit_returned_application/{appl_id}', [FormController::class, 'submitReturnedApplication'])->name('form.submit_returned_application');
+    Route::post('/form/draft_submit', [FormController::class, 'draft_submit'])->name('form.draft_submit');
+    Route::post('/form_w/draft_submit', [FormWController::class, 'draftSubmit'])->name('form_w.draft_submit');
+    Route::post('/form_w/draft_submit/{appl_id}', [FormWController::class, 'draftSubmit']);
+    Route::post('/form_wh/draft_submit', [FormWHController::class, 'draftSubmit'])->name('form_wh.draft_submit');
+    Route::post('/form_wh/draft_submit/{appl_id}', [FormWHController::class, 'draftSubmit']);
+    Route::post('/form/draft_renewal_submit/{appl_id}', [FormController::class, 'draft_renewal_submit'])
+        ->name('form.draft_renewal_submit');
+    Route::post('/form_w/draft_renewal_submit/{appl_id}', [FormWController::class, 'draftRenewalSubmit'])
+        ->name('form_w.draft_renewal_submit');
+    Route::post('/form_wh/draft_renewal_submit/{appl_id}', [FormWHController::class, 'draftRenewalSubmit'])
+        ->name('form_wh.draft_renewal_submit');
 
-Route::post('/form/update/{appl_id}', [FormController::class, 'update'])->name('form.update');
-Route::post('/form_w/update/{appl_id}', [FormWController::class, 'updateApplication'])->name('form_w.update');
-Route::post('/form_wh/update/{appl_id}', [FormWHController::class, 'updateApplication'])->name('form_wh.update');
+    Route::post('/form/update/{appl_id}', [FormController::class, 'update'])->name('form.update');
+    Route::post('/form_w/update/{appl_id}', [FormWController::class, 'updateApplication'])->name('form_w.update');
+    Route::post('/form_wh/update/{appl_id}', [FormWHController::class, 'updateApplication'])->name('form_wh.update');
+});
 Route::post('/forma/store', [FormAController::class, 'store'])->name('forma.store');
 
 
@@ -432,10 +441,11 @@ Route::get('/generaterenewalTamilPDF/{login_id}', [PDFRenewalController::class, 
 
 # Payment
 
-Route::post('/payment/updatePayment', [PaymentController::class, 'updatePayment'])->name('payment.updatePayment');
+// Logged-in owner only (PaymentController checks ApplicationOwnerResolver). Form P can not be marked paid here.
+Route::post('/payment/updatePayment', [PaymentController::class, 'updatePayment'])->middleware('auth')->name('payment.updatePayment');
 
 # Payment
-Route::post('/form/updatePayment', [PaymentController::class, 'updatePayment'])->name('form.updatePayment');
+Route::post('/form/updatePayment', [PaymentController::class, 'updatePayment'])->middleware('auth')->name('form.updatePayment');
 
 # Form P Returned Application Submit
 Route::post('/form_p/submit_returned/{appl_id}', [\App\Http\Controllers\Admin\FormPController::class, 'submitReturnedApplicationFormP'])
@@ -530,8 +540,9 @@ Route::post('/form_p/update', [FormPController::class, 'update'])->middleware('a
 Route::post('/form_p/draft_renewal_submit/{appl_id?}', [FormPController::class, 'draft_renewal_submit_p'])->middleware('auth')->name('form_p.draft_renewal_submit');
 Route::get('/editApplication_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit-application_p');
 Route::get('/edit_returned_application_p/{application_id}', [FormPController::class, 'editApplication'])->name('edit_returned_application_p');
-Route::post('/payment/updatePaymentFormP', [PaymentController::class, 'updatePaymentFormP'])->name('payment.updatePaymentFormP');
-Route::post('/delete_institute', [FormPController::class, 'delete_institute'])->name('delete_institute');
+// Logged-in owner only; the controllers check ApplicationOwnerResolver::isOwnedBy.
+Route::post('/payment/updatePaymentFormP', [PaymentController::class, 'updatePaymentFormP'])->middleware('auth')->name('payment.updatePaymentFormP');
+Route::post('/delete_institute', [FormPController::class, 'delete_institute'])->middleware('auth')->name('delete_institute');
 Route::get('/generate-pdf-p/{login_id}', [PDFController::class, 'generateFormPPDF'])->middleware(['auth', 'owns.application'])->name('generateformP.pdf');
 Route::get('/generatePDFFormP/{login_id}', [PDFController::class, 'generatePDFFormP'])->middleware(['auth', 'owns.application'])->name('generatePDFFormP.pdf');
 Route::get('/generatePDFFormPTA/{login_id}', [PDFController::class, 'generateFormPPDFTA'])->middleware(['auth', 'owns.application'])->name('generatePDFFormP-ta.pdf');
@@ -628,9 +639,7 @@ Route::prefix('form-s/documents')->name('form-s.documents.')->group(function () 
     Route::get('/download/{logId}', [FormSDocumentController::class, 'download'])->name('download');
 });
 
-  Route::get('/form-s/board-meeting/verify', [FormController::class, 'verifyBoardMeeting'])
-        ->middleware('throttle:60,1')
-        ->name('form-s.board-meeting.verify');
+# Form S board-meeting verify lives in the auth group above (no public duplicate).
 
 # Without Temp Module (Sample / Test)
 Route::prefix('without-tmp')->name('without-tmp.')->group(function () {

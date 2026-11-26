@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use App\Services\Competency\FormPPaymentStatusRules;
 
 use App\Models\CC_checklist_applicant;
 use App\Models\CC_Forms_cert;
@@ -954,24 +955,74 @@ class LoginController extends BaseController
         });
     }
 
-    /** @return array<string, string> application_id => gateway status */
-    private function loadPayuCheckableApplications(Collection $applicationIds): array
+    /**
+     * Open gateway attempts (INITIATED / PENDING / PENDING_VERIFICATION), newest first, per application.
+     *
+     * @return Collection<string, Collection<int, PaymentTransactionModel>>
+     */
+    private function loadOpenGatewayAttempts(Collection $applicationIds): Collection
     {
-        $ids = $applicationIds->filter()->unique()->values()->all();
+        $ids = $applicationIds->filter()->map(fn ($id) => trim((string) $id))->unique()->values()->all();
         if ($ids === []) {
-            return [];
+            return collect();
         }
 
         return PaymentTransactionModel::query()
             ->whereIn('application_id', $ids)
-            ->whereIn('status', ['INITIATED', 'PENDING', 'PENDING_VERIFICATION'])
+            ->whereIn('status', FormPPaymentStatusRules::OPEN_ATTEMPT_STATUSES)
             ->orderByDesc('id')
-            ->get()
-            ->unique('application_id')
-            ->mapWithKeys(fn($row) => [
-                (string) $row->application_id => strtoupper((string) $row->status),
-            ])
+            ->get(['id', 'application_id', 'status', 'created_at'])
+            ->groupBy(fn ($row) => (string) $row->application_id);
+    }
+
+    /** @return array<string, string> application_id => gateway status */
+    private function loadPayuCheckableApplications(Collection $applicationIds, ?Collection $openAttempts = null): array
+    {
+        $openAttempts = $openAttempts ?? $this->loadOpenGatewayAttempts($applicationIds);
+
+        return $openAttempts
+            ->map(fn (Collection $attempts) => strtoupper((string) $attempts->first()->status))
             ->all();
+    }
+
+    /**
+     * An unpaid Form P draft (D/N) whose only open attempts are INITIATED ones older than
+     * FormPPaymentStatusRules::ABANDON_AFTER_MINUTES (payment window closed before / at PayU) is shown
+     * as a Draft again, not "Submitted / Status". PayUPaymentController::initiate re-checks those
+     * attempts at PayU before a new payment starts.
+     *
+     * @param  array<string, string>  $checkable
+     * @param  Collection<string, Collection<int, PaymentTransactionModel>>  $openAttempts
+     * @return array<string, string>
+     */
+    private function withoutAbandonedFormPDraftAttempts(array $checkable, Collection $rows, Collection $openAttempts): array
+    {
+        if ($checkable === []) {
+            return $checkable;
+        }
+
+        $now = now();
+        foreach ($rows as $row) {
+            $appId = trim((string) data_get($row, 'application_id', ''));
+            if ($appId === '' || ! isset($checkable[$appId])) {
+                continue;
+            }
+            if (FormPPaymentStatusRules::isPaid((string) data_get($row, 'payment_status', ''))) {
+                continue;
+            }
+
+            $status = data_get($row, 'status') ?? data_get($row, 'application_status') ?? data_get($row, 'app_status');
+            if (FormPPaymentStatusRules::dashboardTreatsAsAbandonedDraft(
+                (string) data_get($row, 'form_name', ''),
+                (string) $status,
+                $openAttempts->get($appId, collect()),
+                $now
+            )) {
+                unset($checkable[$appId]);
+            }
+        }
+
+        return $checkable;
     }
 
     public function login()
@@ -1562,8 +1613,11 @@ class LoginController extends BaseController
 
 
 
-        $payuCheckableApplications = $this->loadPayuCheckableApplications(
-            $mergedData->pluck('application_id')
+        $openGatewayAttempts = $this->loadOpenGatewayAttempts($mergedData->pluck('application_id'));
+        $payuCheckableApplications = $this->withoutAbandonedFormPDraftAttempts(
+            $this->loadPayuCheckableApplications($mergedData->pluck('application_id'), $openGatewayAttempts),
+            $mergedData,
+            $openGatewayAttempts
         );
 
         // Ajax

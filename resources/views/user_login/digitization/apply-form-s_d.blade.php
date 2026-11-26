@@ -676,22 +676,6 @@
     .prv-btn-confirm:disabled { opacity:.45; cursor:not-allowed; }
     .prv-btn-confirm:not(:disabled):hover { opacity:.92; }
 
-    @media print {
-        body * { visibility:hidden !important; }
-        #appPreviewModal.prv-open, #appPreviewModal.prv-open * { visibility:visible !important; }
-        #appPreviewModal.prv-open { position:static !important; inset:auto; width:auto; max-width:none; overflow:visible !important; background:transparent !important; box-shadow:none !important; }
-        .prv-overlay { background:none !important; }
-        .prv-panel { box-shadow:none !important; border-radius:0 !important; }
-        .prv-header, .prv-footer, .prv-close, .prv-badge, .prv-subtitle, .prv-confirm-check, .prv-btn-back, .prv-btn-print, .prv-btn-confirm { display:none !important; }
-        .prv-section { border:1px solid #ccc !important; box-shadow:none !important; page-break-inside:avoid; }
-        .prv-section-body { padding:8px 10px !important; }
-        .prv-table th, .prv-table td { border-color:#ccc !important; background:transparent !important; }
-        .prv-value { background:transparent !important; border-color:#ccc !important; }
-        .prv-thumb img, .prv-thumb .prv-no-img { width:68px !important; height:80px !important; }
-        .prv-thumb-sign img { width:110px !important; height:42px !important; }
-        #appPreviewModal.prv-open { position:relative !important; }
-    }
-
     /* ── Validation messages — uniform size ─────────── */
     .fs-form .text-danger,
     .fs-form .error-message,
@@ -792,7 +776,7 @@
     <div class="container">
         <ul id="breadcrumb">
             <li><a href="{{ route('dashboard')}}"><span class="fa fa-home"></span> Dashboard</a></li>
-            <li><a href="#"><span class="fa fa-info-circle"></span> Form S</a></li>
+            <li><a href="#"><span class="fa fa-info-circle"></span> Form C Digitization</a></li>
         </ul>
     </div>
 </div>
@@ -805,9 +789,9 @@
             {{-- Card header --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Digitisation of Supervisor Competency Certificate</h5>
+                    <h5>Digitization of Supervisor Competency Certificate</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதிச் சான்றிதழை மின்னணுமயமாக்குதல்</h5>
-                    <span class="form-badge">FORM - S</span>
+                    <span class="form-badge">FORM - C</span>
                 </div>
             </div>
 
@@ -845,7 +829,8 @@
                                         </div>
                                     </div>
                                     <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name"
-                                        type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80">
+                                        type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80"
+                                        placeholder="e.g. Arun Srinivasakannan G">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6 mb-2 mt-1">
@@ -931,7 +916,7 @@
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
-                                <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் <span class="section-req">*</span> <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                                <div class="fs-section-tamil">முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள் <span class="section-req">*</span> <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -965,23 +950,23 @@
                             <div id="previously_details" class="fs-toggle-panel" style="display:none;">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
-                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text"
-                                            data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                            placeholder="Certificate Number" value="" maxlength="80">
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
+                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]{5}"
+                                            data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
+                                            placeholder="Certificate Number" value="" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date" name="previously_issue_date" type="date"
-                                            data-error="#previouslyIssueDateError" value="">
+                                            data-error="#previouslyIssueDateError" max="{{ now()->toDateString() }}" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-valid-from" id="previously_valid_from" name="previously_valid_from" type="date"
-                                            data-error="#previouslyFromDateError" value="">
+                                            data-error="#previouslyFromDateError" max="{{ now()->toDateString() }}" value="">
                                         <span id="previouslyFromDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1032,10 +1017,10 @@
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
-                                        <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
-                                            data-type="supervisor" data-error="#certError" data-msg="#license_message"
-                                            placeholder="Certificate Number" maxlength="80" value="{{ $oldCertNo }}">
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 123456)</span></div>
+                                        <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text" inputmode="numeric" pattern="[0-9]{6}"
+                                            data-type="certificate" data-cert-digits="6" data-error="#certError" data-msg="#license_message"
+                                            placeholder="Certificate Number" maxlength="6" value="{{ $oldCertNo }}">
                                         <input type="hidden" id="cert_verify" name="cert_verify" value="0">
                                         <span id="license_message" class="mt-1"></span>
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
@@ -1043,13 +1028,13 @@
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input class="form-control verify-issue-date" id="certificate_issue_date" name="certificate_issue_date"
-                                            data-error="#certIssueDateError" type="date" value="">
+                                            data-error="#certIssueDateError" type="date" max="{{ now()->toDateString() }}" value="">
                                         <span id="certIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from"
-                                            data-error="#certFromDateError" type="date" value="">
+                                            data-error="#certFromDateError" type="date" max="{{ now()->toDateString() }}" value="">
                                         <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1160,7 +1145,7 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="req">*</span>
                                 <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>
@@ -1207,319 +1192,6 @@
     </div>
 </div>
 
-{{-- Application Preview Modal --}}
-<div id="appPreviewModal" class="prv-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Application Preview">
-    <div class="prv-panel">
-
-        {{-- Card Header --}}
-        <div class="prv-header">
-            <div class="prv-header-left">
-                <h5><i class="fa fa-file-text-o"></i> Application Preview <span class="prv-badge">FORM - S / Certificate C</span></h5>
-                <div class="prv-subtitle">Please verify all your details before proceeding to payment</div>
-            </div>
-            <button class="prv-close" onclick="closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}" title="Close preview">&times;</button>
-        </div>
-
-        {{-- Scrollable Body --}}
-        <div class="prv-body" id="prvBody">
-
-            {{-- SECTION 1&2: Personal Info --}}
-            <div class="prv-section">
-                <div class="prv-section-hd">
-                    <span class="prv-section-num">1</span>
-                    <span class="prv-section-title">Personal Information</span>
-                </div>
-                <div class="prv-section-body">
-                    <div class="row">
-                        {{-- Photo & Signature Alongside Personal Details --}}
-                        <div class="col-12 col-md-auto mb-3 mb-md-0 d-flex align-items-start" style="gap:12px;">
-                            <div class="prv-thumb text-center">
-                                <div id="prv_photo_wrap"><div class="prv-no-img">No Photo</div></div>
-                                <span>Photo</span>
-                            </div>
-                            <div class="prv-thumb prv-thumb-sign text-center">
-                                <div id="prv_sign_wrap"><div class="prv-no-img" style="width:120px;height:46px;">No Signature</div></div>
-                                <span>Signature</span>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md">
-                            <div class="row">
-                                <div class="col-12 col-sm-6">
-                                    <div class="prv-field">
-                                        <div class="prv-label">Applicant's Name</div>
-                                        <div class="prv-value" id="prv_name">—</div>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-sm-6">
-                                    <div class="prv-field">
-                                        <div class="prv-label">Father's Name</div>
-                                        <div class="prv-value" id="prv_fathers_name">—</div>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="prv-field">
-                                        <div class="prv-label">Email ID</div>
-                                        <div class="prv-value" id="prv_email">—</div>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-sm-6">
-                                    <div class="prv-field">
-                                        <div class="prv-label">Address</div>
-                                        <div class="prv-value" id="prv_address" style="white-space:pre-line;">—</div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-sm-3">
-                                    <div class="prv-field">
-                                        <div class="prv-label">Date of Birth</div>
-                                        <div class="prv-value" id="prv_dob">—</div>
-                                    </div>
-                                </div>
-                                <div class="col-6 col-sm-3">
-                                    <div class="prv-field">
-                                        <div class="prv-label">Age</div>
-                                        <div class="prv-value" id="prv_age">—</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- SECTION 6: Education --}}
-            <div class="prv-section">
-                <div class="prv-section-hd">
-                    <span class="prv-section-num">6</span>
-                    <span class="prv-section-title">Educational / Technical Qualification Details</span>
-                </div>
-                <div class="prv-section-body p-0">
-                    <div style="overflow-x:auto;">
-                        <table class="prv-table" id="prv_edu_table">
-                            <thead>
-                                <tr>
-                                    <th>S.No</th>
-                                    <th>Education Level</th>
-                                    <th>Institution / School Name</th>
-                                    <th>Month</th>
-                                    <th>Year</th>
-                                    <th>Certificate No</th>
-                                    <th>Document</th>
-                                </tr>
-                            </thead>
-                            <tbody id="prv_edu_body">
-                                <tr><td colspan="7" class="text-center text-muted py-3">—</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {{-- SECTION 7a: Previous Work Experience --}}
-            <div class="prv-section">
-                <div class="prv-section-hd">
-                    <span class="prv-section-num prv-section-num--sub">7a</span>
-                    <span class="prv-section-title">Previous Work Experience</span>
-                </div>
-                <div class="prv-section-body p-0">
-                    <div style="overflow-x:auto;">
-                        <table class="prv-table" id="prv_work_table_previous">
-                            <thead>
-                                <tr>
-                                    <th>S.No</th>
-                                    <th>Employment Type</th>
-                                    <th>Contractor Cat.</th>
-                                    <th>Licence No.</th>
-                                    <th>Name of Contractor / Organisation / Board</th>
-                                    <th>Organisation Address</th>
-                                    <th>Designation</th>
-                                    <th>Nature of Work</th>
-                                    <th>Voltage Level</th>
-                                    <th>Transformer kVA(max 1000kVA)</th>
-                                    <th>From Date</th>
-                                    <th>To Date</th>
-                                    <th>Period (Y/M/D)</th>
-                                    <th>Supporting Doc.</th>
-                                    <th>Relieving Letter</th>
-                                </tr>
-                            </thead>
-                            <tbody id="prv_work_body_previous">
-                                <tr><td colspan="15" class="text-center text-muted py-3">—</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Section 7b: Current Work Experience --}}
-            <div class="prv-section">
-                <div class="prv-section-hd">
-                    <span class="prv-section-num prv-section-num--sub">7b</span>
-                    <span class="prv-section-title">Current Work Experience</span>
-                </div>
-                <div class="prv-section-body p-0">
-                    <div style="overflow-x:auto;">
-                        <table class="prv-table" id="prv_work_table_current">
-                            <thead>
-                                <tr>
-                                    <th>S.No</th>
-                                    <th>Employment Type</th>
-                                    <th>Contractor Cat.</th>
-                                    <th>Licence No.</th>
-                                    <th>Name of Contractor / Organisation / Board</th>
-                                    <th>Organisation Address</th>
-                                    <th>Designation</th>
-                                    <th>Nature of Work</th>
-                                    <th>Voltage Level</th>
-                                    <th>Transformer kVA(max 1000kVA)</th>
-                                    <th>From Date</th>
-                                    <th>To Date</th>
-                                    <th>Period (Y/M/D)</th>
-                                    <th>Supporting Doc.</th>
-                                    <th>Relieving Letter</th>
-                                </tr>
-                            </thead>
-                            <tbody id="prv_work_body_current">
-                                <tr><td colspan="15" class="text-center text-muted py-3">—</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Sections 8 & 9 side by side --}}
-            <div class="row" style="gap:0;">
-                <div class="col-12 col-md-6 pr-md-1">
-                    <div class="prv-section h-100">
-                        <div class="prv-section-hd">
-                            <span class="prv-section-num">8</span>
-                            <span class="prv-section-title">@include('user_login.partials.form-s-question-8-preview-title')</span>
-                        </div>
-                        <div class="prv-section-body">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Applied Previously:</span>
-                                <span id="prv_prev_license_yn">—</span>
-                            </div>
-                            <div id="prv_prev_details_block" style="display:none;">
-                                <div class="row">
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Certificate No</div>
-                                            <div class="prv-value" id="prv_prev_cert_no">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of First Issue</div>
-                                            <div class="prv-value" id="prv_prev_issue_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">From date</div>
-                                            <div class="prv-value" id="prv_prev_from_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">To date</div>
-                                            <div class="prv-value" id="prv_prev_to_date">—</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-md-6 pl-md-1 mt-3 mt-md-0">
-                    <div class="prv-section h-100">
-                        <div class="prv-section-hd">
-                            <span class="prv-section-num">9</span>
-                            <span class="prv-section-title">@include('user_login.partials.form-s-question-9-preview-title')</span>
-                        </div>
-                        <div class="prv-section-body">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span style="font-size:.8rem;color:#5a7299;font-weight:600;">Possess Certificate:</span>
-                                <span id="prv_wireman_yn">—</span>
-                            </div>
-                            <div id="prv_wireman_details_block" style="display:none;">
-                                <div class="row">
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Certificate No</div>
-                                            <div class="prv-value" id="prv_wireman_cert_no">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">Date of First Issue</div>
-                                            <div class="prv-value" id="prv_wireman_issue_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">From date</div>
-                                            <div class="prv-value" id="prv_wireman_from_date">—</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 col-sm-3">
-                                        <div class="prv-field mb-1">
-                                            <div class="prv-label">To date</div>
-                                            <div class="prv-value" id="prv_wireman_to_date">—</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Section 10: Documents --}}
-            <div class="prv-section">
-                <div class="prv-section-hd">
-                    <span class="prv-section-num">10</span>
-                    <span class="prv-section-title">Identity &amp; Uploaded Documents</span>
-                </div>
-                <div class="prv-section-body">
-                    {{-- PAN row --}}
-                    <div class="row align-items-center">
-                        <div class="col-5 col-md-3">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">PAN Card Number</div>
-                                <div class="prv-value" id="prv_pan">—</div>
-                            </div>
-                        </div>
-                        <div class="col-7 col-md-4">
-                            <div class="prv-field mb-0">
-                                <div class="prv-label">PAN Document</div>
-                                <div class="prv-value" id="prv_pan_doc">—</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>{{-- /prv-body --}}
-
-        {{-- Footer --}}
-        <div class="prv-footer">
-            <label class="prv-confirm-check">
-                <input type="checkbox" id="prvConfirmCheck">
-                I confirm that all the above details are correct and true
-            </label>
-            <button type="button" class="prv-btn-back" onclick="closePreviewModal();if(typeof window._prvResolve==='function'){window._prvResolve(false);window._prvResolve=null;}">
-                <i class="fa fa-arrow-left"></i> Back to Edit
-            </button>
-            <button type="button" class="prv-btn-print" id="prvPrintBtn">
-                <i class="fa fa-print"></i> Print
-            </button>
-            <button type="button" class="prv-btn-confirm" id="prvConfirmBtn" disabled>
-                <i class="fa fa-credit-card"></i> Confirm &amp; Proceed to Payment
-            </button>
-        </div>
-
-    </div>
-</div>
 <footer class="main-footer">
     @include('include.footer')
 
@@ -1738,289 +1410,5 @@
         bindImageUploadPreview('upload_photo', 'photo_preview', 'upload_photo_name', 'photo_placeholder');
         bindImageUploadPreview('upload_sign', 'sign_preview', 'upload_sign_name', 'sign_placeholder');
 
-    </script>
-
-    <script>
-    // ── Preview Modal ────────────────────────────────────────────────────────
-    var EDU_LEVEL_MAP = {
-        DEE:'Diploma(Electrical Engineering)', BEE:'B.E(Electrical Engineering)',
-        MEE:'M.E(Electrical Engineering)', AMIE:'A pass in AMIE'
-    };
-    var MONTH_MAP = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun',
-                      '07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec' };
-    var EMP_LABEL_MAP = {
-        private_organisation: 'Private organisation',
-        electrical_contractor: 'Electrical contractor',
-        retired_employee: 'Retired Employee',
-        govt_organisation: 'Govt organisation',
-        apprenticeship: 'Apprenticeship',
-        board_member_tnelb: 'Board Member / Ex. Board Member of TNELB'
-    };
-    var WORK_NATURE_MAP = {
-        erection: 'Erection',
-        maintenance: 'Maintenance',
-        erection_maintenance: 'Erection & Maintenance'
-    };
-    var VOLTAGE_LEVEL_MAP = {
-        up_to_650v: 'Up to 650V',
-        '650v_to_33kv': 'Above 650V to 33KV',
-        above_33kv: 'Above 33KV'
-    };
-
-    function fmtDate(val) {
-        if (!val) return '—';
-        var p = val.split('-');
-        return p.length === 3 ? p[2]+'-'+p[1]+'-'+p[0] : val;
-    }
-    function setVal(id, v) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        var txt = (v || '').toString().trim();
-        el.textContent = txt || '—';
-        el.classList.toggle('prv-empty', !txt);
-    }
-    function fileLabel(input) {
-        return input && input.files && input.files[0] ? input.files[0].name : '—';
-    }
-
-    function fillWorkPreviewTable(bodyId, containerSelector) {
-        var workBody = document.getElementById(bodyId);
-        if (!workBody) return;
-        workBody.innerHTML = '';
-        var workRows = document.querySelectorAll(containerSelector + ' .work-fields');
-        if (!workRows.length) {
-            workBody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">No work entries</td></tr>';
-            return;
-        }
-        var fileLink = function (doc) {
-            return (doc && doc.files && doc.files[0])
-                ? '<a href="' + URL.createObjectURL(doc.files[0]) + '" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
-                : '<span class="text-muted">—</span>';
-        };
-        var val = function (el) { return el ? ((el.value || '').trim() || '—') : '—'; };
-        workRows.forEach(function (row, i) {
-            var empType = row.querySelector('.work-employment-type');
-            var cat = row.querySelector('.work-contractor-cat');
-            var lic = row.querySelector('.work-licence-number');
-            var employer = row.querySelector('.work-employer-input');
-            var address = row.querySelector('.work-org-address');
-            var desig = row.querySelector('[name="designation[]"]');
-            var nature = row.querySelector('.work-nature');
-            var voltage = row.querySelector('.work-voltage');
-            var kva = row.querySelector('.work-transformer-kva');
-            var fromInp = row.querySelector('.work-date-from');
-            var toInp = row.querySelector('.work-date-to');
-            var tillChk = row.querySelector('.work-date-till');
-            var yPart = row.querySelector('.work-duration-y');
-            var mPart = row.querySelector('.work-duration-m');
-            var dPart = row.querySelector('.work-duration-d');
-            var doc = row.querySelector('[name="work_document[]"]');
-            var rel = row.querySelector('[name="work_relieving_letter[]"]');
-
-            var yv = yPart ? (yPart.value || '').trim() : '';
-            var mv = mPart ? (mPart.value || '').trim() : '';
-            var dv = dPart ? (dPart.value || '').trim() : '';
-            var totalTxt = (yv === '' && mv === '' && dv === '') ? '—' : (yv + 'y ' + mv + 'm ' + dv + 'd');
-
-            var empTxt = empType ? (EMP_LABEL_MAP[empType.value] || empType.value || '—') : '—';
-            var isBoardMember = empType && empType.value === 'board_member_tnelb';
-            var natureTxt = isBoardMember ? 'N/A' : (nature ? (WORK_NATURE_MAP[nature.value] || nature.value || '—') : '—');
-            var voltTxt = isBoardMember ? 'N/A' : (voltage ? (VOLTAGE_LEVEL_MAP[voltage.value] || voltage.value || '—') : '—');
-            var fromDate = fromInp ? fmtDate(fromInp.getAttribute('data-raw') || fromInp.value) : '—';
-            var toDate = (tillChk && tillChk.checked)
-                ? '<span class="prv-badge-yes">Till date</span>'
-                : (toInp ? fmtDate(toInp.getAttribute('data-raw') || toInp.value) : '—');
-
-            workBody.innerHTML +=
-                '<tr><td class="text-center">' + (i + 1) + '</td>' +
-                '<td>' + empTxt + '</td>' +
-                '<td class="text-center">' + (isBoardMember ? 'N/A' : val(cat)) + '</td>' +
-                '<td>' + (isBoardMember ? 'N/A' : val(lic)) + '</td>' +
-                '<td>' + val(employer) + '</td>' +
-                '<td>' + val(address) + '</td>' +
-                '<td>' + val(desig) + '</td>' +
-                '<td>' + natureTxt + '</td>' +
-                '<td>' + voltTxt + '</td>' +
-                '<td class="text-center">' + (isBoardMember ? 'N/A' : val(kva)) + '</td>' +
-                '<td class="text-center">' + fromDate + '</td>' +
-                '<td class="text-center">' + toDate + '</td>' +
-                '<td class="text-center">' + totalTxt + '</td>' +
-                '<td class="text-center">' + fileLink(doc) + '</td>' +
-                '<td class="text-center">' + (tillChk && tillChk.checked ? '<span class="text-muted">N/A</span>' : (isBoardMember ? '<span class="text-muted">N/A</span>' : fileLink(rel))) + '</td>' +
-                '</tr>';
-            if (isBoardMember) {
-                var meetingDetails = row.querySelector('.work-board-meeting-details');
-                var meetingDateInp = row.querySelector('.work-board-meeting-date');
-                var detailsTxt = meetingDetails ? (meetingDetails.value || '').trim() : '';
-                var meetingDateTxt = meetingDateInp ? fmtDate(meetingDateInp.getAttribute('data-raw') || meetingDateInp.value) : '—';
-                workBody.innerHTML +=
-                    '<tr><td></td><td colspan="14" style="font-size:.78rem;background:#f4f8fd;">' +
-                    '<strong>Board meeting:</strong> ' + (detailsTxt || '—') +
-                    ' &nbsp;|&nbsp; <strong>Date:</strong> ' + meetingDateTxt +
-                    '</td></tr>';
-            }
-        });
-    }
-
-    function populatePreview() {
-        // Personal
-        setVal('prv_name', document.getElementById('Applicant_Name').value);
-        setVal('prv_fathers_name', document.getElementById('Fathers_Name').value);
-        var emailEl = document.getElementById('applicant_email');
-        setVal('prv_email', emailEl ? emailEl.value : '');
-        if (typeof window.fsComposeApplicantAddress === 'function') { window.fsComposeApplicantAddress(); }
-        setVal('prv_address', document.getElementById('applicants_address').value);
-        setVal('prv_dob', document.getElementById('d_o_b').value);
-        setVal('prv_age', document.getElementById('age').value);
-
-        // Education
-        var eduBody = document.getElementById('prv_edu_body');
-        eduBody.innerHTML = '';
-        var eduRows = document.querySelectorAll('#education-container .education-fields');
-        if (!eduRows.length) {
-            eduBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">No education entries</td></tr>';
-        } else {
-            eduRows.forEach(function(row, i) {
-                var level = row.querySelector('[name="educational_level[]"]');
-                var inst  = row.querySelector('[name="institute_name[]"]');
-                var mon   = row.querySelector('[name="month_of_passing[]"]');
-                var yr    = row.querySelector('[name="year_of_passing[]"]');
-                var cert  = row.querySelector('[name="certificate_no[]"]');
-                var doc   = row.querySelector('[name="education_document[]"]');
-                var lvlTxt = level ? (EDU_LEVEL_MAP[level.value] || level.value || '—') : '—';
-                var monTxt = mon ? (MONTH_MAP[mon.value] || mon.value || '—') : '—';
-                var yrTxt  = yr ? (yr.value === '0' || !yr.value ? '—' : yr.value) : '—';
-                var docLink = (doc && doc.files && doc.files[0])
-                    ? '<a href="'+URL.createObjectURL(doc.files[0])+'" target="_blank" style="color:#035ab3;font-size:.75rem;"><i class="fa fa-file-pdf-o"></i> View</a>'
-                    : '<span class="text-muted">—</span>';
-                var tr = '<tr><td class="text-center">'+(i+1)+'</td><td>'+lvlTxt+'</td>'
-                    +'<td>'+(inst ? inst.value || '—' : '—')+'</td>'
-                    +'<td class="text-center">'+monTxt+'</td><td class="text-center">'+yrTxt+'</td>'
-                    +'<td>'+(cert ? cert.value || '—' : '—')+'</td>'
-                    +'<td class="text-center">'+docLink+'</td></tr>';
-                eduBody.innerHTML += tr;
-            });
-        }
-
-        // Work Experience (7a / 7b)
-        fillWorkPreviewTable('prv_work_body_previous', '#work-container-previous');
-        var is7bYes = document.getElementById('current_work_board_member_yes') && document.getElementById('current_work_board_member_yes').checked;
-        if (is7bYes) {
-            fillWorkPreviewTable('prv_work_body_current', '#work-container-current');
-        } else {
-            var workBodyCurrent = document.getElementById('prv_work_body_current');
-            if (workBodyCurrent) {
-                workBodyCurrent.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">—</td></tr>';
-            }
-        }
-
-        // Section 8 — Previous License
-        var prevLicYes = document.getElementById('previous_license_yes');
-        var isYes7 = prevLicYes && prevLicYes.checked;
-        var yn7 = document.getElementById('prv_prev_license_yn');
-        if (yn7) yn7.innerHTML = isYes7 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
-        var pb = document.getElementById('prv_prev_details_block'); if (pb) pb.style.display = isYes7 ? '' : 'none';
-        if (isYes7) {
-            setVal('prv_prev_cert_no', document.getElementById('previously_number') ? document.getElementById('previously_number').value : '');
-            var issEl = document.getElementById('previously_issue_date');
-            setVal('prv_prev_issue_date', issEl ? fmtDate(issEl.value) : '');
-            var fromEl = document.getElementById('previously_valid_from');
-            setVal('prv_prev_from_date', fromEl ? fmtDate(fromEl.value) : '');
-            var toEl = document.getElementById('previously_valid_to');
-            setVal('prv_prev_to_date', toEl ? fmtDate(toEl.value) : '');
-        }
-
-        // Section 9 — Wireman
-        var wireYes = document.getElementById('yesOption');
-        var isYes8 = wireYes && wireYes.checked;
-        var yn8 = document.getElementById('prv_wireman_yn');
-        if (yn8) yn8.innerHTML = isYes8 ? '<span class="prv-badge-yes">Yes</span>' : '<span class="prv-badge-no">No</span>';
-        var wb = document.getElementById('prv_wireman_details_block'); if (wb) wb.style.display = isYes8 ? '' : 'none';
-        if (isYes8) {
-            setVal('prv_wireman_cert_no', document.getElementById('certificate_no') ? document.getElementById('certificate_no').value : '');
-            var wIssEl = document.getElementById('certificate_issue_date');
-            setVal('prv_wireman_issue_date', wIssEl ? fmtDate(wIssEl.value) : '');
-            var wFromEl = document.getElementById('certificate_valid_from');
-            setVal('prv_wireman_from_date', wFromEl ? fmtDate(wFromEl.value) : '');
-            var wToEl = document.getElementById('certificate_valid_to');
-            setVal('prv_wireman_to_date', wToEl ? fmtDate(wToEl.value) : '');
-        }
-
-        // Documents — Photo
-        var photoWrap = document.getElementById('prv_photo_wrap');
-        var photoSrc  = document.getElementById('photo_preview');
-        if (photoWrap) {
-            var src = photoSrc && photoSrc.style.display !== 'none' ? photoSrc.src : '';
-            photoWrap.innerHTML = src
-                ? '<img src="'+src+'" alt="Photo" style="width:80px;height:96px;object-fit:cover;border:2px solid #dde5f3;border-radius:6px;">'
-                : '<div class="prv-no-img">No Photo</div>';
-        }
-
-        // Documents — Signature
-        var signWrap = document.getElementById('prv_sign_wrap');
-        var signSrc  = document.getElementById('sign_preview');
-        if (signWrap) {
-            var ssrc = signSrc && signSrc.style.display !== 'none' ? signSrc.src : '';
-            signWrap.innerHTML = ssrc
-                ? '<img src="'+ssrc+'" alt="Signature" style="width:140px;height:50px;object-fit:contain;border:2px solid #dde5f3;border-radius:6px;">'
-                : '<div class="prv-no-img" style="width:140px;height:50px;">No Signature</div>';
-        }
-
-        // PAN
-        setVal('prv_pan', document.getElementById('pancard') ? document.getElementById('pancard').value : '');
-        var pDoc = document.getElementById('pancard_doc');
-        setVal('prv_pan_doc', fileLabel(pDoc));
-    }
-
-    function openPreviewModal() {
-        populatePreview();
-        var modal = document.getElementById('appPreviewModal');
-        modal.style.display = 'flex';
-        modal.classList.add('prv-open');
-        document.body.style.overflow = 'hidden';
-        document.getElementById('prvConfirmCheck').checked = false;
-        document.getElementById('prvConfirmBtn').disabled = true;
-        document.getElementById('prvBody').scrollTop = 0;
-    }
-
-    function closePreviewModal() {
-        var modal = document.getElementById('appPreviewModal');
-        modal.style.display = 'none';
-        modal.classList.remove('prv-open');
-        document.body.style.overflow = '';
-        if (typeof window.normalizeCompetencyDynamicSections === 'function') {
-            window.normalizeCompetencyDynamicSections();
-        }
-    }
-
-    document.getElementById('prvConfirmCheck').addEventListener('change', function() {
-        document.getElementById('prvConfirmBtn').disabled = !this.checked;
-    });
-
-    // Confirm button — resolve the promise so footer's flow continues
-    document.getElementById('prvConfirmBtn').addEventListener('click', function() {
-        closePreviewModal();
-        if (typeof window._prvResolve === 'function') {
-            window._prvResolve(true);
-            window._prvResolve = null;
-        }
-    });
-
-    document.getElementById('prvPrintBtn').addEventListener('click', function() {
-        window.print();
-    });
-
-    // Close / back button — cancel the flow
-    document.getElementById('appPreviewModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closePreviewModal();
-            if (typeof window._prvResolve === 'function') {
-                window._prvResolve(false);
-                window._prvResolve = null;
-            }
-        }
-    });
-
-    // Use shared footer preview (#appPreviewModalSw) — populated in footer.blade.php populateSwPreview()
     </script>
 </footer>

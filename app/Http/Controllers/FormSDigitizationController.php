@@ -103,8 +103,9 @@ class FormSDigitizationController extends BaseController
         ]);
         $request->validate([
             'ccnumber'   => 'required|digits_between:1,6',
-            'fissue'     => 'required|date',
-            'from_date'  => 'required|date|after_or_equal:fissue',
+            // Date of First Issue / Validity From cannot be in the future; the validity To date may be.
+            'fissue'     => 'required|date|before_or_equal:today',
+            'from_date'  => 'required|date|after_or_equal:fissue|before_or_equal:today',
             'to_date'    => 'required|date|after_or_equal:from_date',
             'qc_det'         => 'required',
             'cc_doc'     => 'required|mimes:pdf|max:250',
@@ -112,6 +113,8 @@ class FormSDigitizationController extends BaseController
             'cert_name'       => 'required|in:C',
         ], [
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
+            'fissue.before_or_equal' => 'Date of First Issue cannot be a future date.',
+            'from_date.before_or_equal' => 'Validity From date cannot be a future date.',
         ]);
 
         $toDate = Carbon::parse($request->to_date);
@@ -131,11 +134,12 @@ class FormSDigitizationController extends BaseController
         if ($request->qc_det == 'yes') {
 
             $request->validate([
-                'cl_type'         => 'required',
+                'cl_type'         => 'required|in:EA,ESA,EB,ESB',
                 'licence_no'      => 'required|digits_between:1,5',
                 'contractor_name' => 'required|max:100',
                 'qc_doc'          => 'required|mimes:pdf|max:250',
             ], [
+                'cl_type.in' => 'Select a valid Grade of licence (EA, ESA, EB or ESB).',
                 'licence_no.digits_between' => 'Licence Number must contain numbers only (1 to 5 digits).',
             ]);
         }
@@ -162,6 +166,7 @@ class FormSDigitizationController extends BaseController
 
             $qc_det = $request->qc_det === 'yes' ? 1 : 0;
 
+            // Only EA / ESA set a flag (QC / QSC). EB / ESB are accepted but set neither: unchanged, Board decision.
             if (!empty($request->cl_type)) {
 
                 if($request->cl_type == 'EA') {
@@ -171,10 +176,8 @@ class FormSDigitizationController extends BaseController
                 }
             }
 
-        
-            $row = Tnelb_CC_Digitization::create([
-                'login_id'         => Auth::user()->login_id,
-                'temp_app_id'      => 'TEMP' . date('Ymd') . '0000',
+            $loginId = (string) Auth::user()->login_id;
+            $enrolment = [
                 'form_name'        => $request->form_name,
                 'cert_name'        => $request->cert_name,
                 'ccnumber'         => $request->ccnumber,
@@ -186,14 +189,38 @@ class FormSDigitizationController extends BaseController
                 'cl_type'          => $request->cl_type ?? null,
                 'licence_no'       => $request->licence_no ?? null,
                 'contractor_name'  => $request->contractor_name ?? null,
-                'cc_doc'           => 'pending',
-                'created_at'       => $now,
                 'updated_at'       => $now,
                 'qc_det'           => $qc_det ?? 0,
                 'cc_type'          => $request->cert_name,
-            ]);
+            ];
 
-            $temp_app_id = 'TEMP' . date('Ymd') . str_pad($row->id, 4, '0', STR_PAD_LEFT);
+            // Re-submitting the enrolment for the same certificate while an earlier one is still a TEMP row
+            // (not yet linked to an application) updates that row instead of leaving an orphan behind.
+            // Natural key: login_id + form S + certificate number + application_id still empty.
+            $row = Tnelb_CC_Digitization::query()
+                ->where('login_id', $loginId)
+                ->where('form_name', $request->form_name)
+                ->where('ccnumber', (string) $request->ccnumber)
+                ->where(function ($query) {
+                    $query->whereNull('application_id')->orWhereRaw("TRIM(application_id) = ''");
+                })
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+
+            $reused = $row !== null;
+            if ($reused) {
+                $row->update($enrolment);
+                $temp_app_id = (string) $row->temp_app_id;
+            } else {
+                $row = Tnelb_CC_Digitization::create($enrolment + [
+                    'login_id'         => $loginId,
+                    'temp_app_id'      => 'TEMP' . date('Ymd') . '0000',
+                    'cc_doc'           => 'pending',
+                    'created_at'       => $now,
+                ]);
+                $temp_app_id = 'TEMP' . date('Ymd') . str_pad($row->id, 4, '0', STR_PAD_LEFT);
+            }
             $digiDir = CompetencyDocumentSupport::digitizationUploadDirectory($request->form_name);
 
             if ($request->hasFile('cc_doc')) {
@@ -212,15 +239,36 @@ class FormSDigitizationController extends BaseController
                 $qcFileName = $this->fileUpload->upload($qcFile, $digiDir, $qcFileName);
             }
 
-            CC_Digitisation_Map::create([
-                'application_id' => $request->application_id,
-                'old_cc_no' => $request->ccnumber,
-                'old_cl_no' => $request->licence_no,
-                'created_at' => $now,
-                'temp_id' => $temp_app_id,
-                'cc_type' => $request->cert_name,
-                'cl_type' => $request->cl_type ?? null,
-            ]);
+            $existingMap = $reused
+                ? CC_Digitisation_Map::query()
+                    ->where('temp_id', $temp_app_id)
+                    ->where(function ($query) {
+                        $query->whereNull('application_id')->orWhereRaw("TRIM(application_id) = ''");
+                    })
+                    ->orderByDesc('m_id')
+                    ->first()
+                : null;
+
+            if ($existingMap) {
+                // Same persisted fields as the insert below. Grade of licence (cl_type) is kept on
+                // tnelb_cc_digitization ($enrolment above, refreshed on reuse): cc_digitisation_map has no
+                // cl_type column and the model does not fill it, so the insert's cl_type key is discarded too.
+                $existingMap->update([
+                    'old_cc_no' => $request->ccnumber,
+                    'old_cl_no' => $request->licence_no,
+                    'cc_type' => $request->cert_name,
+                ]);
+            } else {
+                CC_Digitisation_Map::create([
+                    'application_id' => $request->application_id,
+                    'old_cc_no' => $request->ccnumber,
+                    'old_cl_no' => $request->licence_no,
+                    'created_at' => $now,
+                    'temp_id' => $temp_app_id,
+                    'cc_type' => $request->cert_name,
+                    'cl_type' => $request->cl_type ?? null,
+                ]);
+            }
 
             $row->update([
                 'temp_app_id'      => $temp_app_id,
@@ -242,12 +290,35 @@ class FormSDigitizationController extends BaseController
             ];
         }
 
+        $legacyCertificate = $this->findLegacySupervisorCertificate((string) $request->ccnumber);
+
         return response()->json([
             'status'            => 200,
             'message'           => 'Digitization details saved successfully.',
             'temp_app_id'       => $record->temp_app_id,
             'digitization_id'   => $record->id,
             'contractorDetails' => $contractorDetails,
+            // true when the certificate number exists in the legacy Supervisor certificate master (scert).
+            'is_matched'        => $legacyCertificate !== null,
+            'certcode'          => $legacyCertificate ? trim((string) ($legacyCertificate->certcode ?? '')) : null,
         ]);
+    }
+
+    /** Legacy Supervisor competency certificate (scert) with this number, or null. Read-only. */
+    private function findLegacySupervisorCertificate(string $ccNumber): ?object
+    {
+        $ccNumber = trim($ccNumber);
+        if ($ccNumber === '' || ! ctype_digit($ccNumber)) {
+            return null;
+        }
+
+        try {
+            return DB::table('scert')
+                ->where('certno', (int) $ccNumber)
+                ->orderByDesc('sno')
+                ->first(['certcode', 'certno']);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

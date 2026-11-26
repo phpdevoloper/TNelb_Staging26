@@ -204,7 +204,10 @@
         'title' => 'Received from Applicant',
         'icon' => 'user',
         'lines' => [[
-            'text' => 'Form: '.($user_entry->form_name ?? $formName).', License: '.($user_entry->license_name ?? ($applicant->license_name ?: '—')),
+            'text' => \App\Support\FormDisplayName::adminTitle(
+                $user_entry->form_name ?? $formName,
+                'Form: '.($user_entry->form_name ?? $formName).', License: '.($user_entry->license_name ?? ($applicant->license_name ?: '—'))
+            ),
             'kind' => 'plain',
         ]],
     ];
@@ -510,7 +513,7 @@
                             </div>
                             <div class="cav-identity-main">
                                 <h2>{{ $applicant->applicant_name ?: 'Applicant' }}</h2>
-                                <p class="cav-form-line">Form {{ $formName }} · {{ $applTypeLabel }}</p>
+                                <p class="cav-form-line">{{ \App\Support\FormDisplayName::adminTitle($formName, 'Form ' . $formName) }} · {{ $applTypeLabel }}</p>
                                 <p class="cav-meta"><i class="fa fa-map-marker"></i> <span>{{ $applicant->applicants_address ?: '—' }}</span></p>
                                 @if(!empty($applicant->applicant_email))
                                     <p class="cav-meta"><i class="fa fa-envelope"></i> <a href="mailto:{{ e($applicant->applicant_email) }}">{{ e($applicant->applicant_email) }}</a></p>
@@ -1019,8 +1022,8 @@
 
         <div class="summary-card">
             <div class="summary-heading">
-                <div class="bi-en">{{ $isFormP ? '(iii) Power Station to which the application is attached at present' : '7. Details of Previous and Current Work experiences' }}</div>
-                <div class="bi-ta" lang="ta">அனுபவ விவரங்கள்</div>
+                <div class="bi-en">{{ $isFormP ? '(iii) Power Station to which the applicant is attached at present' : '7. Details of Previous and Current Work experiences' }}</div>
+                <div class="bi-ta" lang="ta">{{ $isFormP ? 'விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் & பணிக்காலம்' : 'அனுபவ விவரங்கள்' }}</div>
             </div>
             <table class="summary-table">
                 <thead>
@@ -1083,7 +1086,7 @@
             </table>
             <div class="summary-heading section-title">
                 <div class="bi-en">9. Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.</div>
-                <div class="bi-ta" lang="ta">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா?</div>
+                <div class="bi-ta" lang="ta">இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதிச் சான்றிதழ் உள்ளதா?</div>
             </div>
             <table class="info-table">
                 <tr>

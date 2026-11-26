@@ -9,6 +9,11 @@
         ->mapWithKeys(fn ($v) => [(string) $v => (string) $v])
         ->all();
     $memberSelectDisabled = $disabled || ! $hasValidOrg;
+    /* Match the saved member ignoring case / surrounding spaces (as CC_Board_Details::hasMember does). */
+    $memberWanted = mb_strtolower(trim($memberName), 'UTF-8');
+    $selectedMember = collect(array_keys($memberOptions))
+        ->first(fn ($v) => $memberWanted !== '' && mb_strtolower(trim((string) $v), 'UTF-8') === $memberWanted);
+    $selectedMember = $selectedMember !== null ? (string) $selectedMember : $memberName;
 @endphp
 <input type="hidden" class="work-board-member-name-sync" value="{{ $memberName }}" @if($alterationExistingRow ?? false) disabled @endif>
 <select
@@ -24,9 +29,9 @@
     @else
         <option value="">Select member</option>
         @foreach ($memberOptions as $memberValue => $memberLabel)
-            <option value="{{ $memberValue }}" {{ (string) $memberName === (string) $memberValue ? 'selected' : '' }}>{{ $memberLabel }}</option>
+            <option value="{{ $memberValue }}" {{ $selectedMember === (string) $memberValue ? 'selected' : '' }}>{{ $memberLabel }}</option>
         @endforeach
-        @if ($memberName !== '' && ! array_key_exists($memberName, $memberOptions))
+        @if ($memberName !== '' && ! array_key_exists($selectedMember, $memberOptions))
             <option value="{{ $memberName }}" selected>{{ $memberName }}</option>
         @endif
     @endif

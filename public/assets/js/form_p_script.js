@@ -290,23 +290,21 @@ async function showInstructPopup(licence_code,login_id) {
                 }
             }
     } catch (err) {
+        // Reached when the fee lookup (getPaymentsService) fails or anything before the save throws.
         console.error("Error fetching form cost or saving form:", err);
 
-        console.error("❌ Uncaught AJAX Error:", xhr);
-
-        // Check if Laravel validation failed (422)
-        if (xhr.status === 422 && xhr.responseJSON?.errors) {
-            // You can show validation messages here
-            $.each(xhr.responseJSON.errors, function (key, msg) {
-                console.log(key, msg);
-            });
-        } else {
-            Swal.fire({
-                icon: "error",
-                title: "Request Failed",
-                text: window.getAjaxErrorMessage(xhr)
-            });
+        // getPaymentsService already shows its own (more specific) error dialog.
+        if (typeof Swal !== "undefined" && Swal.isVisible && Swal.isVisible()) {
+            return;
         }
+
+        Swal.fire({
+            icon: "error",
+            title: "Request Failed",
+            text: window.getAjaxErrorMessage
+                ? window.getAjaxErrorMessage(err, "Unable to fetch the application fee. Please try again.")
+                : "Unable to fetch the application fee. Please try again."
+        });
     }
 }
 
@@ -436,6 +434,21 @@ function refreshFormPInstituteDurations() {
 }
 
 /**
+ * Insert an .error-message span after $field. When the field sits in a flex row
+ * (e.g. month/year-of-passing selects), wrap the row so the message drops onto
+ * its own full-width line beneath the controls instead of squeezing beside them.
+ */
+function insertFormPFieldError($field, message) {
+    var $span = $('<span class="error-message text-danger d-block mt-1"></span>').text(message);
+    var $parent = $field.parent();
+    if ($parent.length && $parent.css('display') === 'flex') {
+        $parent.css('flex-wrap', 'wrap');
+        $span.css({ flex: '0 0 100%', width: '100%' });
+    }
+    $field.after($span);
+}
+
+/**
  * Chronology between Date of Birth, year of passing, training and power-station experience.
  * Mirrors App\Services\Competency\FormPChronology (the server re-checks on every save):
  *  - year of passing at least 18 years after the year of birth, and not in the future;
@@ -449,7 +462,7 @@ function validateFormPChronology() {
 
     function fail($field, message) {
         if (!$field || !$field.length) return;
-        $field.after($('<span class="error-message text-danger d-block mt-1"></span>').text(message));
+        insertFormPFieldError($field, message);
         if (!firstErrorField) firstErrorField = $field;
         isValid = false;
     }
@@ -843,7 +856,7 @@ $(document).ready(function () {
             }
 
             if (yearOfPassing.length && (yearOfPassing.val() === "0" || yearOfPassing.val() === "")) {
-                yearOfPassing.after('<span class="error-message text-danger d-block mt-1">Year of passing is required.</span>');
+                insertFormPFieldError(yearOfPassing, 'Year of passing is required.');
                 if (!firstErrorField) firstErrorField = yearOfPassing;
                 isValid = false;
             }
@@ -1301,15 +1314,15 @@ $(document).ready(function () {
                 const file = educationUpload[0].files[0]; // ✅ use raw DOM element
                 if (file) {
                     const allowedType = 'application/pdf';
-                    const minSize = 5 * 1024;   // 5 KB
-                    const maxSize = 250 * 1024; // 250 KB
+                    const minSize = 1 * 1024;   // 1 KB
+                    const maxSize = 200 * 1024; // 200 KB
 
                     if (file.type !== allowedType) {
                         educationUpload.after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for Education upload.</span>');
                         if (!firstErrorField) firstErrorField = educationUpload;
                         isValid = false;
                     } else if (file.size < minSize || file.size > maxSize) {
-                        educationUpload.after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 200 KB.</span>');
+                        educationUpload.after('<span class="error-message text-danger d-block mt-1">File size permitted only 1 KB to 200 KB.</span>');
                         if (!firstErrorField) firstErrorField = educationUpload;
                         isValid = false;
                     }
@@ -1324,15 +1337,15 @@ $(document).ready(function () {
                 const file = workDocument[0].files[0]; // ✅ use raw DOM element
                 if (file) {
                     const allowedType = 'application/pdf';
-                    const minSize = 5 * 1024;   // 5 KB
-                    const maxSize = 250 * 1024; // 250 KB
+                    const minSize = 1 * 1024;   // 1 KB
+                    const maxSize = 200 * 1024; // 200 KB
 
                     if (file.type !== allowedType) {
                         workDocument.after('<span class="error-message text-danger d-block mt-1">Only PDF files are allowed for Experience certificate.</span>');
                         if (!firstErrorField) firstErrorField = workDocument;
                         isValid = false;
                     } else if (file.size < minSize || file.size > maxSize) {
-                        workDocument.after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 200 KB.</span>');
+                        workDocument.after('<span class="error-message text-danger d-block mt-1">File size permitted only 1 KB to 200 KB.</span>');
                         if (!firstErrorField) firstErrorField = workDocument;
                         isValid = false;
                     }
@@ -1402,7 +1415,7 @@ $(document).ready(function () {
                     if (!firstErrorField) firstErrorField = $('#pancard_doc');
                     isValid = false;
                 } else if (file.size > maxSize) {
-                    $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">File size permitted only 5 KB to 250 KB.</span>');
+                    $('#pancard_doc').after('<span class="error-message text-danger d-block mt-1">File size permitted only 1 KB to 250 KB.</span>');
                     if (!firstErrorField) firstErrorField = $('#pancard_doc');
                     isValid = false;
                 }

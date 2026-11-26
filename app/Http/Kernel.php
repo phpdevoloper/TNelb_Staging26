@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'auth.dashboard' => \App\Http\Middleware\AuthDashboardMiddleware::class,
         'owns.application' => \App\Http\Middleware\EnsureApplicationOwner::class,
         'admin.guest' => \App\Http\Middleware\RedirectIfAuthenticatedAdmin::class,
+        'admin.role' => \App\Http\Middleware\EnsureAdminRole::class,
     ];
 }

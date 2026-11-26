@@ -26,6 +26,7 @@ use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\CC_Proof_doc;
 use App\Models\Competency\CC_CompetencyMeta;
+use App\Services\ApplicationOwnerResolver;
 use App\Services\ReturnedApplicationEditScope;
 use App\Services\ReturnedApplicationPayloadMerge;
 use App\Services\CcDigitizationLinkService;
@@ -40,12 +41,17 @@ use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Services\Competency\FormPSchema;
 use App\Services\Competency\FormPChronology;
+use App\Services\Competency\FormPApplicantRules;
+use App\Services\Competency\FormPPaymentStatusRules;
+use App\Services\FormS\FormSCertificateNumberRules;
+use App\Services\FormS\FormSApplicantRules;
 use App\Services\FormS\FormSChildDocumentSnapshotService;
 use App\Services\FormS\FormSSubmissionGuard;
 use App\Services\FormS\FormSProofDocumentService;
 use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\DocumentVersion\DocumentStorageService;
+use App\Services\Competency\ApplicantAddressParts;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyWorkflowService;
@@ -54,7 +60,9 @@ use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
 use App\Support\DashboardApplicationTimeline;
 use App\Support\FormSExperiencePartition;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 
 class FormController extends BaseController
 {
@@ -232,8 +240,16 @@ class FormController extends BaseController
             : $this->resolveFormSMasterApplicationId($workflowForm, $formName);
         $appType = (string) ($workflowForm->appl_type ?? '');
         $proofService = $this->proofDocumentService();
+        // Form S renewal DRAFT (draft_renewal_submit only): the PAN number is read-only (carried over from the
+        // parent), and so is the PAN document once one is on record; a posted value / file for them is ignored.
+        // A returned renewal (draft_update) is NOT locked: the officer may ask for a corrected PAN document.
+        $isFormSRenewal = strtoupper(trim((string) $formName)) === 'S'
+            && $request->attributes->get('renewal_draft_lock') === true;
+        $panLocked = $isFormSRenewal;
+        $panDocLocked = $isFormSRenewal
+            && $proofService->loadIdentityDocumentPathForView($ownerApplicationId, FormSProofDocumentService::PROOF_PAN) !== null;
 
-        if ($this->isCompetencyForm($formName) && $request->filled('pancard')) {
+        if ($this->isCompetencyForm($formName) && ! $panLocked && $request->filled('pancard')) {
             $proofService->syncProofNumber(
                 $ownerApplicationId,
                 $appType,
@@ -242,14 +258,14 @@ class FormController extends BaseController
             );
         }
 
-        if ($this->isCompetencyForm($formName) && $request->hasFile('pancard_doc')) {
+        if ($this->isCompetencyForm($formName) && ! $panDocLocked && $request->hasFile('pancard_doc')) {
             $proofService->saveProofUpload(
                 $workflowForm,
                 $ownerApplicationId,
                 $appType,
                 FormSProofDocumentService::PROOF_PAN,
                 $request->file('pancard_doc'),
-                $request->pancard,
+                $panLocked ? null : $request->pancard,
                 $formName
             );
         }
@@ -373,7 +389,11 @@ class FormController extends BaseController
             'old_application'     => $existingForm?->old_application ?? $request->input('old_application'),
             'submitted_date'      => $this->dbNow,
             'updated_at'          => $this->dbNow,
-        ], $this->competencyCertificateFieldsForSave($request, $existingForm), $overrides);
+        ],
+            $this->applicantAddressPartsForSave($request, $request->form_name ?? $existingForm?->form_name),
+            $this->competencyCertificateFieldsForSave($request, $existingForm),
+            $overrides
+        );
 
         $ownId = trim((string) ($payload['application_id'] ?? ''));
         $oldId = trim((string) ($payload['old_application'] ?? ''));
@@ -802,12 +822,30 @@ class FormController extends BaseController
      *
      * @return array<string, string>  [field key => message]
      */
-    private function collectFormSChronologyErrors(Request $request, ?array $carried): array
+    private function collectFormSChronologyErrors(Request $request, ?array $carried, ?int $minExperienceAge = null): array
     {
         $dobRaw = $request->d_o_b ?? $request->dob ?? null;
         $dobYmd = is_scalar($dobRaw) ? $this->calendarDateYmd($dobRaw) : null;
 
-        return FormSSubmissionGuard::chronologyErrorsForRequest($request, $dobYmd, $carried);
+        return FormSSubmissionGuard::chronologyErrorsForRequest($request, $dobYmd, $carried, $minExperienceAge);
+    }
+
+    /**
+     * appl_type for the Form S guards: the route option (renewal passes 'R'), else the STORED application,
+     * else the posted value (a brand-new application has no row yet). Same order as formSCarriedOverForRequest.
+     */
+    private function formSApplTypeForRequest(Request $request, array $options = []): ?string
+    {
+        $options = $this->formSGuardOptions($options);
+        if ($options['type'] !== null) {
+            return (string) $options['type'];
+        }
+
+        $appId = $this->currentApplicationIdFromRequest($request);
+        $existing = $appId ? CC_Forms_Meta::findByApplicationId($appId) : null;
+        $type = $existing ? ($existing->appl_type ?? null) : $request->input('appl_type');
+
+        return is_scalar($type) ? (string) $type : null;
     }
 
     /** Submit only (drafts may stay incomplete): reject impossible DOB / passing / experience dates. */
@@ -822,7 +860,11 @@ class FormController extends BaseController
             return null;
         }
 
-        $errors = $this->collectFormSChronologyErrors($request, $this->formSCarriedOverForRequest($request, $options));
+        $errors = $this->collectFormSChronologyErrors(
+            $request,
+            $this->formSCarriedOverForRequest($request, $options),
+            FormSSubmissionGuard::minExperienceStartAge($this->formSApplTypeForRequest($request, $options))
+        );
         if ($errors === []) {
             return null;
         }
@@ -1094,7 +1136,8 @@ class FormController extends BaseController
     }
 
     /**
-     * Forms S and P: date of birth cannot be earlier than 1 Jan 1935.
+     * Forms S and P: date of birth cannot be earlier than 1 Jan 1935, and the age computed from it
+     * must be 18 or above ("Minimum age should be 18 years and above.").
      * Accepts DD-MM-YYYY, DD/MM/YYYY and YYYY-MM-DD (via CalendarDate::ymd).
      *
      * @return list<\Closure>
@@ -1105,11 +1148,21 @@ class FormController extends BaseController
             return [];
         }
 
+        // Form S and Form P: the age comes from the DOB itself, not the posted (client-computed) `age`.
+        // Form P uses the same limits and wording (FormPApplicantRules::dobError mirrors this closure).
+        $checkAge = in_array($formName, ['S', 'P'], true);
+
         return [
-            function (string $attribute, mixed $value, \Closure $fail): void {
+            function (string $attribute, mixed $value, \Closure $fail) use ($checkAge): void {
                 $ymd = is_scalar($value) ? $this->calendarDateYmd($value) : null;
-                if ($ymd !== null && $ymd < '1935-01-01') {
+                if ($ymd !== null && $ymd < FormSApplicantRules::MIN_DOB) {
                     $fail('Year of birth cannot be earlier than 1935.');
+
+                    return;
+                }
+                if ($checkAge && $ymd !== null
+                    && ($error = FormSApplicantRules::dobAgeError($ymd, now()->toDateString())) !== null) {
+                    $fail($error);
                 }
             },
         ];
@@ -2131,6 +2184,13 @@ class FormController extends BaseController
         $parent = $workflow->masterApplication($child);
         $parentId = $snapshot->educationSourceApplicationId($parent);
         $childId = (string) $child->application_id;
+        // Renewal draft lock (draft_renewal_submit only, never a returned renewal): remember the draft's own rows
+        // before they are replaced, so a reopened draft's posted edu_id still identifies a carried-over row.
+        $renewalDraftLock = strtoupper(trim((string) $formName)) === 'S'
+            && $request->attributes->get('renewal_draft_lock') === true;
+        $priorChildEdu = $renewalDraftLock
+            ? CC_Education::where('application_id', $childId)->get()->keyBy(fn ($row) => (string) $row->edu_id)
+            : collect();
 
         CC_Education::where('application_id', $childId)->delete();
 
@@ -2147,6 +2207,29 @@ class FormController extends BaseController
             $eduId = trim((string) ($request->edu_id[$key] ?? ''));
             $postedEdu = $eduId !== '' ? CC_Education::find($eduId) : null;
             $parentEdu = $snapshot->resolveParentEducationFromPostedId($postedEdu, $parentId, $levelName);
+            // Form S renewal draft: a carried-over row is read-only on the page, so its recorded text values win
+            // over the post (a blank recorded value may still be filled in). Documents keep their own replace flow.
+            // Carried over = the posted edu_id is the parent row itself, or a row (e.g. this draft's own, already
+            // replaced above) with the parent row's level + institute. A row matched only by the posted
+            // educational_level (no / unknown edu_id) is left as posted.
+            $carriedOver = false;
+            if ($renewalDraftLock && $parentEdu && $eduId !== '') {
+                $sourceRow = $postedEdu ?? $priorChildEdu->get($eduId);
+                $carriedOver = $sourceRow
+                    && ((string) $sourceRow->edu_id === (string) $parentEdu->edu_id
+                        || (strcasecmp(trim((string) $sourceRow->educational_level), trim((string) $parentEdu->educational_level)) === 0
+                            && strcasecmp(trim((string) $sourceRow->institute_name), trim((string) $parentEdu->institute_name)) === 0));
+            }
+            if ($carriedOver) {
+                $institute = trim((string) ($parentEdu->institute_name ?? '')) !== ''
+                    ? trim((string) $parentEdu->institute_name) : $institute;
+                $monthRaw = ($parentEdu->month_passing ?? '') !== '' && $parentEdu->month_passing !== null
+                    ? $parentEdu->month_passing : $monthRaw;
+                $year = trim((string) ($parentEdu->year_of_passing ?? '')) !== ''
+                    ? $parentEdu->year_of_passing : $year;
+                $certificateNo = trim((string) ($parentEdu->certificate_no ?? '')) !== ''
+                    ? $parentEdu->certificate_no : $certificateNo;
+            }
 
             $monthVal = null;
             if ($monthRaw !== null && $monthRaw !== '') {
@@ -2720,7 +2803,12 @@ class FormController extends BaseController
                 'certificate_valid_to' => $fmtDate($existingForm->wcc_to ?? null),
                 'certificate_issue_date' => $fmtDate($existingForm->wcc_issue_date),
                 'certificate_valid_from' => $fmtDate($existingForm->wcc_from ?? null),
-            ]);
+                // Locked section: the saved Q8/Q9 numbers are kept as they are (no Yes/No flag means
+                // competencyCertificateFieldsForSave keeps them and FormSCertificateNumberRules skips them),
+                // and the saved address parts are not touched.
+                'previous_license' => null,
+                'previous_certificate' => null,
+            ] + array_fill_keys(ApplicantAddressParts::FIELDS, null));
         }
 
         if (! isset($editable[ReturnedApplicationEditScope::SECTION_PAN_DOC])) {
@@ -2962,12 +3050,38 @@ class FormController extends BaseController
         return 'N';
     }
 
+    /**
+     * Form P stays a draft (D) until its payment succeeds: an unpaid save never submits it
+     * (FormPPaymentStatusRules::statusOnUnpaidSave). Other forms, and paid / fee-exempt Form P saves,
+     * keep $defaultStatus.
+     */
+    private function formPAppStatusOnSave(
+        ?string $formName,
+        ?string $existingAppStatus,
+        ?string $paymentStatus,
+        string $defaultStatus
+    ): string {
+        if (! FormPSchema::isFormP($formName) || FormPPaymentStatusRules::isPaid($paymentStatus)) {
+            return $defaultStatus;
+        }
+
+        return FormPPaymentStatusRules::statusOnUnpaidSave($existingAppStatus, $paymentStatus);
+    }
+
     /** Map cc_form_s_meta columns to legacy edit_application field names. */
     private function normalizeCcMetaRowForEdit(object $row): object
     {
         $row->license_name = $row->license_name ?? $row->certificate_name ?? null;
         $row->status = $row->status ?? $row->app_status ?? null;
         $row->applicants_address = $row->applicants_address ?? $row->applicant_address ?? null;
+        // Saved structured address (address_line1 ... pincode columns) for the edit views; null for rows saved
+        // before the parts were stored (the partial then parses the composed applicants_address).
+        $savedParts = ApplicantAddressParts::payload((array) $row);
+        $row->address_parts = $savedParts !== []
+            ? ['line1' => (string) ($savedParts['address_line1'] ?? ''), 'line2' => (string) ($savedParts['address_line2'] ?? ''),
+                'city' => (string) ($savedParts['city'] ?? ''), 'state' => (string) ($savedParts['state'] ?? ''),
+                'district' => (string) ($savedParts['district'] ?? ''), 'pincode' => (string) ($savedParts['pincode'] ?? '')]
+            : null;
         $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
         $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
         $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
@@ -3156,6 +3270,39 @@ class FormController extends BaseController
         );
         $license_details = $this->enrichLicenseDetailsForRenewal($appl_id, $application_details, $license_details);
 
+        // Form S renewal draft: PARENT application's Q8/Q9 values (normalised like RegisterController renew-form)
+        // so the view can lock the fields carried over from the parent. Null for every other case.
+        $renew_parent_details = null;
+        $parentApplId = trim((string) ($application_details->old_application ?? ''));
+        $parentLoginId = (string) (Auth::user()->login_id ?? session('login_id') ?? '');
+        if (strtoupper(trim((string) ($application_details->appl_type ?? ''))) === 'R'
+            && strtoupper(trim((string) ($application_details->form_name ?? ''))) === 'S'
+            && $parentApplId !== ''
+            && $parentApplId !== (string) $appl_id
+            && app(ApplicationOwnerResolver::class)->isOwnedBy($parentApplId, $parentLoginId)
+        ) {
+            $parentMeta = CC_Forms_Meta::findByApplicationId($parentApplId, 'S');
+            if ($parentMeta) {
+                $renew_parent_details = $this->normalizeCcMetaRowForEdit((object) $parentMeta->toArray());
+                // Same effective Q8 number the renewal-draft server pin uses (prepareFormSApplicantInput).
+                // Legacy '0' stays as stored ('0' => view leaves Q8 unlocked).
+                $effectivePrevScc = $this->effectiveRenewalPreviousSccNo($parentMeta, $parentApplId);
+                if ($effectivePrevScc !== '') {
+                    $renew_parent_details->previously_number = $effectivePrevScc;
+                    $renew_parent_details->previous_scc_no = $effectivePrevScc;
+                }
+                // Q8 dates and Q9 number + dates for the view prefill (already Y-m-d via the normaliser).
+                $renew_parent_details->previously_issue_date = $renew_parent_details->previously_issue_date ?? null;
+                $renew_parent_details->previously_valid_from = $renew_parent_details->previously_valid_from ?? null;
+                $renew_parent_details->previously_valid_to = $renew_parent_details->previously_valid_to ?? null;
+                $renew_parent_details->wcc_no = $renew_parent_details->wcc_no ?? null;
+                $renew_parent_details->competency_certificate_no = $renew_parent_details->wcc_no;
+                $renew_parent_details->certificate_issue_date = $this->calendarDateYmd($renew_parent_details->wcc_issue_date ?? null);
+                $renew_parent_details->certificate_valid_from = $this->calendarDateYmd($renew_parent_details->wcc_from ?? null);
+                $renew_parent_details->certificate_valid_to = $this->calendarDateYmd($renew_parent_details->wcc_to ?? null);
+            }
+        }
+
         $applicant_photo = $this->loadApplicantPhotoForView($proofApplicationId);
 
         $proof_doc = $this->loadApplicantSignForView($proofApplicationId);
@@ -3206,7 +3353,8 @@ class FormController extends BaseController
             'licence_name',
             'queries',
             'cc_digitization_temp_id',
-            'get_contractor_details'
+            'get_contractor_details',
+            'renew_parent_details'
         ));
 
     }
@@ -3581,7 +3729,14 @@ class FormController extends BaseController
             return $dispatched;
         }
 
+        if ($reject = $this->bindAuthenticatedApplicant($request)) {
+            return $reject;
+        }
+
         $existingDraftId = trim((string) $request->input('application_id', ''));
+        if ($reject = $this->rejectIfApplicationNotOwned($existingDraftId)) {
+            return $reject;
+        }
         if ($existingDraftId !== '' && $existingDraftId !== '0' && CC_Forms_Meta::findByApplicationId($existingDraftId)) {
             return $this->update($request, $existingDraftId);
         }
@@ -3596,6 +3751,7 @@ class FormController extends BaseController
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
         $this->prepareFormPRequest($request);
+        $this->prepareFormSApplicantInput($request);
 
 
         $isWorkOptional = CompetencySchema::isWorkExperienceOptional($request->form_name);
@@ -3726,7 +3882,7 @@ class FormController extends BaseController
             'applicant_email.required' => 'Email ID is required.',
             'applicant_email.email' => 'Enter a valid Email ID.',
             'competency_certificate_no.max' => 'Certificate number may not be greater than 80 characters.',
-            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
+            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE or Ex Serviceman options are allowed.',
             'pancard.required' => 'PAN card number is required.',
             'pancard.regex' => 'Enter a valid 10-character PAN (e.g. ABCDE1234F).',
             'pancard_doc.required' => 'PAN card document upload is required.',
@@ -3821,6 +3977,11 @@ class FormController extends BaseController
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
             $this->validateFormPInstituteDates($request, $validator, true);
             $this->validateFormPChronology($request, $validator);
+            $this->validateCertificateNumbersAndAddress(
+                $request,
+                ! $this->isGenuineDraftSave($request, $request->input('form_action', 'draft')),
+                $validator
+            );
         });
         $validator->validate();
 
@@ -3878,6 +4039,7 @@ class FormController extends BaseController
 
             }
 
+            $newPaymentStatus = $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type, null, $request);
             $form = CC_Forms_Meta::createForForm((string) ($request->form_name ?? 'S'), array_merge([
                 'login_id'            => $loginId,
                 'application_id'      => $newApplicationId,
@@ -3896,11 +4058,11 @@ class FormController extends BaseController
                 'form_name'           => $request->form_name,
                 'form_id'             => $request->form_id,
                 'certificate_name'        => $request->license_name,
-                // Form P: the silent save made on "Proceed to Payment" is a draft until the payment starts
-                // (PayUPaymentController::initiate flips D to P) and settles (settleSuccess).
-                'app_status'              => (FormPSchema::isFormP($request->form_name ?? '') && strtolower(trim((string) $action)) === 'draft') ? 'D' : 'P',
+                // Form P: the silent save made on "Proceed to Payment" stays a D/N draft until the payment
+                // SUCCEEDS (PayUPaymentSettlementService::settleSuccess flips D to P); initiate() never submits it.
+                'app_status'              => $this->formPAppStatusOnSave($request->form_name ?? '', null, $newPaymentStatus, 'P'),
                 'appl_type'           => $appl_type,
-                'payment_status'      => $this->resolveCompetencyPaymentStatusOnSave($action, $appl_type, null, $request),
+                'payment_status'      => $newPaymentStatus,
                 'wcc_no'      => $request->competency_certificate_no,
                 'wcc_to' => $this->calendarDateYmd($request->certificate_valid_to ?: ($request->certificate_date ?: null)),
                 'wcc_issue_date' => $this->calendarDateYmd($request->certificate_issue_date),
@@ -3908,7 +4070,10 @@ class FormController extends BaseController
                 'submitted_date'      => $this->dbNow,
                 'updated_at'          => $this->dbNow,
                 'created_at'          => $this->dbNow
-            ], $this->competencyCertificateFieldsForSave($request)));
+            ],
+                $this->applicantAddressPartsForSave($request, $request->form_name ?? 'S'),
+                $this->competencyCertificateFieldsForSave($request)
+            ));
 
 
             $applicationId = $form->application_id;
@@ -4136,6 +4301,12 @@ class FormController extends BaseController
             return $dispatched;
         }
 
+        if ($reject = $this->bindAuthenticatedApplicant($request)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfApplicationNotOwned($applicationId)) {
+            return $reject;
+        }
 
         if ($this->isCompetencyForm($request->form_name ?? null)) {
             $raw = $request->input('pancard');
@@ -4146,6 +4317,7 @@ class FormController extends BaseController
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
         $this->prepareFormPRequest($request);
+        $this->prepareFormSApplicantInput($request);
 
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
         $masterApplicationId = $existingForm
@@ -4250,7 +4422,7 @@ class FormController extends BaseController
             'month_of_passing.*.in'         => 'Month of passing must be a valid month.',
             'd_o_b.after_or_equal' => 'Date of Birth must not be more than 100 years ago.',
             'd_o_b.before_or_equal' => 'Age must be at least 18 years.',
-            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
+            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE or Ex Serviceman options are allowed.',
             'pancard.regex' => 'Enter a valid 10-character PAN (e.g. ABCDE1234F).',
 
         ];
@@ -4333,11 +4505,23 @@ class FormController extends BaseController
                 }
             }
         });
-        $validator->after(function ($validator) use ($request) {
+        $validator->after(function ($validator) use ($request, $existingForm) {
             $this->validateFormSWorkExperienceDateSequence($request, $validator);
             $this->validateFormSWorkExperienceMinimumYears($request, $validator);
             $this->validateFormPInstituteDates($request, $validator, true);
             $this->validateFormPChronology($request, $validator);
+            $this->validateCertificateNumbersAndAddress(
+                $request,
+                ! $this->isGenuineDraftSave(
+                    $request,
+                    $request->input('form_action', 'draft'),
+                    // Stored appl_type wins over the posted one (same order as formSApplTypeForRequest).
+                    trim((string) ($existingForm?->appl_type ?? '')) !== ''
+                        ? $existingForm->appl_type
+                        : ($request->appl_type ?? null)
+                ),
+                $validator
+            );
         });
         $validator->validate();
 
@@ -4377,7 +4561,10 @@ class FormController extends BaseController
                 'payment_status'    => $paymentStatus,
                 'submitted_date'    => $this->dbNow,
                 'updated_at'        => $this->dbNow,
-            ], $this->competencyCertificateFieldsForSave($request, $existingForm)));
+            ],
+                $this->applicantAddressPartsForSave($request, $request->form_name ?? $existingForm->form_name ?? null),
+                $this->competencyCertificateFieldsForSave($request, $existingForm)
+            ));
             $this->persistFormPMetaExtras((string) $applicationId, $request);
 
             if ($this->shouldSnapshotChildDocuments($existingForm, $request->form_name ?? null)) {
@@ -4780,6 +4967,12 @@ class FormController extends BaseController
             return $dispatched;
         }
 
+        if ($reject = $this->bindAuthenticatedApplicant($request)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfApplicationNotOwned($id ?: $request->input('application_id'))) {
+            return $reject;
+        }
 
         if ($this->isCompetencyForm($request->form_name ?? null) && $request->filled('pancard')) {
             $request->merge([
@@ -4790,6 +4983,7 @@ class FormController extends BaseController
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
         $this->prepareFormPRequest($request);
+        $this->prepareFormSApplicantInput($request);
 
         $applicationId = trim((string) ($id ?: $request->input('application_id') ?: ''));
         $applicationId = $applicationId !== '' ? $applicationId : null;
@@ -4882,10 +5076,15 @@ class FormController extends BaseController
             'designation.*.string'          => 'Designation must be a valid string.',
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
 
-            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
+            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE or Ex Serviceman options are allowed.',
 
         ]);
         $this->assertFormPInstituteDates($request, false);
+        // Save Draft endpoint: an empty number / incomplete address is allowed on "draft", a wrong one is not.
+        $this->validateCertificateNumbersAndAddress(
+            $request,
+            strtolower(trim((string) $request->form_action)) !== 'draft'
+        );
 
         $action = $request->form_action; // "draft" or "submit"
         if ($reject = $this->rejectIfFormSBoardMeetingMismatch($request, $action)) {
@@ -5142,6 +5341,14 @@ class FormController extends BaseController
             return $dispatched;
         }
 
+        if ($reject = $this->bindAuthenticatedApplicant($request)) {
+            return $reject;
+        }
+        // $id is the renewal draft or the parent certificate being renewed: both must exist and be the
+        // applicant's own. Fail closed: an unknown id or one with no resolvable owner is a 403 here (no new row).
+        if ($reject = $this->rejectUnlessApplicationOwned($id)) {
+            return $reject;
+        }
 
         if ($this->isCompetencyForm($request->form_name ?? null) && $request->filled('pancard')) {
             $request->merge([
@@ -5152,6 +5359,12 @@ class FormController extends BaseController
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
         $this->prepareFormPRequest($request);
+        // Form S renewal draft: read-only identity / Q8 / Q9 fields come from the parent application, age from
+        // d_o_b. The request attribute scopes the PAN / education locks to this flow only (not returned renewals).
+        $request->attributes->set('renewal_draft_lock', true);
+        if (strtoupper(trim((string) $request->input('form_name', ''))) === 'S') {
+            $this->prepareFormSApplicantInput($request, ['type' => 'R', 'renewalDraft' => true]);
+        }
 
         $applicationId = $id;
 
@@ -5240,9 +5453,13 @@ class FormController extends BaseController
             'designation.*.string'       => 'Designation must be a valid string.',
             'designation.*.max'          => 'Designation may not be greater than 80 characters.',
 
-            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), or A pass in AMIE options are allowed.',
+            'educational_level.*.in' => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE or Ex Serviceman options are allowed.',
         ]);
         $this->assertFormPInstituteDates($request, false);
+        // Renewal pages show the stored (legacy) Q8 / Q9 certificate numbers read-only, so the New-application
+        // number format is NOT applied here (it would reject old free-text numbers the applicant cannot edit).
+        // Only the address parts are format-checked (a wrong pin code is rejected; an empty one is left to the page).
+        $this->validateCertificateNumbersAndAddress($request, false, null, false);
 
         $action    = $request->form_action; // "draft" or "submit"
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
@@ -5314,6 +5531,15 @@ class FormController extends BaseController
             ];
             if ($issuedCertificateNo !== null) {
                 $metaOverrides['certificate_no'] = $issuedCertificateNo;
+            }
+            // Form P: an unpaid save stays a draft until the payment succeeds (other forms keep P).
+            if (FormPSchema::isFormP($request->form_name ?? $form?->form_name ?? '')) {
+                $metaOverrides['app_status'] = $this->formPAppStatusOnSave(
+                    $request->form_name ?? $form?->form_name ?? '',
+                    $form?->app_status,
+                    $metaOverrides['payment_status'],
+                    'P'
+                );
             }
 
             $metaPayload = $this->buildCcFormsMetaPayload(
@@ -5456,6 +5682,12 @@ public function update(Request $request, $id)
             return $dispatched;
         }
 
+        if ($reject = $this->bindAuthenticatedApplicant($request)) {
+            return $reject;
+        }
+        if ($reject = $this->rejectIfApplicationNotOwned($id)) {
+            return $reject;
+        }
 
         if ($this->isCompetencyForm($request->form_name ?? null) && $request->filled('pancard')) {
             $request->merge([
@@ -5466,6 +5698,7 @@ public function update(Request $request, $id)
         $this->pruneHiddenFormSCurrentSectionLegacyRows($request);
         $this->fillBoardMemberExperienceYearPlaceholders($request);
         $this->prepareFormPRequest($request);
+        $this->prepareFormSApplicantInput($request);
 
         $applicationId = $id;
         $existingForm = CC_Forms_Meta::findByApplicationId($applicationId);
@@ -5509,7 +5742,10 @@ public function update(Request $request, $id)
                 'form_id'            => 'nullable|integer',
                 // 'amount'             => 'nullable|numeric|min:0',
                 'educational_level'    => 'nullable|array|min:1',
-                'educational_level.*'  => 'nullable|string|max:50',
+                // Same qualification list as the New flow (store / draft_update) for Form S.
+                'educational_level.*'  => ($request->form_name === 'S')
+                    ? 'nullable|string|in:DEE,BEE,MEE,AMIE,EXS|max:50'
+                    : 'nullable|string|max:50',
                 'institute_name'       => 'nullable|array|min:1',
                 'institute_name.*'     => 'nullable|string|max:80',
                 'month_of_passing'     => 'nullable|array',
@@ -5546,14 +5782,35 @@ public function update(Request $request, $id)
             'experience.*.max'              => 'Experience may not exceed 50 years.',
             'designation.*.string'          => 'Designation must be a valid string.',
             'designation.*.max'             => 'Designation may not be greater than 80 characters.',
+            'educational_level.*.in'        => 'For FORM S, only Diploma (EE), B.E (EE), M.E (EE), A pass in AMIE or Ex Serviceman options are allowed.',
         ]);
         $this->assertFormPInstituteDates($request, true);
 
         $action = strtolower(trim((string) $request->input('form_action', '')));
-        $applTypeForStatus = strtoupper(trim((string) ($request->appl_type ?? $existingForm?->appl_type ?? '')));
+        // Stored appl_type wins over the posted one (same order as formSApplTypeForRequest).
+        $applTypeForStatus = strtoupper(trim((string) ($existingForm?->appl_type ?? '')));
+        if ($applTypeForStatus === '') {
+            $applTypeForStatus = strtoupper(trim((string) ($request->appl_type ?? '')));
+        }
         // Final submit for fee-exempt digitisation/alteration. An explicit draft stays a draft.
         if (in_array($applTypeForStatus, ['D', 'A'], true) && $action !== 'draft') {
             $action = 'submit';
+        }
+
+        $isDraftSave = $this->isGenuineDraftSave($request, $action, $applTypeForStatus);
+        $this->validateCertificateNumbersAndAddress($request, ! $isDraftSave);
+
+        // Same guards as the New flow on the final submit of a New (edit) or Digitisation application:
+        // Form S minimum 2 years of experience above 650V. Alteration / renewal are not changed here.
+        if (! $isDraftSave
+            && ($request->form_name ?? '') === 'S'
+            && in_array($applTypeForStatus, ['N', 'D'], true)
+        ) {
+            $experienceGuard = Validator::make([], []);
+            $experienceGuard->after(function ($validator) use ($request) {
+                $this->validateFormSWorkExperienceMinimumYears($request, $validator);
+            });
+            $experienceGuard->validate();
         }
 
         // if ($reject = $this->rejectIfFormSSubmitInvalid($request, $action)) {
@@ -5563,6 +5820,13 @@ public function update(Request $request, $id)
             return $reject;
         }
         if ($reject = $this->rejectIfFormSChronologyInvalid($request, $action)) {
+            return $reject;
+        }
+        // Digitisation: captured certificate row must belong to this applicant; contractor check on submit.
+        // Form P keeps its own capture guard (FormPController::rejectIfFormPDigitizationCaptureMissing).
+        if (! FormPSchema::isFormP($request->form_name ?? '')
+            && ($reject = $this->rejectIfCompetencyDigitizationInvalid($request, $action, $id))
+        ) {
             return $reject;
         }
         $loginId = $request->login_id;
@@ -5618,15 +5882,26 @@ public function update(Request $request, $id)
                     ? $existingAppStatus
                     : 'D';
             }
+            $paymentStatusOnSave = $this->resolveCompetencyPaymentStatusOnSave(
+                (string) ($action ?? 'draft'),
+                $appl_type,
+                $form?->payment_status,
+                $request
+            );
+            // Form P: an unpaid save (draft or submit) stays / goes back to D until the payment succeeds,
+            // including rows left as P by the old initiate(); other statuses (RE, QU, F, ...) are kept.
+            $appStatusOnSave = $this->formPAppStatusOnSave(
+                $request->form_name ?? $form?->form_name ?? '',
+                $form?->app_status,
+                $paymentStatusOnSave,
+                $appStatusOnSave
+            );
             $renewalPayload = array_merge([
                     'login_id'           => $loginId,
                     'applicant_name'     => $request->applicant_name ?? $request->Applicant_Name,
                     'fathers_name'       => $request->fathers_name ?? $request->Fathers_Name,
                     'applicant_email'    => $request->input('applicant_email'),
-                    'applicant_address'  => $request->applicants_address
-                        ?? $request->applicant_address
-                        ?? $form?->applicant_address
-                        ?? '',
+                    'applicant_address'  => $this->resolveApplicantAddress($request, $form),
                     'd_o_b'              => $this->calendarDateYmd($request->d_o_b ?? $request->dob ?? $form?->d_o_b),
                     'age'                => $request->age,
                     'app_status'         => $appStatusOnSave,
@@ -5636,15 +5911,14 @@ public function update(Request $request, $id)
                     'certificate_no'     => $issuedCertificateNo ?? $form?->certificate_no,
                     'appl_type'          => $appl_type,
                     'old_application'    => $parentForQc !== '' ? $parentForQc : ($form?->old_application ?: null),
-                    'payment_status'     => $this->resolveCompetencyPaymentStatusOnSave(
-                        (string) ($action ?? 'draft'),
-                        $appl_type,
-                        $form?->payment_status,
-                        $request
-                    ),
+                    'payment_status'     => $paymentStatusOnSave,
                     'submitted_date'     => $this->dbNow,
                     'updated_at'         => $this->dbNow,
-            ], $certificateFields, $qcFlags);
+            ],
+                $this->applicantAddressPartsForSave($request, $request->form_name ?? $form?->form_name),
+                $certificateFields,
+                $qcFlags
+            );
 
 
             $renewal_form = CC_Forms_Meta::updateOrCreateByApplicationId(
@@ -6582,14 +6856,327 @@ public function update(Request $request, $id)
 
     private function resolveDigitizationLoginId(Request $request, ?string $loginId = null): string
     {
-        $id = trim((string) ($loginId ?? $request->input('login_id', '')));
-        if ($id !== '') {
-            return $id;
+        // The logged-in applicant always wins; a posted login_id is only a fallback for callers without a session.
+        $authId = trim((string) (Auth::user()->login_id ?? ''));
+        if ($authId !== '') {
+            return $authId;
         }
 
-        $user = Auth::user();
+        return trim((string) ($loginId ?? $request->input('login_id', '')));
+    }
 
-        return $user ? (string) $user->login_id : '';
+    /**
+     * Applicant persist endpoints: the owner is the logged-in user. The posted login_id is overwritten so one
+     * applicant cannot create or update rows under another applicant's login_id.
+     */
+    private function bindAuthenticatedApplicant(Request $request): ?JsonResponse
+    {
+        $loginId = trim((string) (Auth::user()->login_id ?? ''));
+        if ($loginId === '') {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized.'], 401);
+        }
+
+        $request->merge(['login_id' => $loginId]);
+
+        return null;
+    }
+
+    /**
+     * 403 when the application id belongs to another applicant. An id that exists nowhere is let through:
+     * the caller either creates a new application or returns its own "not found" response.
+     */
+    private function rejectIfApplicationNotOwned(mixed $applicationId): ?JsonResponse
+    {
+        $applicationId = trim((string) ($applicationId ?? ''));
+        if ($applicationId === '' || $applicationId === '0') {
+            return null;
+        }
+
+        $loginId = trim((string) (Auth::user()->login_id ?? ''));
+        $owner = app(ApplicationOwnerResolver::class)->loginIdFor($applicationId);
+        if ($owner !== null && $loginId !== '' && hash_equals($owner, $loginId)) {
+            return null;
+        }
+        if ($owner === null && ! CC_Forms_Meta::existsByApplicationId($applicationId)) {
+            return null;
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'You can only edit your own application.',
+        ], 403);
+    }
+
+    /**
+     * Form S New / Digitisation input clean-up before validation:
+     *  - fathers_name: words title-cased, spaces collapsed (same casing as custom.js toNameCase);
+     *  - age: recomputed from d_o_b on the server, so the stored age never comes from the browser.
+     * Renewal DRAFT only (draft_renewal_submit: renewalDraft + type R; never a returned renewal or a posted R):
+     * the fields the renewal page shows read-only are taken
+     * from the PARENT application, not from the request: applicant_name, age (when no d_o_b is posted), the Q8
+     * previous Supervisor certificate number + dates and the Q9 wireman certificate number + dates (each only
+     * when the parent has that number). PAN number / document are pinned in saveCompetencyProofDocuments().
+     *
+     * @param  array<string, mixed>  $guardOptions  formSGuardOptions (draft_renewal_submit passes type R + renewalDraft)
+     */
+    private function prepareFormSApplicantInput(Request $request, array $guardOptions = []): void
+    {
+        $postedFormName = $request->input('form_name');
+        if (is_string($postedFormName) && FormPSchema::isFormP($postedFormName)) {
+            $this->prepareFormPApplicantInput($request);
+
+            return;
+        }
+
+        if (strtoupper(trim((string) $request->input('form_name', ''))) !== 'S') {
+            return;
+        }
+
+        $merge = [];
+        // Title-case only New / Digitisation (stored appl_type first, else posted). Alteration / renewal keep
+        // the name exactly as recorded, and a name that was not posted is never touched.
+        $applType = strtoupper(trim((string) ($this->formSApplTypeForRequest($request, $guardOptions) ?? '')));
+        if (in_array($applType, ['N', 'D'], true) && $request->has('fathers_name')) {
+            $merge['fathers_name'] = FormSApplicantRules::fathersName($request->input('fathers_name'));
+        }
+
+        $dobYmd = $this->calendarDateYmd(is_scalar($request->input('d_o_b')) ? $request->input('d_o_b') : null);
+        $age = $dobYmd !== null ? FormSApplicantRules::ageOn($dobYmd, now()->toDateString()) : null;
+        if ($age !== null && $age >= 0) {
+            $merge['age'] = $age;
+        }
+
+        // Pin only on the renewal-DRAFT flow (draft_renewal_submit passes renewalDraft + type R). A returned
+        // renewal (draft_update), store / update / draft_submit and a posted appl_type=R are never pinned.
+        $isRenewal = ! empty($guardOptions['renewalDraft']) && $applType === 'R';
+        $routeId = $isRenewal ? $this->currentApplicationIdFromRequest($request) : null;
+        $parent = $routeId ? CC_Forms_Meta::findByApplicationId($routeId) : null;
+        // An open renewal draft is pinned to the certificate it renews; any other row IS the parent.
+        if ($parent instanceof CC_CompetencyMeta
+            && strtoupper(trim((string) ($parent->appl_type ?? ''))) === 'R'
+            && $this->isCompetencyRenewalDraftOpen($parent)
+        ) {
+            $oldId = trim((string) ($parent->old_application ?? ''));
+            $parent = $oldId !== '' ? CC_Forms_Meta::findByApplicationId($oldId) : null;
+        }
+        if ($parent instanceof CC_CompetencyMeta
+            && app(ApplicationOwnerResolver::class)->isOwnedBy(
+                (string) $parent->application_id,
+                trim((string) (Auth::user()->login_id ?? ''))
+            )
+        ) {
+            $parentName = trim(str_replace('.', '', (string) ($parent->applicant_name ?? '')));
+            if ($parentName !== '') {
+                $merge['applicant_name'] = $parentName;
+            }
+            if (! isset($merge['age']) && is_numeric($parent->age ?? null)) {
+                $merge['age'] = (int) $parent->age;
+            }
+            // Same effective Q8 number editApplication locks on the view (legacy '0' => '' => left as posted).
+            $effectivePrevScc = $this->effectiveRenewalPreviousSccNo($parent, (string) $parent->application_id);
+            if ($effectivePrevScc !== '') {
+                $merge += [
+                    'previous_license' => 'yes',
+                    'previously_number' => $effectivePrevScc,
+                    'previously_issue_date' => $this->calendarDateYmd($parent->first_issue_date),
+                    'previously_valid_from' => $this->calendarDateYmd($parent->scc_from_date),
+                    'previously_valid_to' => $this->calendarDateYmd($parent->scc_to_date),
+                    'previously_date' => $this->calendarDateYmd($parent->scc_to_date),
+                ];
+            }
+            if (! in_array(trim((string) ($parent->wcc_no ?? '')), ['', '0'], true)) {
+                $merge += [
+                    'previous_certificate' => 'yes',
+                    'competency_certificate_no' => trim((string) $parent->wcc_no),
+                    'certificate_issue_date' => $this->calendarDateYmd($parent->wcc_issue_date),
+                    'certificate_valid_from' => $this->calendarDateYmd($parent->wcc_from),
+                    'certificate_valid_to' => $this->calendarDateYmd($parent->wcc_to),
+                    'certificate_date' => $this->calendarDateYmd($parent->wcc_to),
+                ];
+            }
+        }
+
+        if ($merge !== []) {
+            $request->merge($merge);
+        }
+    }
+
+    /**
+     * Form S renewal: the Q8 previous Supervisor certificate number carried over from the PARENT application.
+     * Shared by editApplication ($renew_parent_details, drives the view lock) and the renewal-draft server pin
+     * (prepareFormSApplicantInput), so the locked value and the pinned value are always the same.
+     *  - stored previously_number / previous_scc_no non-empty => that number;
+     *  - legacy '0' => '' (no number on record; Q8 left unlocked and as posted);
+     *  - blank => the parent's issued certificate (license_number ?? certificate_no), else the parent row's
+     *    certificate_no ?? wcc_no; '' when none.
+     */
+    private function effectiveRenewalPreviousSccNo(object $parentRow, string $parentApplId): string
+    {
+        $stored = trim((string) ($parentRow->previously_number ?? $parentRow->previous_scc_no ?? ''));
+        if ($stored === '0') {
+            return '';
+        }
+        if ($stored !== '') {
+            return $stored;
+        }
+        if ($parentApplId === '') {
+            return '';
+        }
+
+        $parentCert = $this->loadIssuedCertificateForView($parentApplId, 'S');
+        $issued = $parentCert
+            ? trim((string) ($parentCert->license_number ?? $parentCert->certificate_no ?? ''))
+            : '';
+        if ($issued === '') {
+            $issued = trim((string) ($parentRow->certificate_no ?? $parentRow->wcc_no ?? ''));
+        }
+
+        // The view never locks on '0' (edit_application $renewLockPrevScc), so neither does the pin.
+        return $issued === '0' ? '' : $issued;
+    }
+
+    /**
+     * Form P New / Digitisation input clean-up before validation (see FormPApplicantRules):
+     *  - fathers_name: title-cased, spaces collapsed, only when it was posted;
+     *  - age: recomputed from d_o_b on the server.
+     * Renewal / Alteration (stored or posted appl_type R / A) are left exactly as posted.
+     */
+    private function prepareFormPApplicantInput(Request $request): void
+    {
+        $dobYmd = $this->calendarDateYmd(is_scalar($request->input('d_o_b')) ? $request->input('d_o_b') : null);
+        $merge = FormPApplicantRules::normalisedInput(
+            [
+                'appl_type' => $request->input('appl_type'),
+            ] + ($request->has('fathers_name') ? ['fathers_name' => $request->input('fathers_name')] : []),
+            // Stored appl_type first, else the posted one (same order as the Form S guards).
+            $this->formSApplTypeForRequest($request),
+            $dobYmd,
+            now()->toDateString()
+        );
+
+        if ($merge !== []) {
+            $request->merge($merge);
+        }
+    }
+
+    /**
+     * Strict variant of rejectIfApplicationNotOwned() for endpoints whose id must already exist (renewal
+     * start / continue): 403 unless the id resolves to an application owned by the logged-in applicant.
+     * An empty id (no route parameter) is let through.
+     */
+    private function rejectUnlessApplicationOwned(mixed $applicationId): ?JsonResponse
+    {
+        $applicationId = trim((string) ($applicationId ?? ''));
+        if ($applicationId === '' || $applicationId === '0') {
+            return null;
+        }
+
+        $loginId = trim((string) (Auth::user()->login_id ?? ''));
+        if (app(ApplicationOwnerResolver::class)->isOwnedBy($applicationId, $loginId)) {
+            return null;
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'You can only edit your own application.',
+        ], 403);
+    }
+
+    /**
+     * A save that is really a draft. For New / Renewal S, W, WH the final "Proceed to Payment" also posts
+     * form_action=draft (the status flips on payment), so only Form P and fee-exempt D / A drafts count here
+     * (same rule update() uses for app_status 'D').
+     */
+    private function isGenuineDraftSave(Request $request, mixed $action, mixed $applType = null): bool
+    {
+        if (strtolower(trim((string) $action)) !== 'draft') {
+            return false;
+        }
+
+        $type = strtoupper(trim((string) ($applType ?? $request->input('appl_type', ''))));
+
+        if (FormPSchema::isFormP($request->form_name ?? '')) {
+            return ! $this->isFormPPrePaymentSave($request, $type);
+        }
+
+        return in_array($type, ['D', 'A'], true);
+    }
+
+    /**
+     * Form P New / Digitisation save through /form_p/store or /form_p/update (FormPController::store /
+     * update). The page only posts there from "Proceed to Payment" (saveCompetencyDraftSilently and the
+     * payment pop-up), after the full client-side validation, still with form_action=draft. The explicit
+     * "Save as Draft" button posts to /form_p/saveDraft (draft_submit), renewal to draft_renewal_submit
+     * and a returned application to submit_returned (no form_action, so already complete): none of
+     * those are affected. Such a save must be complete, like the Form S final submit.
+     */
+    private function isFormPPrePaymentSave(Request $request, string $type): bool
+    {
+        $method = (string) $request->attributes->get('form_p_persist_method', '');
+        $routeName = (string) ($request->route()?->getName() ?? '');
+
+        return in_array($method, ['store', 'update'], true)
+            && in_array($routeName, ['form_p.store', 'form_p.update'], true)
+            && in_array($type, ['N', 'D'], true);
+    }
+
+    /**
+     * Form S Q8 / Q9 certificate numbers and the structured address parts.
+     * Adds to $validator when given, otherwise throws (422 JSON for AJAX, like $request->validate()).
+     */
+    private function validateCertificateNumbersAndAddress(
+        Request $request,
+        bool $requireComplete,
+        ?\Illuminate\Validation\Validator $validator = null,
+        bool $applyNewApplicationRules = true
+    ): void {
+        $input = $request->all();
+        // New / Digitisation / edit only: Q8 / Q9 number format and no future issue / from dates.
+        // Renewal passes false (it shows the stored legacy values read-only).
+        $errors = ($applyNewApplicationRules
+                ? FormSCertificateNumberRules::errors($input, $requireComplete)
+                    + FormSApplicantRules::futureDateErrors($input, now()->toDateString())
+                : [])
+            + ApplicantAddressParts::errors($input, $requireComplete);
+
+        if ($errors === []) {
+            return;
+        }
+
+        if ($validator !== null) {
+            foreach ($errors as $field => $message) {
+                $validator->errors()->add($field, $message);
+            }
+
+            return;
+        }
+
+        throw ValidationException::withMessages($errors);
+    }
+
+    /**
+     * address_line1 / address_line2 / city / state / district / pincode for the meta row, only when the parts were
+     * posted and the form's meta table has the columns (cc_form_{s,w,wh,p}_meta do today).
+     *
+     * @return array<string, string|null>
+     */
+    private function applicantAddressPartsForSave(Request $request, ?string $formName): array
+    {
+        $parts = ApplicantAddressParts::payload($request->all());
+        if ($parts === []) {
+            return [];
+        }
+
+        static $columnsByTable = [];
+        try {
+            $class = app(CompetencyMetaService::class)->modelClassForForm((string) ($formName ?: 'S'));
+            $table = (new $class())->getTable();
+            $columnsByTable[$table] ??= array_flip(Schema::getColumnListing($table));
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_intersect_key($parts, $columnsByTable[$table]);
     }
 
       public function getFormCost(Request $request)

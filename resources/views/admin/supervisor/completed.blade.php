@@ -56,7 +56,7 @@ table th {
                 <div class="row">
                     <div class="col-xl-12 col-lg-12 col-sm-12  layout-spacing">
                         <div class="seperator-header">
-                            <h4 class="">Completed Applications For {{ $workflows->first()->form_name ?? 'N/A' }} (License {{ $workflows->first()->license_name ?? 'N/A' }} )</h4>
+                            <h4 class="">Completed Applications For @if(\App\Support\FormDisplayName::isFormP($workflows->first()->form_name ?? null)){{ \App\Support\FormDisplayName::FORM_P_ADMIN_TITLE }}@else{{ $workflows->first()->form_name ?? 'N/A' }} (License {{ $workflows->first()->license_name ?? 'N/A' }} )@endif</h4>
                         </div>
                         <div class="statbox widget box box-shadow">
                             <div class="widget-content widget-content-area br-8">

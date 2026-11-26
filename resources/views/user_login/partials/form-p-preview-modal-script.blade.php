@@ -164,9 +164,14 @@
         if (altBadge) altBadge.style.display = isAlteration ? '' : 'none';
         var subtitle = document.getElementById('prvFpSubtitle');
         if (subtitle) {
-            subtitle.innerHTML = isAlteration
-                ? 'Review every section carefully before submitting this alteration. Use <strong>Back to Edit</strong> if anything needs correction.'
-                : '“Confirm every section carefully before submitting the application. Use <strong>Back to Edit</strong> if anything needs correction.”<span class="prv-fp-subtitle-ta" lang="ta" style="display:block;margin-top:4px;">“விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.”</span>';
+            // Static note markup; must stay in sync with #prvFpSubtitle in form-p-preview-modal.blade.php
+            var noteHead = '<i class="fa fa-info-circle prv-fp-note-icon" aria-hidden="true"></i>'
+                + '<div class="prv-fp-note-body">'
+                + '<div class="prv-fp-note-title">Important Note / <span class="prv-fp-note-title-ta" lang="ta">முக்கிய குறிப்பு</span></div>';
+            subtitle.innerHTML = noteHead + (isAlteration
+                ? '<div class="prv-fp-note-text">Review every section carefully before submitting this alteration. Use <strong>Back to Edit</strong> if anything needs correction.</div>'
+                : '<div class="prv-fp-note-text">Confirm every section carefully before submitting the application. Use <strong>Back to Edit</strong> if anything needs correction.</div><span class="prv-fp-subtitle-ta" lang="ta">விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.</span>')
+                + '</div>';
         }
         if (confirmBtn) {
             confirmBtn.innerHTML = isAlteration
@@ -177,7 +182,13 @@
         var applicantName = val('Applicant_Name') || val('applicant_name');
         setField('prvFpMetaName', applicantName);
         setField('prvFpMetaAppId', val('application_id') || 'Draft (not saved yet)');
-        setField('prvFpMetaLicence', val('license_number') || 'Certificate P');
+        // "Type of Certificate": the certificate name (from the hidden licence code), not a letter.
+        var CERT_NAME_BY_CODE = {
+            P: 'Power Generating Station Operation & Maintenance Competency Certificate'
+        };
+        var certTypeName = CERT_NAME_BY_CODE[(val('license_name') || 'P').toUpperCase()] || CERT_NAME_BY_CODE.P;
+        var certNo = val('license_number');
+        setField('prvFpMetaLicence', certNo ? certTypeName + ' (No. ' + certNo + ')' : certTypeName);
 
         var printTag = document.getElementById('prvFpPrintTag');
         if (printTag) {

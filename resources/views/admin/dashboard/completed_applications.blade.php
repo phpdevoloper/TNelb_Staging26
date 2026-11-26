@@ -230,7 +230,7 @@
                                                 </div>
                                                 <div class="flex-grow-1">
                                                     <div class="fw-semibold">{{ $summary['licence_name'] ?? 'Unknown Licence' }}</div>
-                                                    <small class="d-block mb-1 completed-appl-form-label">{{ $summary['form_name'] ?? '-' }}</small>
+                                                    <small class="d-block mb-1 completed-appl-form-label">{{ \App\Support\FormDisplayName::adminTitle($summary['form_name'] ?? null, $summary['form_name'] ?? '-') }}</small>
                                                     <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
                                                         @php
                                                             $completedNew = (int) ($summary['completed_new_count'] ?? 0);
@@ -375,7 +375,7 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <div class="fw-semibold">{{ $summary['licence_name'] ?? 'Unknown Licence' }}</div>
-                                            <small class="d-block mb-1 completed-appl-form-label">{{ $summary['form_name'] ?? '-' }}</small>
+                                            <small class="d-block mb-1 completed-appl-form-label">{{ \App\Support\FormDisplayName::adminTitle($summary['form_name'] ?? null, $summary['form_name'] ?? '-') }}</small>
                                             <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
                                                 @php
                                                     $completedNew = (int) ($summary['completed_new_count'] ?? 0);
@@ -445,7 +445,7 @@
                             <div class="d-flex align-items-center px-3 py-2 mb-1 rounded-3 bg-custom-card">
                                 <div class="flex-grow-1">
                                     <div class="fw-semibold">{{ $summary['licence_name'] ?? 'Unknown Licence' }}</div>
-                                    <small class="d-block mb-1 completed-appl-form-label">{{ $summary['form_name'] ?? '-' }}</small>
+                                    <small class="d-block mb-1 completed-appl-form-label">{{ \App\Support\FormDisplayName::adminTitle($summary['form_name'] ?? null, $summary['form_name'] ?? '-') }}</small>
                                     <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
                                         @php
                                             $completedNew = (int) ($summary['completed_new_count'] ?? 0);

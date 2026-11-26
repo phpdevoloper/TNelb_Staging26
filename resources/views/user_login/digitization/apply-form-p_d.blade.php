@@ -215,9 +215,9 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
-                    <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - P / Certificate D</span>
+                    <h5>Digitization of Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
+                    <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழை மின்னணுமயமாக்குதல்</h5>
+                    <span class="form-badge">Form P / Certificate D</span>
                 </div>
             </div>
 
@@ -253,7 +253,7 @@
                                             <div class="fs-section-tamil">தகப்பனார் பெயர்</div>
                                         </div>
                                     </div>
-                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80">
+                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80" placeholder="e.g. Arun Srinivasakannan G">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6 mb-2 mt-1">
@@ -287,8 +287,9 @@
                                             <div class="fs-section-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருக்க வேண்டும்)</span></div>
                                         </div>
                                     </div>
-                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="255">{{Auth::user()->address}}</textarea>
-                                    <span id="applicants_address_error" class="text-danger error" style="font-size:.78rem;"></span>
+                                    {{-- Structured address (same as apply-form-p);
+                                         applicant_address.js composes the parts into the hidden #applicants_address. --}}
+                                    @include('user_login.partials.applicant-address-fields')
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="fs-dob-age-badge-row">
@@ -383,7 +384,7 @@
                                                     <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                         <option value="0">Year</option>
                                                         @php $currentYear = date('Y'); @endphp
-                                                        @for ($year = $currentYear; $year >= 1980; $year--)
+                                                        @for ($year = $currentYear; $year >= 1953; $year--)
                                                             <option value="{{ $year }}">{{ $year }}</option>
                                                         @endfor
                                                     </select>
@@ -441,7 +442,7 @@
                             </div>
 
                             {{-- (iii) Power Station table --}}
-                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the applicant is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
                             <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
                                 Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
@@ -786,7 +787,7 @@
 </select>
 <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;" required>
     <option value="0">Year</option>
-    ${[...Array(new Date().getFullYear() - 1979).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
+    ${[...Array(new Date().getFullYear() - 1952).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
 </select>
 </div></td>
 <td><input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" placeholder="Certificate No"></td>
@@ -874,3 +875,5 @@
     </script>
     @include('user_login.partials.form-p-preview-modal-script')
 </footer>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>

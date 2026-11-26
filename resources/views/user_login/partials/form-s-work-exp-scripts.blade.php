@@ -135,6 +135,21 @@
                 return format7bBmNo(no);
             }
 
+            /* Case / space-insensitive key (mirrors CC_Board_Details::findOrganisation / hasMember). */
+            function bm7bKey(s) {
+                return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+            }
+
+            /** The entry of list matching value ignoring case / extra spaces, else ''. */
+            function bm7bFind(list, value) {
+                var wanted = bm7bKey(value);
+                if (!wanted) return '';
+                for (var i = 0; i < list.length; i++) {
+                    if (bm7bKey(list[i]) === wanted) return list[i];
+                }
+                return '';
+            }
+
             function fill7bMemberOptions($row, preferredMember) {
                 var $sel = $row.find('select.work-board-member-name').first();
                 var $sync = $row.find('.work-board-member-name-sync').first();
@@ -169,12 +184,13 @@
                 get7bBoardMasterRows().forEach(function (r) {
                     if (String((r && r.bm_date) || '') !== dateIso) return;
                     if (meetingNo && format7bBmNoMatch(r && r.bm_no) !== meetingNo) return;
-                    if (String((r && r.bm_member) || '').trim() !== org) return;
+                    if (bm7bKey(r && r.bm_member) !== bm7bKey(org)) return;
                     parse7bMemberNames(r && r.bm_members).forEach(function (n) {
                         if (n && names.indexOf(n) === -1) names.push(n);
                     });
                 });
                 names.sort(function (a, b) { return a.localeCompare(b); });
+                preferredMember = bm7bFind(names, preferredMember) || preferredMember;
 
                 $sel.append($('<option></option>').attr('value', '').text('Select member'));
                 names.forEach(function (n) {
@@ -222,6 +238,7 @@
                     if (org && orgs.indexOf(org) === -1) orgs.push(org);
                 });
                 orgs.sort(function (a, b) { return a.localeCompare(b); });
+                preferredOrg = bm7bFind(orgs, preferredOrg) || preferredOrg;
 
                 $org.append($('<option></option>').attr('value', '').text('Select organisation'));
                 orgs.forEach(function (org) {
@@ -437,7 +454,7 @@
                 orgs[org].forEach(function (n) {
                     $sel.append($('<option></option>').attr('value', n).text(n));
                 });
-                if (preferredMember && orgs[org].indexOf(preferredMember) === -1) preferredMember = '';
+                preferredMember = bm7bFind(orgs[org], preferredMember);
                 $sel.prop('disabled', false).val(preferredMember);
                 $sync.val(String($sel.val() || '').trim());
             }
@@ -450,7 +467,7 @@
                     $org.append($('<option></option>').attr('value', n).text(n));
                 });
                 preferredOrg = String(preferredOrg || '').trim();
-                if (preferredOrg && names.indexOf(preferredOrg) === -1) preferredOrg = '';
+                preferredOrg = bm7bFind(names, preferredOrg);
                 $org.val(preferredOrg);
                 $row.find('.work-level-sync').val(String($org.val() || '').trim());
                 bmFillMembers($row, preferredMember);

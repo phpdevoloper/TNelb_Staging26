@@ -1865,7 +1865,7 @@
                         <div class="fs-section-header">
                             <div>
                                 <div class="fs-section-title">
-                                    (iii) Power Station to which the application is attached at present
+                                    (iii) Power Station to which the applicant is attached at present
                                     <span class="section-hint">(Upload the documents)</span>
                                     @if($isAlterationMode)
                                     <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit power station experience">
@@ -1873,7 +1873,7 @@
                                     </button>
                                     @endif
                                 </div>
-                                <div class="fs-section-tamil">தற்போது இணைக்கப்பட்டுள்ள மின் நிலையம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                                <div class="fs-section-tamil">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             </div>
                         </div>
                         <div class="fs-section-body">

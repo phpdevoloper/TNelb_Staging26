@@ -1422,7 +1422,7 @@
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
-                                <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
+                                <div class="fs-section-tamil">{{ ($renewFormName ?? '') === 'S' ? 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள்' : 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்' }}
                                     <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span>
                                 </div>
                             </div>

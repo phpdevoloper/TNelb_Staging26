@@ -410,7 +410,6 @@
                                 @endphp
 
                                 <div class="form-check form-switch">
-                                    <label class="form-check-label" for="flexSwitchCheckDefault">If you have any queries</label>
                                     <input class="form-check-input" type="checkbox" role="switch" id="Queryswitch" {{ $checked }}>
                                 </div>
                             </div>

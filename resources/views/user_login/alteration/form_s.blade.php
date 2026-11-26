@@ -1443,10 +1443,14 @@
                                         @if($isAlterationMode)
                                             {{-- Structured address, locked until "Edit" is chosen (alteration.js toggles
                                                  data-address-locked); applicant_address.js composes the hidden #applicants_address. --}}
+                                            {{-- Parent's saved parts only: without a draft $application_details IS the
+                                                 parent; with a draft its parts are the draft's, so they are not used here. --}}
                                             @include('user_login.partials.applicant-address-fields', [
                                                 'addressSaved' => $altParentAddress,
                                                 'addressLocked' => true,
                                                 'addressNoProfileFallback' => true,
+                                                'addressParts' => $parent_address_parts
+                                                    ?? (empty($alteration_draft) ? ($application_details->address_parts ?? null) : null),
                                             ])
                                         @else
                                         <div class="fs-view-grid-value-box">
@@ -1548,6 +1552,7 @@
                                         @include('user_login.partials.applicant-address-fields', [
                                             'addressSaved' => $addressVal,
                                             'addressLocked' => false,
+                                            'addressParts' => $application_details->address_parts ?? null,
                                         ])
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -1612,7 +1617,7 @@
                                     </button>
                                     @endif
                                 </div>
-                                <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
+                                <div class="fs-section-tamil">{{ ($application_details->form_name ?? 'S') === 'S' ? 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள்' : 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்' }}
                                     @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
                                         <span style="font-size:.72rem;">(விருப்பமெனில் நிரப்பலாம்)</span>
                                     @endif

@@ -187,7 +187,7 @@
                                                     </div>
                                                     <div class="flex-grow-1">
                                                         <div class="fw-semibold">{{ $summary['licence_name'] ?? 'Unknown Licence' }}</div>
-                                                        <small class="text-muted d-block mb-1">{{ $summary['form_name'] ?? '-' }}</small>
+                                                        <small class="text-muted d-block mb-1">{{ \App\Support\FormDisplayName::adminTitle($summary['form_name'] ?? null, $summary['form_name'] ?? '-') }}</small>
                                                         <div class="d-flex flex-wrap align-items-center gap-3 mt-1">
                                                             <a href="{{ $newHref }}"
                                                                class="badge outline-badge-info fw-semibold text-decoration-none">
@@ -353,7 +353,7 @@
                                     </div>
 
                                     <small class="text-muted d-block mb-1">
-                                        {{ $summary['form_name'] ?? '-' }}
+                                        {{ \App\Support\FormDisplayName::adminTitle($summary['form_name'] ?? null, $summary['form_name'] ?? '-') }}
                                     </small>
 
 
@@ -435,7 +435,7 @@
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
                                                 <div class="fw-semibold">{{ $summary['licence_name'] ?? 'Unknown Licence' }}</div>
-                                                <small class="text-muted">{{ $summary['form_name'] ?? '-' }}</small>
+                                                <small class="text-muted">{{ \App\Support\FormDisplayName::adminTitle($summary['form_name'] ?? null, $summary['form_name'] ?? '-') }}</small>
                                             </div>
                                             <div class="text-end">
                                                 <div class="d-flex align-items-center gap-2">
@@ -594,7 +594,7 @@
                                                         <span class="badge badge-danger ml-1">Returned</span>
                                                     @endif
                                                 </td>
-                                                <td><span class="badge {{ $badge_class }}">FORM {{ $row->form_name }}</span></td>
+                                                <td><span class="badge {{ $badge_class }}">{{ \App\Support\FormDisplayName::adminTitle($row->form_name, 'FORM ' . $row->form_name) }}</span></td>
                                                 <td>{{ format_date_other($row->created_at) }}</td>
                                                 <td>{{ $received_from }}</td>
                                                 <td>{{ format_date_other($row->updated_at) }}</td>

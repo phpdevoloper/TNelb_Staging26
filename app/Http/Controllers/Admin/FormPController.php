@@ -24,12 +24,14 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
+use App\Helpers\RoleHelper;
 use App\Models\CC_Forms_Meta;
 use App\Models\Competency\CC_CompetencyMeta;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyWorkflowService;
+use App\Services\Competency\FormPPaymentStatusRules;
 use App\Services\Competency\FormPSchema;
 use App\Services\CcDigitizationLinkService;
 use App\Services\FormS\FormSProofDocumentService;
@@ -38,6 +40,12 @@ use App\Http\Controllers\Admin\LicensepdfController;
 
 class FormPController extends Controller
 {
+    /** app_status values of a Form P application waiting for the President (see forwardApplicationformp). */
+    private const FORM_P_PRESIDENT_PENDING_STATUSES = ['F', 'RF', 'PRE'];
+
+    /** PostgreSQL advisory lock key serialising Form P certificate number generation (see nextFormPCertificateNumber). */
+    private const FORM_P_CERT_NUMBER_LOCK_KEY = 7310501;
+
     protected $today,$dbNow;
     public function __construct()
     {
@@ -222,6 +230,15 @@ class FormPController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'This application was returned to the applicant. It cannot be forwarded until the applicant resubmits.',
+            ], 422);
+        }
+
+        // A President "forward" used to set app_status A without issuing a certificate. Approval must go
+        // through approveApplicationformp, which issues the certificate and its PDF in one transaction.
+        if (RoleHelper::matches((string) ($staff->name ?? ''), 'President')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The President cannot approve a Form P application by forwarding it. Please use Approve, which issues the certificate.',
             ], 422);
         }
 
@@ -1111,15 +1128,36 @@ class FormPController extends Controller
             'status' => 'nullable|array',
         ]);
 
+        // Only the President approves (and so issues the certificate for) a Form P application.
+        $admin = Auth::guard('admin')->user();
+        if (! $admin || ! RoleHelper::matches((string) ($admin->name ?? ''), 'President')) {
+            return response()->json(['error' => 'Only the President can approve Form P applications.'], 403);
+        }
+
         $application = $this->findFormPApplication($request->application_id);
         if (! $application) {
             return response()->json(['error' => 'Application not found.'], 404);
         }
 
+        // Only an application pending with the President (forwarded F / RF, or PRE) can be approved.
+        $currentStatus = strtoupper(trim((string) ($application->app_status ?? $application->status ?? '')));
+        if (! in_array($currentStatus, self::FORM_P_PRESIDENT_PENDING_STATUSES, true)) {
+            return response()->json([
+                'error' => 'This application is not pending approval (current status: ' . ($currentStatus !== '' ? $currentStatus : 'unknown') . ').',
+            ], 422);
+        }
+
+        // (W1) A new (N) or renewal (R) application must be paid before a certificate is issued.
+        // D (digitisation) and A (alteration) are not checked here (fee rules not confirmed).
+        $appl_type = strtoupper(trim((string) ($application->appl_type ?? 'N')));
+        if ($this->formPApprovalNeedsPayment($appl_type)
+            && ! FormPPaymentStatusRules::isPaid((string) ($application->payment_status ?? ''))) {
+            return response()->json(['error' => 'Payment has not been completed for this application.'], 422);
+        }
+
         // The checklist stays editable up to the President: keep whatever the President saw/changed.
         $this->saveFormPChecklist($request, $application);
 
-        $appl_type = strtoupper(trim((string) ($application->appl_type ?? 'N')));
         $licenceId = (int) DB::table('mst_licences')->where('cert_licence_code', 'P')->value('id');
         if ($licenceId <= 0) {
             return response()->json(['error' => 'Licence configuration for Form P not found.'], 422);
@@ -1136,17 +1174,35 @@ class FormPController extends Controller
                 'error' => 'Licence already exists for this application ID, so it cannot be approved again.',
             ], 422);
         }
-        
-        if ($appl_type === 'N' && !$existingCcCert) {
-            return response()->json([
-                'error' => 'Certificate not found for this application ID, so it cannot be approved again.',
-            ], 422);
-        }
+        // (B4) A second guard here rejected N applications WITHOUT a certificate too ("Certificate not
+        // found ..."), so a new Form P application could never be approved. A new application has no
+        // certificate until this method issues one (final else-branch below), so that guard was removed.
 
         DB::beginTransaction();
         try {
+            // (W1) Re-read the application under a row lock so two concurrent approvals cannot both pass
+            // the status / payment checks above; the second one waits here and then sees status A.
+            $locked = $this->lockFormPApplication((string) $request->application_id);
+            if (! $locked) {
+                DB::rollBack();
 
-        // dd($appl_type); exit;
+                return response()->json(['error' => 'Application not found.'], 404);
+            }
+            $lockedStatus = strtoupper(trim((string) ($locked->app_status ?? $locked->status ?? '')));
+            if (! in_array($lockedStatus, self::FORM_P_PRESIDENT_PENDING_STATUSES, true)) {
+                DB::rollBack();
+
+                return response()->json([
+                    'error' => 'This application is not pending approval (current status: ' . ($lockedStatus !== '' ? $lockedStatus : 'unknown') . ').',
+                ], 422);
+            }
+            if ($this->formPApprovalNeedsPayment($appl_type)
+                && ! FormPPaymentStatusRules::isPaid((string) ($locked->payment_status ?? ''))) {
+                DB::rollBack();
+
+                return response()->json(['error' => 'Payment has not been completed for this application.'], 422);
+            }
+
             $processed = match (Auth::user()->name) {
                 'President' => 'PR',
                 'Secretary' => 'SE',
@@ -1172,6 +1228,9 @@ class FormPController extends Controller
                     ->first();
 
                 if (! $licenseperiod) {
+                    // Do not leave the transaction (and the A status written above) open.
+                    DB::rollBack();
+
                     return response()->json([
                         'error' => 'No validity configuration found for Form P licence; defaulting to 0 months',
                         'licence_id' => $licenceId,
@@ -1246,6 +1305,7 @@ class FormPController extends Controller
                 if ($existingCc) {
                     $newSerial = $existingCc->certificate_no;
                     $issuedAt = $existingCc->dateof_issue;
+                    $validFrom = $existingCc->valid_from ?? null;
                     $expiresAt = $existingCc->valid_to;
                 } else {
                     $newSerial = $this->nextFormPCertificateNumber();
@@ -1254,7 +1314,16 @@ class FormPController extends Controller
                 }
             }
 
-            $validFrom = $validFrom ?: $expiresAt;
+            if ($appl_type === 'R' || $appl_type === 'D') {
+                // Unchanged: R and D always set $validFrom above.
+                $validFrom = $validFrom ?: $expiresAt;
+            } else {
+                // (F1) N / A: the certificate is valid from its issue date (as CompetencyCertificateService
+                // syncFromLegacyIssue does with `$validFrom ?? $issuedAt`), never from its expiry date.
+                $validFrom = $validFrom ?: (
+                    $issuedAt ? Carbon::parse((string) $issuedAt)->format('Y-m-d') : now()->format('Y-m-d')
+                );
+            }
 
             app(CompetencyCertificateService::class)->issueOrUpdate('P', [
                 'application_id' => $request->application_id,
@@ -1413,8 +1482,37 @@ class FormPController extends Controller
         DB::table('cc_digitisation_map')->insert($insert);
     }
 
+    /** Applications whose approval requires a completed payment (W1). D and A are not enforced. */
+    private function formPApprovalNeedsPayment(string $applType): bool
+    {
+        return in_array($applType, ['N', 'R'], true);
+    }
+
+    /** Re-read the application row with FOR UPDATE (meta table first, then legacy tnelb_form_p). Call inside a transaction. */
+    private function lockFormPApplication(string $applicationId): ?object
+    {
+        $row = DB::table(FormPSchema::META_TABLE)->where('application_id', $applicationId)->lockForUpdate()->first();
+        if ($row) {
+            return $row;
+        }
+        if (! Schema::hasTable('tnelb_form_p')) {
+            return null;
+        }
+
+        return DB::table('tnelb_form_p')->where('application_id', $applicationId)->lockForUpdate()->first();
+    }
+
+    /**
+     * Must be called inside the approval transaction: on PostgreSQL a transaction-scoped advisory lock is
+     * taken so concurrent approvals generate (and insert) numbers one at a time; it is released on
+     * commit / rollback. Other drivers: no lock (no-op).
+     */
     private function nextFormPCertificateNumber(): string
     {
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            DB::select('select pg_advisory_xact_lock(?::bigint)', [self::FORM_P_CERT_NUMBER_LOCK_KEY]);
+        }
+
         $yearMonth = now()->format('Ym');
         $like = 'CP'.$yearMonth.'%';
         $lastSerial = null;

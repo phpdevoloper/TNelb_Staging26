@@ -1429,6 +1429,8 @@ use Illuminate\Support\Facades\Auth;
 
                                         $cert_name = '';
                                         $form_name = '';
+                                        // Letter shown in the pop-up title only; hidden inputs keep the stored codes.
+                                        $digi_title_letter = '';
 
                                         if (Request::is('apply-form-s_d')) {
                                         $cert_name = 'C';
@@ -1440,8 +1442,14 @@ use Illuminate\Support\Facades\Auth;
                                         $cert_name = 'H';
                                         $form_name = 'WH';
                                         } elseif (Request::is('apply-form-p_d') || Request::is('apply_form_p_d')) {
+                                        // Stored codes stay P/P (FormPController::storeDigitization); ELB display name is Certificate D.
                                         $cert_name = 'P';
-                                        $form_name = 'D';
+                                        $form_name = 'P';
+                                        $digi_title_letter = 'D';
+                                        }
+
+                                        if ($digi_title_letter === '') {
+                                        $digi_title_letter = $cert_name;
                                         }
 
                                         @endphp
@@ -1459,7 +1467,7 @@ use Illuminate\Support\Facades\Auth;
                             </svg>
                         </span>
                         <div>
-                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Form {{$cert_name}} Digitization </h5>
+                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Form {{ $digi_title_letter }} Digitization </h5>
                             <small class="modal-subtitle">Enroll your Competency Certificate Details.</small>
                         </div>
                     </div>
@@ -1480,7 +1488,7 @@ use Illuminate\Support\Facades\Auth;
                                     <div class="digi-field-control">
                                         @if(($form_name ?? '') === 'P')
                                         <input type="text" class="form-control" id="digi_ccnumber" name="ccnumber"
-                                            placeholder="Enter certificate number"
+                                            placeholder="Enter certificate number (up to 20 letters/digits)"
                                             maxlength="20" autocomplete="off">
                                         @else
                                         <input type="text" class="form-control" id="digi_ccnumber" name="ccnumber"

@@ -1659,6 +1659,12 @@ class LoginController extends Controller
      */
     public function applicationTimeline(string $application_id)
     {
+        // Admin-only panel (completed_applications modal). Applicants use FormController::previewApplicationTimeline
+        // behind the owns.application middleware, so no applicant session may read this one.
+        if (! Auth::guard('admin')->check()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         $validate = Validator::make(['application_id' => $application_id], [
             'application_id' => 'required|string|max:20',
         ]);
@@ -1679,6 +1685,10 @@ class LoginController extends Controller
             }
         }
 
+        // Not-found check BEFORE reading $application->appl_type (was a null-property error / 500).
+        if (! $application) {
+            return response()->json(['message' => 'Application not found.'], 404);
+        }
 
         if ($application->appl_type == 'A' && $application->old_application != '') {
             $application_id = $application->old_application;
@@ -1695,10 +1705,6 @@ class LoginController extends Controller
             ->exists();
 
         $get_issued_certificate = CC_Forms_cert::where('application_id', $application_id)->first();
-
-        if (! $application) {
-            return response()->json(['message' => 'Application not found.'], 404);
-        }
 
         $timeline = app(DashboardApplicationTimeline::class)->build($application_id, $application);
 

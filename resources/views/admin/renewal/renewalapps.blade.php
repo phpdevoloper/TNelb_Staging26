@@ -116,10 +116,10 @@
                                         <td>
                                             @switch($application->form_name)
                                                 @case($application->form_name == 'S')
-                                                    <span class="badge badge-warning">Form {{ $application->form_name }} / License {{ $application->license_name }}</span>
+                                                    <span class="badge badge-warning">@if(\App\Support\FormDisplayName::isFormP($application->form_name ?? null)){{ \App\Support\FormDisplayName::FORM_P_ADMIN_TITLE }}@else Form {{ $application->form_name }} / License {{ $application->license_name }}@endif</span>
                                                     @break
                                                 @case($application->form_name == 'W')
-                                                    <span>Form {{ $application->form_name }} / License {{ $application->license_name }}</span>
+                                                    <span>@if(\App\Support\FormDisplayName::isFormP($application->form_name ?? null)){{ \App\Support\FormDisplayName::FORM_P_ADMIN_TITLE }}@else Form {{ $application->form_name }} / License {{ $application->license_name }}@endif</span>
                                                     @break
                                                 @default
                                             @endswitch

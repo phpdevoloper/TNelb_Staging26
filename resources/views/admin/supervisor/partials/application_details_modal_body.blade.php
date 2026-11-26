@@ -79,6 +79,8 @@
     $formDisplay = $formLabel === ''
         ? '—'
         : (str_starts_with(strtoupper($formLabel), 'FORM') ? $formLabel : 'Form ' . $formLabel);
+    // Display-only: Form S shows "Form C: Supervisor Competency certificate (C)".
+    $formDisplay = \App\Support\FormDisplayName::adminTitle($formLabel, $formDisplay);
     $mobile = $applicant->applicant_mobile ?? $applicant->mobile ?? $applicant->mobile_no ?? $applicant->contact_no ?? $applicant->phone ?? null;
     $licenseNumber = $applicant->license_number ?? $applicant->licence_number ?? null;
     $oldApplication = $applicant->old_application ?? null;

@@ -329,6 +329,8 @@
                         // let total_charge = Number(amount) + Number(serviceCharge);
                         let lateFeeRow = "";
                         if (lateFee > 0) {
+
+                            lateFee = lateMonths * lateFee;
                             lateFeeRow = `
                                 <tr>
                                     <th style="text-align: left; padding: 6px 10px; color: #555;">Late Fees (${lateMonths} Months)</th>
@@ -2676,7 +2678,7 @@
                                     <span class="prv-sw-section-num prv-sw-section-num--sub" data-section-num="wireman">9</span>
                                     <div>
                                         <div class="prv-sw-section-title" id="prvSwSecWcTitle">Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.</div>
-                                        <div class="prv-sw-section-tamil" id="prvSwSecWcTamil">இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.</div>
+                                        <div class="prv-sw-section-tamil" id="prvSwSecWcTamil">இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதிச் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.</div>
                                     </div>
                                 </div>
                                 <div class="prv-sw-section-body">
@@ -3408,7 +3410,7 @@
             if (workTitleEl && workTamilEl) {
                 if (formCode === 'S') {
                     workTitleEl.innerHTML = 'Details of Previous and Current Work experiences <span class="prv-sw-section-hint">(Upload the documents)</span>';
-                    workTamilEl.textContent = 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள் (ஆவணங்களை பதிவேற்ற வேண்டும்)';
+                    workTamilEl.textContent = 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள் (ஆவணங்களை பதிவேற்ற வேண்டும்)';
                 } else {
                     workTitleEl.textContent = 'Previous & Current Work Experience';
                     workTamilEl.textContent = 'முந்தைய மற்றும் தற்போதைய பணி அனுபவம்';
@@ -3597,7 +3599,7 @@
                     wcTitleEl.textContent = 'Do you also possess Wireman Competency Certificate issued by this Board? If so furnish the details.';
                 }
                 if (wcTamilEl) {
-                    wcTamilEl.textContent = 'இந்த வாரியம் வழங்கிய கம்பி இணைப்பாளர் திறன் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.';
+                    wcTamilEl.textContent = 'இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதிச் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.';
                 }
                 const wcYesEl = document.getElementById('yesOption');
                 const wcYesValue = !!(wcYesEl && wcYesEl.checked);
@@ -3963,6 +3965,77 @@
             }
         });
 
+        /* ── Form S Q8 / Q9 certificate dates: no future Date of First Issue / From date ── */
+        const FS_CERT_PAST_DATE_SELECTOR = '#previously_issue_date, #previously_valid_from, #certificate_issue_date, #certificate_valid_from';
+        const FS_FUTURE_DATE_MSG = 'Future dates are not allowed.';
+
+        function fsTodayIso() {
+            const t = new Date();
+            return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+        }
+
+        function fsCertDateIso($el) {
+            const raw = String($el.val() || '').trim();
+            let m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m) return raw;
+            m = raw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+            if (m) return m[3] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+            return '';
+        }
+
+        function fsCertDatePanelActive($el) {
+            if ($el.prop('disabled') || $el.prop('readonly') || $el.closest('.fs-return-section-locked').length) {
+                return false;
+            }
+            const panelId = $el.closest('.fs-toggle-panel').attr('id');
+            if (!panelId) return true;
+            const $yes = $('input.toggle-details[data-target="#' + panelId + '"][value="yes"]');
+            return !$yes.length || $yes.is(':checked');
+        }
+
+        /** Writes "Future dates are not allowed." under each offending input; returns the first one or null. */
+        function fsValidateCertPastDates() {
+            const today = fsTodayIso();
+            let $first = null;
+            $(FS_CERT_PAST_DATE_SELECTOR).each(function () {
+                const $el = $(this);
+                if (!fsCertDatePanelActive($el)) return;
+                const iso = fsCertDateIso($el);
+                if (iso !== '' && iso > today) {
+                    const $err = $($el.data('error'));
+                    if ($err.length) {
+                        $err.text(FS_FUTURE_DATE_MSG);
+                    } else {
+                        $el.after('<span class="error-message text-danger d-block mt-1">' + FS_FUTURE_DATE_MSG + '</span>');
+                    }
+                    if (!$first) $first = $el;
+                }
+            });
+            return $first;
+        }
+
+        function fsApplyCertDateMax() {
+            if (($('#form_name').val() || '').toString().trim().toUpperCase() !== 'S') return;
+            const today = fsTodayIso();
+            $(FS_CERT_PAST_DATE_SELECTOR).each(function () {
+                if (this.type === 'date') {
+                    this.setAttribute('max', today);
+                } else if (this._flatpickr) {
+                    this._flatpickr.set('maxDate', 'today');
+                }
+            });
+        }
+        fsApplyCertDateMax();
+
+        $(document).on('change', FS_CERT_PAST_DATE_SELECTOR, function () {
+            if (($('#form_name').val() || '').toString().trim().toUpperCase() !== 'S') return;
+            const $el = $(this);
+            const iso = fsCertDateIso($el);
+            if (iso !== '' && iso > fsTodayIso()) {
+                $($el.data('error')).text(FS_FUTURE_DATE_MSG);
+            }
+        });
+
         async function validateCompetencyFormForSubmit(options) {
             const requireDeclaration = !(options && options.requireDeclaration === false);
             normalizeCompetencyDynamicSections();
@@ -4083,8 +4156,29 @@
                         }
                     });
 
-                    /* Experience: start at age 18 or later; no future dates (Till date rows have no To date). */
-                    const earliestStart = new Date(dobDate.getFullYear() + 18, dobDate.getMonth(), dobDate.getDate());
+                    /* Experience (Form S only). Mirrors FormSSubmissionGuard::minExperienceStartAge:
+                       20 for New (N), Digitisation (D) and unknown types (ELB item 21); the previous 18 for
+                       Renewal (R) / Alteration (A). No future dates (Till date rows have no To date).
+                       Rows carried over from the parent certificate / locked / read-only are skipped,
+                       as the server exempts carried-over rows. Forms W/WH/P never reach this block. */
+                    const formSApplType = String($('#appl_type').first().val() || '').trim().toUpperCase();
+                    const FORM_S_LEGACY_EXPERIENCE_AGE = 18;
+                    const FORM_S_MIN_EXPERIENCE_AGE = (formSApplType === 'R' || formSApplType === 'A')
+                        ? FORM_S_LEGACY_EXPERIENCE_AGE
+                        : 20;
+                    const earliestStart = new Date(dobDate.getFullYear() + FORM_S_MIN_EXPERIENCE_AGE, dobDate.getMonth(), dobDate.getDate());
+                    const experienceAgeMessage = FORM_S_MIN_EXPERIENCE_AGE === FORM_S_LEGACY_EXPERIENCE_AGE
+                        ? 'Experience cannot start before age 18 (Date of Birth: ' + fmtDmy(dobDate) + ').'
+                        : 'Experience cannot start before the applicant is 20 years old';
+                    const isCarriedOverWorkRow = function ($row, $fromEl) {
+                        if ($row.hasClass('fs-alt-existing-work') || $row.hasClass('fs-renew-existing-work')
+                            || $row.attr('data-renew-locked') === '1'
+                            || $row.closest('.fs-return-section-locked').length) {
+                            return true;
+                        }
+                        // Not `disabled`: Form S card rows render the date inputs disabled until expanded.
+                        return !!($fromEl.length && $fromEl.prop('readonly'));
+                    };
                     const isoToDate = function (iso) {
                         const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
                         return m ? new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)) : null;
@@ -4094,10 +4188,11 @@
                         if (isFormS7bCurrentWorkRow($r) && !isFormS7bBoardGateYes()) return;
                         const $from = $r.find('.work-date-from').first();
                         const $to = $r.find('.work-date-to').first();
+                        if (isCarriedOverWorkRow($r, $from)) return;
                         const from = $from.length ? isoToDate(readWorkDateIsoGeneric($from)) : null;
                         if (from) {
                             if (from < earliestStart) {
-                                chronoFail($from, 'Experience cannot start before age 18 (Date of Birth: ' + fmtDmy(dobDate) + ').');
+                                chronoFail($from, experienceAgeMessage);
                             } else if (from > chronoToday) {
                                 chronoFail($from, 'Experience From date cannot be in the future.');
                             }
@@ -4879,6 +4974,26 @@
                             }
                         }
                     }
+                }
+            }
+
+            /* Form S Q8 (supervisor, 5 digits) / Q9 (wireman, 6 digits) certificate numbers:
+               block submit when "Yes" is chosen and the number is invalid (helper lives in custom.js). */
+            if (typeof window.fsValidateCertNumbers === 'function') {
+                const $badCertNo = window.fsValidateCertNumbers($('#competency_form_ws'));
+                if ($badCertNo) {
+                    if (!firstErrorField) firstErrorField = $badCertNo;
+                    isValid = false;
+                }
+            }
+
+            /* Form S Q8 / Q9 (ELB item 14): Date of First Issue and From date cannot be in the future.
+               The To / validity date is intentionally not restricted (Board decision pending). */
+            if (($('#form_name').val() || '').toString().trim().toUpperCase() === 'S') {
+                const $badCertDate = fsValidateCertPastDates();
+                if ($badCertDate) {
+                    if (!firstErrorField) firstErrorField = $badCertDate;
+                    isValid = false;
                 }
             }
 

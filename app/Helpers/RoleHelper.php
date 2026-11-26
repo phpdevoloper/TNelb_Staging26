@@ -54,4 +54,24 @@ class RoleHelper {
         return $id;
     }
 
+    /**
+     * True when the admin role name (Auth::guard('admin')->user()->name, i.e. mst_roles.role_name) equals one
+     * of $allowed, ignoring case and surrounding spaces ("secretary " === "Secretary").
+     */
+    public static function matches(?string $roleName, string ...$allowed): bool
+    {
+        $roleName = strtolower(trim((string) $roleName));
+        if ($roleName === '') {
+            return false;
+        }
+
+        foreach ($allowed as $candidate) {
+            if ($roleName === strtolower(trim($candidate))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

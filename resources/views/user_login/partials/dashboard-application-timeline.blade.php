@@ -49,6 +49,9 @@
         $licenceNo = trim((string) ($digi->licence_no ?? ''));
         $contractorName = trim((string) ($digi->contractor_name ?? ''));
     }
+
+    $tlFormName = strtoupper(trim((string) ($timeline['form_name'] ?? ($application->form_name ?? ''))));
+    $tlIsFormS = $tlFormName === 'S';
 @endphp
 
 <style>
@@ -368,13 +371,11 @@
             </span>
             <div>
                 <h3>Digitisation dependency</h3>
-                <p>
-                    Status of the old certificate captured for this application
-                    @if ($appId !== '')
-                        (<span class="font-weight-bold">{{ $appId }}</span>)
-                    @endif
-                    and whether QC or QSC eligibility was recorded.
-                </p>
+                @if ($tlIsFormS)
+                    <p>Preview of Digitization of Supervisor Competency certificate</p>
+                @else
+                    <p>Preview of the digitised competency certificate captured for this application.</p>
+                @endif
             </div>
         </div>
 

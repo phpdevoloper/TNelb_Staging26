@@ -1916,21 +1916,115 @@ class LicensepdfController extends Controller
         return 'cc_form_p_cert.cert_pdf';
     }
 
+    /**
+     * Active mst_licences row for the application's licence code. Form P is approved against the code
+     * 'P' (Admin\FormPController::approveApplicationformp) while it is shown to users as Certificate 'D',
+     * so for those two codes the other one is tried before giving up. Stored codes are not changed.
+     */
+    private function licencePdfMasterRow(mixed $licenceCode): ?object
+    {
+        $code = is_scalar($licenceCode) ? strtoupper(trim((string) $licenceCode)) : '';
+        if ($code === '') {
+            return null;
+        }
+
+        $codes = [$code];
+        if ($code === 'P') {
+            $codes[] = 'D';
+        } elseif ($code === 'D') {
+            $codes[] = 'P';
+        }
+
+        foreach ($codes as $candidate) {
+            $row = DB::table('mst_licences')
+                ->where('cert_licence_code', $candidate)
+                ->where('status', 1)
+                ->first();
+            if ($row) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Digitisation capture for the certificate: by application_id, else through cc_digitisation_map's
+     * temp id (the capture row may never have been linked), else the old number kept on the map.
+     * Read-only (same lookup order as Admin\FormPController::formPDigitizationRow, without the login fallback).
+     */
+    private function licencePdfDigitizationRow(string $applicationId): ?object
+    {
+        $applicationId = trim($applicationId);
+        if ($applicationId === '') {
+            return null;
+        }
+
+        $row = Tnelb_CC_Digitization::where('application_id', $applicationId)->orderByDesc('id')->first();
+        if ($row) {
+            return $row;
+        }
+
+        if (! Schema::hasTable('cc_digitisation_map')) {
+            return null;
+        }
+
+        $map = DB::table('cc_digitisation_map')
+            ->where('application_id', $applicationId)
+            ->orderByDesc(Schema::hasColumn('cc_digitisation_map', 'm_id') ? 'm_id' : 'id')
+            ->first();
+        if (! $map) {
+            return null;
+        }
+
+        $tempId = trim((string) ($map->temp_id ?? ''));
+        if ($tempId !== '') {
+            $byTemp = Tnelb_CC_Digitization::where('temp_app_id', $tempId)->orderByDesc('id')->first();
+            if ($byTemp) {
+                return $byTemp;
+            }
+        }
+
+        $oldNumber = trim((string) ($map->old_cc_no ?? ''));
+        if ($oldNumber === '' || $oldNumber === '0') {
+            return null;
+        }
+
+        return (object) [
+            'ccnumber' => $oldNumber,
+            'cl_type' => null,
+            'licence_no' => null,
+            'contractor_name' => null,
+        ];
+    }
+
     public function generateLicensePDF($application_id)
     {
 
-        $application = app(CompetencyApplicationService::class)->licensePdfApplication($application_id);
+        $application = app(CompetencyApplicationService::class)->licensePdfApplication((string) $application_id);
+        if (! $application) {
+            throw new \RuntimeException('Application not found, so the Certificate PDF was not generated.');
+        }
         [$applicant_photo, $applicant_sign] = $this->resolveLicensePdfApplicantMedia($application_id);
 
-        $licence_name = DB::table('mst_licences')->where('cert_licence_code', $application->license_name)
-            ->where('status', 1)
-            ->first();
-        if ($application && $application->appl_type === 'D') {
+        $licence_name = $this->licencePdfMasterRow($application->license_name ?? null);
+        if (! $licence_name) {
+            Log::warning('generateLicensePDF: no active mst_licences row for the licence code', [
+                'application_id' => $application_id,
+                'license_name' => $application->license_name ?? null,
+            ]);
+            throw new \RuntimeException('Licence details were not found for this application, so the Certificate PDF was not generated.');
+        }
 
-            $digi_details  = Tnelb_CC_Digitization::where('application_id', $application_id)->first();
-
-            // dd($digi_details); exit;
-
+        $digi_details = null;
+        if ($application->appl_type === 'D') {
+            $digi_details = $this->licencePdfDigitizationRow((string) $application_id);
+            if (! $digi_details) {
+                // The certificate is still issued; only the "Old Certificate Number" rows are left out.
+                Log::warning('generateLicensePDF: digitisation record not found; old certificate rows omitted', [
+                    'application_id' => $application_id,
+                ]);
+            }
         }
 
 
@@ -2283,11 +2377,12 @@ class LicensepdfController extends Controller
 
         $oldCertificateRow = '';
 
-        if ($application && $application->appl_type === 'D') {
+        if ($application->appl_type === 'D' && $digi_details) {
 
-            $employment = $digi_details->cl_type . ' - ' .
-                $digi_details->licence_no . ' - ' .
-                $digi_details->contractor_name;
+            // User-entered values: escaped before they go into the mPDF HTML.
+            $employment = e((string) ($digi_details->cl_type ?? '')) . ' - ' .
+                e((string) ($digi_details->licence_no ?? '')) . ' - ' .
+                e((string) ($digi_details->contractor_name ?? ''));
 
             $oldCertificateRow = '
                         <tr>
@@ -2298,10 +2393,12 @@ class LicensepdfController extends Controller
                                 </div>
                             </td>
                             <td class="colon">:</td>
-                            <td class="val">' . $digi_details->ccnumber . '</td>
+                            <td class="val">' . e((string) ($digi_details->ccnumber ?? '')) . '</td>
                         </tr>';
 
-                            if ($digi_details->cl_type != '0') {
+                            // No employment row when there is no contractor (cl_type null / '' / '0').
+                            $clType = trim((string) ($digi_details->cl_type ?? ''));
+                            if ($clType !== '' && $clType !== '0') {
                                 $oldCertificateRow .= '
                         <tr>
                             <td class="lbl">
@@ -2380,12 +2477,12 @@ class LicensepdfController extends Controller
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Name</div><div class="lbl-ta" lang="ta">பெயர்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $applicant->name . '</td>
+                                    <td class="val">' . e((string) ($applicant->name ?? '')) . '</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Father / Husband Name</div><div class="lbl-ta" lang="ta">தந்தை / கணவர் பெயர்</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $applicant->fathers_name . '</td>
+                                    <td class="val">' . e((string) ($applicant->fathers_name ?? '')) . '</td>
                                 </tr>
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Date of Birth</div><div class="lbl-ta" lang="ta">பிறந்த தேதி</div></div></td>
@@ -2395,7 +2492,7 @@ class LicensepdfController extends Controller
                                 <tr>
                                     <td class="lbl"><div class="lbl-bi"><div class="lbl-en">Address</div><div class="lbl-ta" lang="ta">முகவரி</div></div></td>
                                     <td class="colon">:</td>
-                                    <td class="val">' . $applicant->applicants_address . '</td>
+                                    <td class="val">' . e((string) ($applicant->applicants_address ?? '')) . '</td>
                                 </tr>
                             </table>
 

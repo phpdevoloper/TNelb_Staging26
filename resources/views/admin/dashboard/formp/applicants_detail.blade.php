@@ -406,7 +406,7 @@
                                                 </table>
                                             </div>
 
-                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which the application is attached at present</h6>
+                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which the applicant is attached at present</h6>
                                             <div class="table-responsive">
                                                 <table class="table table-bordered">
                                                     <thead>
@@ -1077,6 +1077,9 @@
 @include('admin.include.footer')
 
 <script>
+    // President warning (ELB item 25). PLACEHOLDER wording: replace this one string when ELB supplies the text.
+    // Shown in the approval confirmation and again right after a successful approval.
+    var PRESIDENT_APPROVAL_WARNING = 'Please note: once approved, the certificate is issued and the application cannot be changed.';
 
     $('#remarks').maxlength({
         placement: "top"
@@ -1192,9 +1195,6 @@
         
 
 
-        // Shown to the President in the approval confirmation. Replace with ELB's wording when it is supplied.
-        var PRESIDENT_APPROVAL_WARNING = 'Please note: once approved, the certificate is issued and the application cannot be changed.';
-
         approveButton.click(function () {
             var applicationId = @json($applicant->application_id);
             var processedBy = @json(Auth::user()->name);
@@ -1244,6 +1244,15 @@
                                     `,
                                     confirmButtonText: "OK",
                                     allowOutsideClick: false
+                                }).then(() => {
+                                    // Item 25: repeat the President warning once the approval has gone through.
+                                    return Swal.fire({
+                                        icon: "info",
+                                        title: "Please note",
+                                        text: PRESIDENT_APPROVAL_WARNING,
+                                        confirmButtonText: "OK",
+                                        allowOutsideClick: false
+                                    });
                                 }).then(() => {
                                     window.location.href = "{{ url('admin/dashboard') }}";
                                 });

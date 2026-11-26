@@ -21,8 +21,91 @@ $(document).ready(function () {
         }
     });
 
+    // Form S certificate numbers (Q8 supervisor = 5 digits, Q9 wireman = 6 digits, no C/W prefix).
+    // Only inputs that carry data-cert-digits are checked here; Form W/WH/P inputs keep the old behaviour.
+    const FS_CERT_INVALID_MSG = "Invalid certificate number";
+    const FS_CERT_REQUIRED_MSG = "Certificate Number is required";
+    window.FS_CERT_REQUIRED_MSG = FS_CERT_REQUIRED_MSG;
+    window.FS_CERT_INVALID_MSG = FS_CERT_INVALID_MSG;
+
+    function fsCertDigits($input) {
+        const n = parseInt($input.attr("data-cert-digits"), 10);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function fsCertNumberIsValid(value, digits) {
+        return /^[0-9]+$/.test(value) && value.length === digits;
+    }
+
+    /* True when the Yes option that opens this input's panel is selected (or the input has no Yes/No toggle). */
+    function fsCertYesSelected($input) {
+        const panelId = $input.closest(".fs-toggle-panel").attr("id");
+        if (!panelId) return true;
+        const $yes = $('input.toggle-details[data-target="#' + panelId + '"][value="yes"]');
+        if (!$yes.length) return true;
+        return $yes.is(":checked");
+    }
+
+    /**
+     * Validates every Form S certificate number input (data-cert-digits) inside $scope.
+     * Writes the inline red message into the input's data-error span.
+     * Returns the first invalid input (jQuery) or null when all are valid.
+     */
+    function fsValidateCertNumbers($scope) {
+        let $first = null;
+        ($scope && $scope.length ? $scope : $(document))
+            .find("input.verify-input[data-cert-digits]")
+            .each(function () {
+                const $el = $(this);
+                const $err = $($el.data("error"));
+                if ($el.prop("disabled") || $el.prop("readonly") || $el.closest(".fs-return-section-locked").length) {
+                    return;
+                }
+                if (!fsCertYesSelected($el)) {
+                    $err.text("");
+                    return;
+                }
+                const value = ($el.val() || "").trim();
+                let message = "";
+                if (value === "") {
+                    message = FS_CERT_REQUIRED_MSG;
+                } else if (!fsCertNumberIsValid(value, fsCertDigits($el))) {
+                    message = FS_CERT_INVALID_MSG;
+                }
+                $err.text(message);
+                if (message && !$first) $first = $el;
+            });
+        return $first;
+    }
+    window.fsValidateCertNumbers = fsValidateCertNumbers;
+
+    $(document).on("blur", "input.verify-input[data-cert-digits]", function () {
+        const $el = $(this);
+        const value = ($el.val() || "").trim();
+        if (value !== "" && !fsCertNumberIsValid(value, fsCertDigits($el))) {
+            $($el.data("error")).text(FS_CERT_INVALID_MSG);
+        }
+    });
+
     // ✅ Common Keyup Validation
     $(document).on("input", ".verify-input", function () {
+
+        const certDigits = fsCertDigits($(this));
+        if (certDigits) {
+            // Form S: do not strip silently; a prefix such as "C123"/"W123" is shown as invalid.
+            const certValue = ($(this).val() || "").trim();
+            const $certErr = $($(this).data("error"));
+            $($(this).data("msg")).text("");
+            if (certValue === "") {
+                $certErr.text(FS_CERT_REQUIRED_MSG);
+            } else if (!/^[0-9]+$/.test(certValue) || certValue.length > certDigits) {
+                $certErr.text(FS_CERT_INVALID_MSG);
+            } else {
+                // Too few digits is reported on blur / submit, not while typing.
+                $certErr.text("");
+            }
+            return;
+        }
 
         let value = ($(this).val() || "").replace(/\D/g, "");
         $(this).val(value);
@@ -36,7 +119,7 @@ $(document).ready(function () {
         msgBox.text("");
 
         if (value === "") {
-            errorBox.text("Certificate Number is Required");
+            errorBox.text(FS_CERT_REQUIRED_MSG);
             return;
         }
 
@@ -101,11 +184,12 @@ $(document).ready(function () {
 
         let isValid = true;
 
+        const verifyCertDigits = fsCertDigits(input);
         if (value === "") {
-            errorBox.text("Certificate Number is required");
+            errorBox.text(FS_CERT_REQUIRED_MSG);
             isValid = false;
-        } else if (!regexRules[type].test(value)) {
-            errorBox.text("Invalid Certificate Number");
+        } else if (verifyCertDigits ? !fsCertNumberIsValid(value, verifyCertDigits) : !regexRules[type].test(value)) {
+            errorBox.text(FS_CERT_INVALID_MSG);
             isValid = false;
         }
 
@@ -398,6 +482,13 @@ $(document).ready(function () {
 
         if (licenseError) licenseError.textContent = '';
         if (dateError) dateError.textContent = '';
+
+        // Form S Q8/Q9 certificate numbers (only checked when "Yes" is chosen).
+        const $badCertNo = fsValidateCertNumbers($('#competency_form_ws'));
+        if ($badCertNo) {
+            if (!firstErrorField) firstErrorField = $badCertNo;
+            isValid = false;
+        }
 
         $("#checkboxError").text("");
 

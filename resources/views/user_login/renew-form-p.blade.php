@@ -381,7 +381,7 @@
                                 <div class="col-12 col-md-6">
                                     <div class="fs-field-label">2. Father's Name <span class="req">*</span></div>
                                     <div class="fs-field-tamil">தகப்பனார் பெயர்</div>
-                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application_details) ? $application_details->fathers_name : '' }}" maxlength="80" {{ $isRenewFormP ? 'readonly' : '' }}>
+                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application_details) ? $application_details->fathers_name : '' }}" maxlength="80" placeholder="e.g. Arun Srinivasakannan G" {{ $isRenewFormP ? 'readonly' : '' }}>
                                     <span class="error-message text-danger"></span>
                                 </div>
                                 @php
@@ -675,7 +675,7 @@
                             </div>
 
                             {{-- (iii) Power Station table --}}
-                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the applicant is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
                             <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
                                 Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).

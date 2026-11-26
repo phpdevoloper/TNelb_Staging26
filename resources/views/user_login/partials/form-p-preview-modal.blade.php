@@ -48,7 +48,7 @@
         border-radius: 999px; padding: 2px 11px; font-size: .72rem; font-weight: 600;
     }
     .prv-fp-modal-root .prv-fp-badge--renew { background: rgba(255, 193, 7, .22); border-color: rgba(255, 220, 100, .45); }
-    .prv-fp-modal-root .prv-fp-subtitle { font-size: .78rem; color: rgba(255,255,255,.82); margin-top: 4px; line-height: 1.4; }
+    .prv-fp-modal-root .prv-fp-subtitle { font-size: .78rem; margin-top: 4px; line-height: 1.4; }
     .prv-fp-modal-root .prv-fp-close {
         background: rgba(255,255,255,.14); border: none; color: #fff;
         width: 34px; height: 34px; border-radius: 50%; font-size: 1.25rem;
@@ -231,6 +231,33 @@
         background: #fff; border-top: 1px solid #e3e8f0; padding: 14px 26px;
         display: flex; align-items: center; justify-content: center; gap: 10px;
         flex-shrink: 0; flex-wrap: wrap;
+    }
+    /* Important note callout (footer, above buttons) */
+    .prv-fp-modal-root .prv-fp-footer .prv-fp-note {
+        flex: 1 1 100%; width: 100%; max-width: 100%; box-sizing: border-box;
+        display: flex; align-items: flex-start; gap: 10px;
+        margin: 0 0 4px; padding: 10px 14px;
+        background: #eaf3fd; color: #1f3a63;
+        border: 1px solid #b9d4f3; border-left: 4px solid #035ab3; border-radius: 8px;
+        text-align: left; font-size: .8rem; line-height: 1.55;
+        overflow-wrap: anywhere; word-break: normal;
+    }
+    .prv-fp-modal-root .prv-fp-note .prv-fp-note-icon {
+        color: #035ab3; font-size: 1.15rem; line-height: 1.3; flex-shrink: 0; margin-top: 1px;
+    }
+    .prv-fp-modal-root .prv-fp-note .prv-fp-note-body { min-width: 0; flex: 1 1 auto; }
+    .prv-fp-modal-root .prv-fp-note .prv-fp-note-title {
+        font-weight: 700; color: #035ab3; font-size: .82rem; margin-bottom: 2px;
+    }
+    .prv-fp-modal-root .prv-fp-note .prv-fp-note-title-ta { font-weight: 700; }
+    .prv-fp-modal-root .prv-fp-note .prv-fp-note-text { margin: 0; }
+    .prv-fp-modal-root .prv-fp-note strong { color: #0b2f5c; }
+    .prv-fp-modal-root .prv-fp-note .prv-fp-subtitle-ta {
+        display: block; margin-top: 4px; color: #2c4a73; line-height: 1.7; font-size: .79rem;
+    }
+    @media (max-width: 599.98px) {
+        .prv-fp-modal-root .prv-fp-footer .prv-fp-note { padding: 9px 10px; gap: 8px; font-size: .76rem; }
+        .prv-fp-modal-root .prv-fp-note .prv-fp-subtitle-ta { font-size: .75rem; }
     }
     .prv-fp-modal-root .prv-fp-btn-back {
         background: #fff; color: #035ab3; border: 1px solid #035ab3; border-radius: 8px;
@@ -448,7 +475,6 @@
                     <span class="prv-fp-badge prv-fp-badge--renew" id="prvFpRenewBadge" style="{{ $formPPreviewIsRenewal ? '' : 'display:none;' }}">Renewal</span>
                     <span class="prv-fp-badge prv-fp-badge--renew" id="prvFpAltBadge" style="display:none;">Alteration</span>
                 </h2>
-                <div class="prv-fp-subtitle" id="prvFpSubtitle">“Confirm every section carefully before submitting the application. Use <strong>Back to Edit</strong> if anything needs correction.”<span class="prv-fp-subtitle-ta" lang="ta" style="display:block;margin-top:4px;">“விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.”</span></div>
             </div>
             <button type="button" class="prv-fp-close" id="prvFpCloseBtn" title="Close preview" aria-label="Close preview">&times;</button>
         </div>
@@ -569,7 +595,9 @@
                         </table>
                     </div>
 
-                    <div class="prv-fp-subhead">(iii) Power Station to which the application is attached at present</div>
+                    <div class="prv-fp-subhead">(iii) Power Station to which the applicant is attached at present
+                        <span class="d-block" lang="ta" style="font-weight:400;font-size:.8em;">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம்</span>
+                    </div>
                     <div class="prv-fp-table-wrap">
                         <table class="prv-fp-table">
                             <thead>
@@ -636,6 +664,7 @@
         </div>
 
         <div class="prv-fp-footer">
+            <div class="prv-fp-subtitle prv-fp-note" id="prvFpSubtitle" role="note"><i class="fa fa-info-circle prv-fp-note-icon" aria-hidden="true"></i><div class="prv-fp-note-body"><div class="prv-fp-note-title">Important Note / <span class="prv-fp-note-title-ta" lang="ta">முக்கிய குறிப்பு</span></div><div class="prv-fp-note-text">Confirm every section carefully before submitting the application. Use <strong>Back to Edit</strong> if anything needs correction.</div><span class="prv-fp-subtitle-ta" lang="ta">விண்ணப்பத்தைச் சமர்ப்பிக்கும் முன் ஒவ்வொரு பகுதியையும் கவனமாகச் சரிபார்க்கவும். ஏதேனும் திருத்தம் தேவைப்பட்டால், Back to Edit என்பதைப் பயன்படுத்தவும்.</span></div></div>
             <button type="button" class="prv-fp-btn-back" id="prvFpBackBtn"><i class="fa fa-arrow-left"></i> Back to Edit</button>
             <button type="button" class="prv-fp-btn-print" id="prvFpPrintBtn" title="Print preview"><i class="fa fa-print"></i> Print</button>
             <button type="button" class="prv-fp-btn-go" id="prvFpConfirmBtn"><i class="fa fa-check"></i> Confirm &amp; Proceed</button>

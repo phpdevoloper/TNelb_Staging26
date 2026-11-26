@@ -50,7 +50,8 @@
                     return false;
                 }
 
-                return (string) ($r['bm_member'] ?? '') === $orgName;
+                // Case / space-insensitive (as CC_Board_Details::findOrganisation): "president" matches "President".
+                return \App\Models\CC_Board_Details::findOrganisation([(string) ($r['bm_member'] ?? '') => []], $orgName) !== null;
             })
             ->pluck('bm_members')
             ->flatMap(function ($raw) {

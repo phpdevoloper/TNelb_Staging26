@@ -814,7 +814,7 @@
                                             {{ $applicant->age }} yrs</span>
                                         <strong>Email:</strong>
                                         <span>{{ !empty($applicant->applicant_email) ? e($applicant->applicant_email) : '—' }}</span>
-                                        <strong>Applied For:</strong> <span>FORM {{ $applicant->form_name ?: '—' }} : {{ ($applicant->formName ?? '') ?: '—' }}</span>
+                                        <strong>Applied For:</strong> <span>{{ \App\Support\FormDisplayName::adminTitle($applicant->form_name, 'FORM ' . ($applicant->form_name ?: '—') . ' : ' . (($applicant->formName ?? '') ?: '—')) }}</span>
 
                                         @if($applicant->appl_type == 'A' && !empty($applicant->old_application))
                                             <strong>Parent Application:</strong>
@@ -1096,7 +1096,7 @@
                                                                 </tr>
                                                                 <tr>
                                                                     <td class="fw-bold">D.O.B & Age :</td>
-                                                                    <td>{{ $applicant->d_o_b }} ({{ $applicant->age }}
+                                                                    <td>{{ format_date($applicant->d_o_b) }} ({{ $applicant->age }}
                                                                         years old)</td>
                                                                 </tr>
                                                                 <tr>
@@ -1950,7 +1950,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-success" id="confirmApprovalBtn" disabled>Approve
+                        <button type="button" class="btn btn-success" id="approvalModalConfirmBtn" disabled>Approve
                             Application</button>
                     </div>
                 </div>
@@ -2090,7 +2090,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-success" id="confirmForwardPres" disabled>Forward to
+                        <button type="button" class="btn btn-success" id="forwardModalConfirmBtn" disabled>Forward to
                             President</button>
                     </div>
                 </div>
@@ -2127,7 +2127,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" id="confirmReturnBtn" class="btn btn-primary">Yes</button>
+                        <button type="button" id="returnModalConfirmBtn" class="btn btn-primary">Yes</button>
                     </div>
                 </div>
             </div>
@@ -2256,19 +2256,22 @@
 
 
                 //forwardbtn
-                var approveButton = $('#confirmApprovalBtn');
+                // Role button (#confirmApprovalBtn) and the declaration modal button (#approvalModalConfirmBtn)
+                // used to share one id, so jQuery only bound the first one. Both now run the same handler;
+                // the modal checkbox only enables/disables the modal button.
+                var approveButton = $('#confirmApprovalBtn, #approvalModalConfirmBtn');
                 var confirmApproval = $('#confirmApproval');
                 confirmApproval.change(function () {
-                    approveButton.prop('disabled', !this.checked);
+                    $('#approvalModalConfirmBtn').prop('disabled', !this.checked);
                 });
 
 
                 var checkPresident = $('#confirmPresident');
 
-                confirmForwardPres = $("#confirmForwardPres");
+                confirmForwardPres = $("#confirmForwardPres, #forwardModalConfirmBtn");
 
                 checkPresident.change(function () {
-                    confirmForwardPres.prop('disabled', !this.checked);
+                    $('#forwardModalConfirmBtn').prop('disabled', !this.checked);
                 });
 
 
@@ -2310,7 +2313,12 @@
                             let switchBtn = $(this).find("input[name^='status']");
                             let checkid = $(this).find("input[name^='check_id']");
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
+                            // Rows without a checklist input (e.g. "no checklist" placeholder) are skipped.
+                            let idMatch = String(checkbox.attr("name") || "").match(/\d+/);
+                            if (!idMatch) {
+                                return;
+                            }
+                            let id = idMatch[0];
                             checklists[id] = checkbox.is(":checked") ? 1 : 0;
                             status[id] = switchBtn.is(":checked") ? 1 : 0;
                             check_id[id] = checkid.val();
@@ -2435,7 +2443,12 @@
                             let switchBtn = $(this).find("input[name^='status']");
                             let checkid = $(this).find("input[name^='check_id']");
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
+                            // Rows without a checklist input (e.g. "no checklist" placeholder) are skipped.
+                            let idMatch = String(checkbox.attr("name") || "").match(/\d+/);
+                            if (!idMatch) {
+                                return;
+                            }
+                            let id = idMatch[0];
                             checklists[id] = checkbox.is(":checked") ? 1 : 0;
                             status[id] = switchBtn.is(":checked") ? 1 : 0;
                             check_id[id] = checkid.val();
@@ -2582,7 +2595,12 @@
                             let switchBtn = $(this).find("input[name^='status']");
                             let checkid = $(this).find("input[name^='check_id']");
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
+                            // Rows without a checklist input (e.g. "no checklist" placeholder) are skipped.
+                            let idMatch = String(checkbox.attr("name") || "").match(/\d+/);
+                            if (!idMatch) {
+                                return;
+                            }
+                            let id = idMatch[0];
                             checklists[id] = checkbox.is(":checked") ? 1 : 0;
                             status[id] = switchBtn.is(":checked") ? 1 : 0;
                             check_id[id] = checkid.val();
@@ -2760,7 +2778,7 @@
                 // }
 
                 // Handle confirm button inside modal
-                $('#confirmReturnBtn').on('click', function () {
+                $('#confirmReturnBtn, #returnModalConfirmBtn').on('click', function () {
 
                     var queryType = [];
 
@@ -2793,7 +2811,12 @@
                             let switchBtn = $(this).find("input[name^='status']");
                             let checkid = $(this).find("input[name^='check_id']");
 
-                            let id = checkbox.attr("name").match(/\d+/)[0];
+                            // Rows without a checklist input (e.g. "no checklist" placeholder) are skipped.
+                            let idMatch = String(checkbox.attr("name") || "").match(/\d+/);
+                            if (!idMatch) {
+                                return;
+                            }
+                            let id = idMatch[0];
                             checklists[id] = checkbox.is(":checked") ? 1 : 0;
                             status[id] = switchBtn.is(":checked") ? 1 : 0;
                             check_id[id] = checkid.val();

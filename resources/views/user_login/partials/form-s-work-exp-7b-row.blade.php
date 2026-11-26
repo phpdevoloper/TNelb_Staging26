@@ -23,7 +23,12 @@
     $memberName = $hasRow
         ? (string) (($expRow->member_name ?? '') !== '' ? $expRow->member_name : ($expRow->emp_cate ?? ''))
         : '';
-    $boardMemberNames = ($hasValidMeetingDate && $orgName !== '') ? ($meetingLookup[$orgName] ?? []) : [];
+    /* Case / space-insensitive: a saved "president" resolves to the master's "President". */
+    $matchedOrgName = ($hasValidMeetingDate && $orgName !== '')
+        ? \App\Models\CC_Board_Details::findOrganisation($meetingLookup, $orgName)
+        : null;
+    $selectedOrgName = $matchedOrgName ?? $orgName;
+    $boardMemberNames = $matchedOrgName !== null ? ($meetingLookup[$matchedOrgName] ?? []) : [];
     $hasValidOrg = $hasValidMeetingDate && $orgName !== '';
     /* Locked (alteration / renewal) rows are exempt from the gate; new + editable rows are gated. */
     $bmGateActive = ! $alterationExistingRow;
@@ -80,7 +85,7 @@
                 <div class="col-12 col-md-4 work-card-field" data-field="organisation">
                     <label class="work-card-field-label">Representing Organisation<span class="req">*</span></label>
                     @include('user_login.partials.form-s-7b-representing-org-select', [
-                        'orgName' => $orgName,
+                        'orgName' => $selectedOrgName,
                         'required' => true,
                         'disabled' => $alterationExistingRow,
                         'boardRepresentingOrgs' => $boardRepresentingOrgs,
@@ -126,7 +131,7 @@
     </div>
 
     <input type="hidden" class="work-experience-total-hidden" name="work_experience_total[]" value="{{ $totalExp }}" @if($alterationExistingRow) disabled @endif>
-    <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $orgName }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
+    <input type="hidden" name="work_level[]" class="work-level-sync" value="{{ $selectedOrgName }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
     <input type="hidden" name="experience[]" class="experience-sync" value="{{ $totalExp }}" tabindex="-1" aria-hidden="true" @if($alterationExistingRow) disabled @endif>
     <input type="hidden" name="work_exp_section[]" value="current" @if($alterationExistingRow) disabled @endif>
     <input type="hidden" name="work_id[]" value="{{ $workId }}" @if($alterationExistingRow) disabled @endif>

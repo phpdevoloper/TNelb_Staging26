@@ -323,30 +323,43 @@
             <!-- -------------------------------------------------------- -->
             <div class="row">
                 <div class="col-xl-12 col-lg-12 col-sm-12 layout-top-spacing">
+                    @php
+                        // Display-only: Form S shows "Form C: Supervisor Competency certificate (C)"; other forms unchanged.
+                        $listFormShort = \App\Support\FormDisplayName::adminTitle($firstApp->form_name ?? null, $firstApp->form_name ?? 'N/A');
+                        $listFormFull = \App\Support\FormDisplayName::adminTitle(
+                            $firstApp->form_name ?? null,
+                            ($firstApp->form_name ?? 'N/A') . ' (' . ($firstApp->license_name ?? 'N/A') . ')'
+                        );
+                        // Form P digitisation lists read "... For D" (ELB: Certificate D); stored codes unchanged.
+                        $listIsFormP = \App\Support\FormDisplayName::isFormP($firstApp->form_name ?? null);
+                        if ($listIsFormP && $isDigitizationOnly) {
+                            $listFormFull = \App\Support\FormDisplayName::FORM_P_CERTIFICATE_LETTER;
+                        }
+                    @endphp
                     <div class="app-view-title">
                         @if($isCompletedList)
                             @if($isRenewalOnly)
-                                Completed Renewal Applications For {{ $firstApp->form_name ?? 'N/A' }}
+                                Completed Renewal Applications For {{ $listFormShort }}
                             @elseif($isNewOnly)
-                                Completed New Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Completed New Applications For {{ $listFormFull }}
                             @elseif($isDigitizationOnly)
-                                Completed Digitisation Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Completed Digitisation Applications For {{ $listFormFull }}
                             @elseif($isAlterationOnly)
-                                Completed Alteration Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Completed Alteration Applications For {{ $listFormFull }}
                             @else
-                                Completed Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Completed Applications For {{ $listFormFull }}
                             @endif
                         @else
                             @if($isRenewalOnly)
-                                Pending Renewal Applications For {{ $firstApp->form_name ?? 'N/A' }}
+                                Pending Renewal Applications For {{ $listFormShort }}
                             @elseif($isNewOnly)
-                                Pending New Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Pending New Applications For {{ $listFormFull }}
                             @elseif($isDigitizationOnly)
-                                Pending Digitization Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Pending Digitization Applications For {{ $listFormFull }}
                             @elseif($isAlterationOnly)
-                                Pending Alteration Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Pending Alteration Applications For {{ $listFormFull }}
                             @else
-                                Pending Applications For {{ $firstApp->form_name ?? 'N/A' }} ({{ $firstApp->license_name ?? 'N/A' }})
+                                Pending Applications For {{ $listFormFull }}
                             @endif
                         @endif
                     </div>
@@ -464,7 +477,8 @@
                                                 @endif
                                             </td>
                                             @else
-                                            <td>{{ $application->license_name ?? 'N/A' }}</td>
+                                            {{-- Display-only: Form P is issued as Certificate D (stored license_name stays 'P'). --}}
+                                            <td>{{ \App\Support\FormDisplayName::isFormP($application->form_name ?? null) ? \App\Support\FormDisplayName::FORM_P_CERTIFICATE_LETTER : ($application->license_name ?? 'N/A') }}</td>
                                             {{-- <td>{{ in_array($application->payment_status ?? null, ['payment', 'paid'], true) ? 'Success' : ($application->payment_status ?? 'N/A') }}</td> --}}
                                             <td>{{ format_date_other($appliedOnRaw) }}</td>
                                             <td>

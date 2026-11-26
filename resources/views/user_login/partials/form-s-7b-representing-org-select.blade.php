@@ -9,6 +9,11 @@
         ->mapWithKeys(fn ($v) => [(string) $v => (string) $v])
         ->all();
     $orgSelectDisabled = $disabled || ! $hasValidMeetingDate;
+    /* Pick the option matching the saved value ignoring case / extra spaces (as CC_Board_Details::findOrganisation). */
+    $selectedOrg = $orgName !== ''
+        ? \App\Models\CC_Board_Details::findOrganisation($representingOrgOptions, $orgName)
+        : null;
+    $selectedOrg = $selectedOrg ?? $orgName;
 @endphp
 <select
     class="form-control work-employer-input"
@@ -23,9 +28,9 @@
     @else
         <option value="">Select organisation</option>
         @foreach ($representingOrgOptions as $orgValue => $orgLabel)
-            <option value="{{ $orgValue }}" {{ (string) $orgName === (string) $orgValue ? 'selected' : '' }}>{{ $orgLabel }}</option>
+            <option value="{{ $orgValue }}" {{ $selectedOrg === (string) $orgValue ? 'selected' : '' }}>{{ $orgLabel }}</option>
         @endforeach
-        @if ($orgName !== '' && ! array_key_exists($orgName, $representingOrgOptions))
+        @if ($orgName !== '' && ! array_key_exists($selectedOrg, $representingOrgOptions))
             <option value="{{ $orgName }}" selected>{{ $orgName }}</option>
         @endif
     @endif

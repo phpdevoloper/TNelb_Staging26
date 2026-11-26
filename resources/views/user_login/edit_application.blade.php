@@ -6,6 +6,9 @@
     $editShowBoardMember = ($editFormName === 'S');
     $editApplTypeCode = strtoupper(trim((string) ($application_details->appl_type ?? 'N')));
     $isRenewalDraftEdit = $editApplTypeCode === 'R';
+    // Renewal draft: lock Q8 / Q9 certificate details only when a value exists (same rule as renew-form $hasPrevScc / $hasWiremanCert).
+    $renewLockPrevScc = $isRenewalDraftEdit && !in_array(trim((string) ($renew_parent_details->previous_scc_no ?? '')), ['', '0'], true);
+    $renewLockWiremanCert = $isRenewalDraftEdit && !in_array(trim((string) ($renew_parent_details->wcc_no ?? '')), ['', '0'], true);
 @endphp
 
 <style>
@@ -1220,7 +1223,8 @@
                                             </div>
                                         </div>
                                         <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name"
-                                            type="text" value="{{ $fathersNameVal }}" maxlength="50">
+                                            type="text" value="{{ $fathersNameVal }}"
+                                            @if(($application_details->form_name ?? '') === 'S') maxlength="80" placeholder="e.g. Arun Srinivasakannan G" @else maxlength="50" @endif>
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
@@ -1590,7 +1594,7 @@
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
-                                <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
+                                <div class="fs-section-tamil">{{ ($application_details->form_name ?? '') === 'S' ? 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள்' : 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்' }}
                                     @if(isset($application_details->form_name) && in_array($application_details->form_name, ['WH']))
                                         <span style="font-size:.72rem;">(விருப்பமெனில் நிரப்பலாம்)</span>
                                     @endif
@@ -1781,23 +1785,30 @@
                                     @php
                                         $hasSupervisorCert = trim((string) ($application_details->previous_scc_no ?? $application_details->previously_number ?? '')) !== ''
                                             && trim((string) ($application_details->previous_scc_no ?? $application_details->previously_number ?? '')) !== '0';
+                                        // Renewal draft locked to the parent: always Yes + parent values (server pins the same).
+                                        if ($renewLockPrevScc) { $hasSupervisorCert = true; }
+                                        $q8Src = $renewLockPrevScc ? $renew_parent_details : null;
+                                        $q8Number = $q8Src ? ($q8Src->previous_scc_no ?? $q8Src->previously_number) : $application_details->previous_scc_no;
+                                        $q8Issue = $q8Src ? ($q8Src->previously_issue_date ?? null) : ($application_details->first_issue_date ?? null);
+                                        $q8From = $q8Src ? ($q8Src->previously_valid_from ?? null) : ($application_details->scc_from_date ?? null);
+                                        $q8To = $q8Src ? ($q8Src->previously_valid_to ?? null) : ($application_details->scc_to_date ?? null);
                                     @endphp
                                     <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_yes" data-target="#previously_details" value="yes" {{ $hasSupervisorCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="previous_license_yes">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ $hasSupervisorCert ? '' : 'checked' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_license" id="previous_license_no" data-target="#previously_details" value="no" {{ $hasSupervisorCert ? '' : 'checked' }} {{ $renewLockPrevScc ? 'disabled' : '' }}>
                                     <label class="form-check-label" for="previous_license_no">No</label>
                                 </div>
                             </div>
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasSupervisorCert ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
-                                               id="previously_number" name="previously_number" type="text"
-                                               data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="80">
+                                               id="previously_number" name="previously_number" type="text" inputmode="numeric"
+                                               data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
+                                               placeholder="Certificate Number" value="{{ $q8Number }}" maxlength="5" {{ $renewLockPrevScc ? 'readonly' : '' }}>
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
                                         <span id="license_messagdfde" class="mt-1"></span>
@@ -1807,7 +1818,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-issue-date"
                                                id="previously_issue_date" name="previously_issue_date" type="date"
                                                data-error="#previouslyIssueDateError"
-                                               value="{{ calendar_date_ymd($application_details->first_issue_date ?? null) }}">
+                                               value="{{ calendar_date_ymd($q8Issue) }}" {{ $renewLockPrevScc ? 'readonly' : '' }}>
                                         <span id="previouslyIssueDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1815,7 +1826,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-valid-from"
                                                id="previously_valid_from" name="previously_valid_from" type="date"
                                                data-error="#previouslyFromDateError"
-                                               value="{{ calendar_date_ymd($application_details->scc_from_date ?? null) }}">
+                                               value="{{ calendar_date_ymd($q8From) }}" {{ $renewLockPrevScc ? 'readonly' : '' }}>
                                         <span id="previouslyFromDateError" class="text-danger"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1823,7 +1834,7 @@
                                         <input autocomplete="off" class="form-control text-box single-line verify-date"
                                                id="previously_valid_to" name="previously_valid_to" type="date"
                                                data-error="#dateError"
-                                               value="{{ calendar_date_ymd($application_details->scc_to_date ?? null) }}">
+                                               value="{{ calendar_date_ymd($q8To) }}" {{ $renewLockPrevScc ? 'readonly' : '' }}>
                                         <span id="dateError" class="text-danger"></span>
                                     </div>
                                     {{-- <div class="col-12 col-md-2">
@@ -1882,12 +1893,19 @@
                                     @php
                                         $hasWiremanCert = trim((string) ($application_details->wcc_no ?? '')) !== ''
                                             && trim((string) ($application_details->wcc_no ?? '')) !== '0';
+                                        // Renewal draft locked to the parent: always Yes + parent values (server pins the same).
+                                        if ($renewLockWiremanCert) { $hasWiremanCert = true; }
+                                        $q9Src = $renewLockWiremanCert ? $renew_parent_details : null;
+                                        $q9Number = $q9Src ? ($q9Src->competency_certificate_no ?? $q9Src->wcc_no) : $application_details->wcc_no;
+                                        $q9Issue = $q9Src ? ($q9Src->certificate_issue_date ?? null) : ($application_details->wcc_issue_date ?? null);
+                                        $q9From = $q9Src ? ($q9Src->certificate_valid_from ?? null) : ($application_details->wcc_from ?? null);
+                                        $q9To = $q9Src ? ($q9Src->certificate_valid_to ?? null) : ($application_details->wcc_to ?? null);
                                     @endphp
                                     <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="yesOption" data-target="#wireman_details" value="yes" {{ $hasWiremanCert ? 'checked' : '' }}>
                                     <label class="form-check-label" for="yesOption">Yes</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ $hasWiremanCert ? '' : 'checked' }}>
+                                    <input class="form-check-input toggle-details" type="radio" name="previous_certificate" id="noOption" data-target="#wireman_details" value="no" {{ $hasWiremanCert ? '' : 'checked' }} {{ $renewLockWiremanCert ? 'disabled' : '' }}>
                                     <label class="form-check-label" for="noOption">No</label>
                                 </div>
                             </div>
@@ -1903,12 +1921,13 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S') <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 123456)</span>@endif</div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
-                                                                   placeholder="Certificate Number" maxlength="80"
-                                                                   value="{{ $application_details->wcc_no }}">
+                                                                   @if($application_details->form_name == 'S') data-cert-digits="6" inputmode="numeric" maxlength="6" @else maxlength="80" @endif
+                                                                   placeholder="Certificate Number"
+                                                                   value="{{ $q9Number }}" {{ $renewLockWiremanCert ? 'readonly' : '' }}>
                                                             <span id="licenseError" class="text-danger"></span>
                                                             <span id="license_message" class="mt-1"></span>
                                                             <span id="certError" class="text-danger"></span>
@@ -1918,7 +1937,7 @@
                                                             <input class="form-control text-box single-line verify-issue-date"
                                                                    id="certificate_issue_date" name="certificate_issue_date"
                                                                    data-error="#certIssueDateError" type="date"
-                                                                   value="{{ calendar_date_ymd($application_details->wcc_issue_date ?? null) }}">
+                                                                   value="{{ calendar_date_ymd($q9Issue) }}" {{ $renewLockWiremanCert ? 'readonly' : '' }}>
                                                             <span id="certIssueDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1926,7 +1945,7 @@
                                                             <input class="form-control text-box single-line verify-valid-from"
                                                                    id="certificate_valid_from" name="certificate_valid_from"
                                                                    data-error="#certFromDateError" type="date"
-                                                                   value="{{ calendar_date_ymd($application_details->wcc_from ?? null) }}">
+                                                                   value="{{ calendar_date_ymd($q9From) }}" {{ $renewLockWiremanCert ? 'readonly' : '' }}>
                                                             <span id="certFromDateError" class="text-danger"></span>
                                                         </div>
                                                         <div class="col-12 col-md-2">
@@ -1934,8 +1953,8 @@
                                                             <input class="form-control text-box single-line verify-date"
                                                                    id="certificate_valid_to" name="certificate_valid_to"
                                                                    data-error="#certDateError" type="date"
-                                                                   value="{{ calendar_date_ymd($application_details->wcc_to ?? null) }}"
-                                                                   >
+                                                                   value="{{ calendar_date_ymd($q9To) }}"
+                                                                   {{ $renewLockWiremanCert ? 'readonly' : '' }}>
                                                             <span id="certDateError" class="text-danger"></span>
                                                         </div>
                                                         {{-- <div class="col-12 col-md-2">
@@ -2026,7 +2045,7 @@
                                             <div class="fs-field-tamil">நிரந்தர கணக்கு எண்</div>
                                         </td>
                                         <td style="min-width:180px;">
-                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}">
+                                            <input type="text" class="form-control text-uppercase" name="pancard" id="pancard" maxlength="10" autocomplete="off" style="max-width:260px;" placeholder="e.g. ABCDE1234F" value="{{ old('pancard', $displayPan) }}" {{ $isRenewalDraftEdit ? 'readonly' : '' }}>
                                             <span id="pancard-error" class="text-danger d-block" style="font-size:.78rem;"></span>
                                         </td>
                                         <td class="doc-label-cell">
@@ -2039,12 +2058,14 @@
                                                     <a href="{{ proof_document_url($existingPanDoc, 'pan') }}" target="_blank" style="color:#007bff;">
                                                         <i class="fa fa-file-pdf-o" style="color:red;"></i> View
                                                     </a>
+                                                    @unless ($isRenewalDraftEdit)
                                                     <button type="button" class="btn btn-sm btn-danger ml-3 remove-pan-doc">Remove</button>
+                                                    @endunless
                                                 </div>
                                             @endif
                                             <div class="pan-doc-input {{ !empty($existingPanDoc) ? 'd-none' : '' }}">
                                                 <div class="form-s-file-upload-wrap" style="max-width:280px;">
-                                                    <input autocomplete="off" class="form-control" id="pancard_doc" name="pancard_doc" type="file" accept=".pdf,application/pdf">
+                                                    <input autocomplete="off" class="form-control" id="pancard_doc" name="pancard_doc" type="file" accept=".pdf,application/pdf" {{ ($isRenewalDraftEdit && !empty($existingPanDoc)) ? 'disabled' : '' }}>
                                                 </div>
                                                 <span class="file-limit">File type: PDF (Max 250 KB)</span>
                                                 <small class="text-danger file-error d-block"></small>
@@ -2096,7 +2117,7 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 @if ($formName === 'S')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="req">*</span>
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                                 @elseif ($formName === 'W')
                                     I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>

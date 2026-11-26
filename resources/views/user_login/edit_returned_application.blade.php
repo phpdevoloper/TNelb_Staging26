@@ -1307,7 +1307,8 @@
                                             </div>
                                         </div>
                                         <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name"
-                                            type="text" value="{{ $fathersNameVal }}" maxlength="50">
+                                            type="text" value="{{ $fathersNameVal }}"
+                                            @if(($application_details->form_name ?? '') === 'S') maxlength="80" placeholder="e.g. Arun Srinivasakannan G" @else maxlength="50" @endif>
                                         <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                 </div>
@@ -1674,7 +1675,7 @@
                                     @endif
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
-                                <div class="fs-section-tamil">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்
+                                <div class="fs-section-tamil">{{ ($application_details->form_name ?? '') === 'S' ? 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள்' : 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களின் விவரங்கள்' }}
                                     @if(isset($application_details->form_name) && in_array($application_details->form_name, ['W','WH']))
                                         <span style="font-size:.72rem;">(விருப்பமெனில் நிரப்பலாம்)</span>
                                     @endif
@@ -1885,11 +1886,11 @@
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
-                                               id="previously_number" name="previously_number" type="text"
-                                               data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="80">
+                                               id="previously_number" name="previously_number" type="text" inputmode="numeric"
+                                               data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
+                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="1">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
@@ -1982,11 +1983,12 @@
                                                         @endphp
                                 <div class="row g-2 align-items-end fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S')<span class="text-muted" style="font-size:.75rem;font-weight:400;"> (eg. W1234)</span>@else<span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span>@endif</div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S')<span class="text-muted" style="font-size:.75rem;font-weight:400;"> (eg. 123456)</span>@else<span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span>@endif</div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
-                                                                   placeholder="Certificate Number" maxlength="80"
+                                                                   @if($application_details->form_name == 'S') data-cert-digits="6" inputmode="numeric" maxlength="6" @else maxlength="80" @endif
+                                                                   placeholder="Certificate Number"
                                                                    value="{{ $application_details->wcc_no }}">
                                                             <input type="hidden" id="cert_verify" name="cert_verify" value="1">
                                                             <span id="licenseError" class="text-danger"></span>
@@ -2181,7 +2183,7 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 @if ($formName === 'S')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="req">*</span>
                                     <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                                 @elseif ($formName === 'W')
                                     I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<br>
@@ -3507,6 +3509,16 @@
 
         if (!__rfValidateBeforeSubmit($form, form)) {
             return;
+        }
+
+        // Form S Q8/Q9 certificate numbers (5 / 6 digits) when "Yes" is chosen; helper is in custom.js.
+        if (typeof window.fsValidateCertNumbers === 'function') {
+            var $badCertNo = window.fsValidateCertNumbers($form);
+            if ($badCertNo) {
+                try { $badCertNo[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+                $badCertNo.trigger('focus');
+                return;
+            }
         }
 
         var reasons = window.returnApplicationQueryReasons || [];

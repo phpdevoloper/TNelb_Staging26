@@ -7,6 +7,7 @@ use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
 use App\Models\Competency\CC_CompetencyMeta;
+use App\Services\Competency\ApplicantAddressParts;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Models\Mst_experience;
 use App\Services\Competency\CompetencyCertificateService;
@@ -518,6 +519,8 @@ class FormSAlterationService
         $applicationDetails = $this->normalizeApplicationMetaForFormDisplay(
             (object) $parent->toArray()
         );
+        // Parent's own saved parts for the locked "current address" block (never the draft's).
+        $parentAddressParts = $this->addressPartsForDisplay((object) $parent->toArray());
 
         if ($context['alterationDraft']) {
             $draft = $this->normalizeParentForDisplay($context['alterationDraft']);
@@ -525,6 +528,7 @@ class FormSAlterationService
             $address = $this->metaAddress($draft);
             $applicationDetails->applicant_address = $address;
             $applicationDetails->applicants_address = $address;
+            $applicationDetails->address_parts = $this->addressPartsForDisplay((object) $draft->toArray());
         }
 
         $applicationDetails = $this->enrichApplicationProofFields(
@@ -542,6 +546,7 @@ class FormSAlterationService
             'parent_application_id' => $parent->application_id,
             'application_details' => $applicationDetails,
             'parent_application_details' => $parent,
+            'parent_address_parts' => $parentAddressParts,
             'edu_details' => $context['eduDetails'],
             'exp_details' => $context['expDetails'],
             'license_details' => $context['licenseDetails'],
@@ -600,6 +605,121 @@ class FormSAlterationService
     }
 
     /**
+     * Structured address columns (address_line1 ... pincode) of a stored row; null when empty or missing.
+     *
+     * @return array<string, string|null>
+     */
+    protected function rowAddressParts(object $row): array
+    {
+        $parts = [];
+        foreach (ApplicantAddressParts::FIELDS as $field) {
+            $value = trim((string) ($row->{$field} ?? ''));
+            $parts[$field] = $value === '' ? null : $value;
+        }
+
+        return $parts;
+    }
+
+    /**
+     * Address part columns for the alteration child row: the posted parts (validated) when the address is
+     * altered, otherwise a copy of the parent's parts. All parts null when the address is altered through the
+     * plain textarea (no part posted), so the child never keeps the parent's stale parts.
+     *
+     * @return array<string, string|null>
+     */
+    protected function alterationAddressPartsPayload(
+        Request $request,
+        CC_CompetencyMeta $parent,
+        bool $alterAddress,
+        bool $requireComplete
+    ): array {
+        if (! $alterAddress) {
+            return $this->addressPartsForForm($this->rowAddressParts($parent), (string) ($parent->form_name ?? 'S'));
+        }
+
+        if (! ApplicantAddressParts::isPresent($request->all())) {
+            return $this->addressPartsForForm(
+                array_fill_keys(ApplicantAddressParts::FIELDS, null),
+                (string) ($parent->form_name ?? 'S')
+            );
+        }
+
+        $errors = ApplicantAddressParts::errors($request->all(), $requireComplete);
+        if ($errors !== []) {
+            throw new RuntimeException((string) reset($errors));
+        }
+
+        return $this->addressPartsForForm(ApplicantAddressParts::payload($request->all()), (string) ($parent->form_name ?? 'S'));
+    }
+
+    /**
+     * Keep only the address part columns the form's meta table has (cc_form_{s,w,wh,p}_meta all do today).
+     *
+     * @param  array<string, string|null>  $parts
+     * @return array<string, string|null>
+     */
+    protected function addressPartsForForm(array $parts, string $formName): array
+    {
+        if ($parts === []) {
+            return [];
+        }
+
+        try {
+            $class = app(CompetencyMetaService::class)->modelClassForForm($formName !== '' ? $formName : 'S');
+            $table = (new $class())->getTable();
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->addressPartsForTable($parts, $table);
+    }
+
+    /**
+     * Same as FormController::applicantAddressPartsForSave's column filter (listing cached per table, [] on error).
+     *
+     * @param  array<string, string|null>  $parts
+     * @return array<string, string|null>
+     */
+    protected function addressPartsForTable(array $parts, string $table): array
+    {
+        static $columnsByTable = [];
+
+        if ($parts === []) {
+            return [];
+        }
+
+        try {
+            $columnsByTable[$table] ??= array_flip(Schema::getColumnListing($table));
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_intersect_key($parts, $columnsByTable[$table]);
+    }
+
+    /**
+     * Saved parts in the shape the applicant-address-fields partial reads (line1 ... pincode); null when none.
+     *
+     * @return array<string, string>|null
+     */
+    protected function addressPartsForDisplay(object $row): ?array
+    {
+        $savedParts = ApplicantAddressParts::payload((array) $row);
+        if ($savedParts === []) {
+            return null;
+        }
+
+        return [
+            'line1' => (string) ($savedParts['address_line1'] ?? ''),
+            'line2' => (string) ($savedParts['address_line2'] ?? ''),
+            'city' => (string) ($savedParts['city'] ?? ''),
+            'state' => (string) ($savedParts['state'] ?? ''),
+            'district' => (string) ($savedParts['district'] ?? ''),
+            'pincode' => (string) ($savedParts['pincode'] ?? ''),
+        ];
+    }
+
+    /**
      * Map cc_form_*_meta columns to legacy form field names used by Form S blades.
      * Q8 = previous supervisor cert (previous_scc_*), Q9 = wireman cert (wcc_*).
      */
@@ -611,6 +731,7 @@ class FormSAlterationService
         $address = $this->metaAddress($row);
         $row->applicant_address = $address;
         $row->applicants_address = $address;
+        $row->address_parts = $this->addressPartsForDisplay($row);
         $row->previously_number = $row->previously_number ?? $row->previous_scc_no ?? null;
         $row->previously_issue_date = $row->previously_issue_date ?? $row->first_issue_date ?? null;
         $row->previously_valid_from = $row->previously_valid_from ?? $row->scc_from_date ?? null;
@@ -876,6 +997,8 @@ class FormSAlterationService
             }
         }
 
+        $addressParts = $this->alterationAddressPartsPayload($request, $parent, $alterAddress, true);
+
         return DB::transaction(function () use (
             $request,
             $parent,
@@ -885,7 +1008,8 @@ class FormSAlterationService
             $alterWork,
             $newName,
             $newAddress,
-            $parentAddress
+            $parentAddress,
+            $addressParts
         ) {
             $child = $this->findDraftForParent($parent, $loginId);
 
@@ -898,6 +1022,7 @@ class FormSAlterationService
                 'fathers_name' => $parent->fathers_name,
                 'applicant_email' => $this->resolveAlterationApplicantEmail($request, $parent),
                 'applicant_address' => $alterAddress ? $newAddress : $parentAddress,
+                ...$addressParts,
                 'd_o_b' => $parent->d_o_b,
                 'age' => $parent->age,
                 'previous_scc_no' => $parent->previous_scc_no ?? $parent->previously_number ?? null,
@@ -1002,8 +1127,12 @@ class FormSAlterationService
         $newName = trim((string) $request->input('applicant_name', $parent->applicant_name));
         $newAddress = $this->requestAlterationAddress($request, $parentAddress);
         $this->assertFormPAlterationApplicantName($parent, $newName);
+        $alterAddress = $request->input('alter_address') === '1'
+            || $this->normalizeAddressForCompare($newAddress) !== $this->normalizeAddressForCompare($parentAddress);
+        // Draft: format checks only (required parts are enforced on submit).
+        $addressParts = $this->alterationAddressPartsPayload($request, $parent, $alterAddress, false);
 
-        return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress, $parentAddress) {
+        return DB::transaction(function () use ($request, $parent, $loginId, $newName, $newAddress, $parentAddress, $addressParts) {
             $child = $this->findOrCreateAlterationDraftChild($parent, $loginId);
 
             $child->update(array_merge([
@@ -1013,7 +1142,7 @@ class FormSAlterationService
                 'payment_status' => 'draft',
                 'app_status' => 'P',
                 'updated_at' => now(),
-            ], $this->alterationWccSnapshot($parent, $request), $this->alterationQcQscSnapshot($parent), $this->alterationFormPMetaSnapshot($parent, $request)));
+            ], $addressParts, $this->alterationWccSnapshot($parent, $request), $this->alterationQcQscSnapshot($parent), $this->alterationFormPMetaSnapshot($parent, $request)));
 
             $this->snapshotUnchangedParentDocumentsOntoChild($child, $loginId);
 
@@ -1356,6 +1485,7 @@ class FormSAlterationService
             'fathers_name' => $parent->fathers_name,
             'applicant_email' => $parent->applicant_email,
             'applicant_address' => $parentAddress,
+            ...$this->addressPartsForForm($this->rowAddressParts($parent), $formName),
             'd_o_b' => $parent->d_o_b,
             'age' => $parent->age,
             'previous_scc_no' => $parent->previous_scc_no ?? $parent->previously_number ?? null,
@@ -2314,6 +2444,8 @@ class FormSAlterationService
         $targetAddress = trim((string) ($targetRow->applicant_address ?? ''));
         if ($childAddress !== '' && $childAddress !== $targetAddress) {
             $updates['applicant_address'] = $childAddress;
+            // Parts follow the joined address (null parts clear the target's, so they never contradict it).
+            $updates = array_merge($updates, $this->addressPartsForTable($this->rowAddressParts($childRow), $targetTable));
         }
 
         if (strtoupper(trim((string) ($childRow->form_name ?? $targetRow->form_name ?? ''))) === 'S') {
@@ -2349,7 +2481,7 @@ class FormSAlterationService
 
         $legacyUpdate = array_intersect_key(
             $parentUpdates,
-            array_flip(['applicant_name', 'applicant_address', 'applicants_address', 'updated_at'])
+            array_flip(['applicant_name', 'applicant_address', 'applicants_address', ...ApplicantAddressParts::FIELDS, 'updated_at'])
         );
 
         if (count($legacyUpdate) <= 1) {
@@ -2392,11 +2524,32 @@ class FormSAlterationService
         $address = trim((string) ($childRow->applicant_address ?? $childRow->applicant_address ?? ''));
         if ($address !== '') {
             $update['address'] = $address;
+            $update = array_merge($update, $this->registrationAddressParts($childRow));
         }
 
         if (count($update) > 1) {
             DB::table('tnelb_registers')->where('login_id', $loginId)->update($update);
         }
+    }
+
+    /**
+     * The child's address parts for tnelb_registers. address_line1, city, state, district and pincode are
+     * NOT NULL there, so parts are written only when the core ones are present; an empty district is stored
+     * as '0' like RegisterController does. [] (leave the profile parts alone) otherwise.
+     *
+     * @return array<string, string|null>
+     */
+    protected function registrationAddressParts(object $childRow): array
+    {
+        $parts = $this->rowAddressParts($childRow);
+        foreach (['address_line1', 'city', 'state', 'pincode'] as $required) {
+            if ($parts[$required] === null) {
+                return [];
+            }
+        }
+        $parts['district'] ??= '0';
+
+        return $this->addressPartsForTable($parts, 'tnelb_registers');
     }
 
     /**

@@ -253,7 +253,7 @@
                                             <div class="fs-section-tamil">தகப்பனார் பெயர்</div>
                                         </div>
                                     </div>
-                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80">
+                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80" placeholder="e.g. Arun Srinivasakannan G">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6 mb-2 mt-1">
@@ -384,7 +384,7 @@
                                                     <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                         <option value="0">Year</option>
                                                         @php $currentYear = date('Y'); @endphp
-                                                        @for ($year = $currentYear; $year >= 1980; $year--)
+                                                        @for ($year = $currentYear; $year >= 1953; $year--)
                                                             <option value="{{ $year }}">{{ $year }}</option>
                                                         @endfor
                                                     </select>
@@ -442,7 +442,7 @@
                             </div>
 
                             {{-- (iii) Power Station table --}}
-                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the applicant is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
                             <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
                                 Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
@@ -762,7 +762,24 @@
 
     <script>
     /* ── File upload preview for Form P ─────────────────────────────────── */
+    function clearFileErrorP($inp) {
+        var $err = $inp.data('fileErrorEl');
+        if ($err) $err.remove();
+        $inp.removeData('fileErrorEl');
+    }
+
+    function showFileErrorP($inp, msg) {
+        clearFileErrorP($inp);
+        var $err = $('<div class="text-danger mt-1 file-inline-error" role="alert"></div>')
+            .css({ 'font-size': '.78rem', 'line-height': '1.3' })
+            .text(msg);
+        var $prev = $inp.next('.local-file-preview');
+        if ($prev.length) { $prev.after($err); } else { $inp.after($err); }
+        $inp.data('fileErrorEl', $err);
+    }
+
     function clearLocalPreviewP($inp) {
+        clearFileErrorP($inp);
         var $prev = $inp.next('.local-file-preview');
         var old = $prev.data('blobUrl');
         if (old) URL.revokeObjectURL(old);
@@ -771,13 +788,23 @@
     }
 
     function showFilePreviewP($inp, file, maxKB, minKB) {
+        clearFileErrorP($inp);
         clearLocalPreviewP($inp);
         if (!file) return;
         var maxSize = (maxKB || 200) * 1024;
         var minSize = (minKB || 0) * 1024;
-        if (file.type !== 'application/pdf') { window.alert('Only PDF files are allowed.'); $inp[0].value = ''; return; }
-        if (minSize && file.size < minSize) { window.alert('File size must be at least ' + minKB + ' KB.'); $inp[0].value = ''; return; }
-        if (file.size > maxSize) { window.alert('File size should not exceed ' + maxKB + ' KB.'); $inp[0].value = ''; return; }
+        if (file.type !== 'application/pdf') {
+            showFileErrorP($inp, 'Only PDF files are allowed.');
+            $inp[0].value = ''; return;
+        }
+        if (minSize && file.size < minSize) {
+            showFileErrorP($inp, 'File size must be at least ' + minKB + ' KB.');
+            $inp[0].value = ''; return;
+        }
+        if (file.size > maxSize) {
+            showFileErrorP($inp, 'File size should not exceed ' + maxKB + ' KB.');
+            $inp[0].value = ''; return;
+        }
         var blobUrl = URL.createObjectURL(file);
         $inp.attr('data-has-local-file', '1');
         var $preview = $('<div class="local-file-preview"></div>').data('blobUrl', blobUrl);
@@ -790,7 +817,7 @@
         var n = this.name;
         if (n === 'upload_photo' || n === 'upload_sign') return;
         var maxKB = (n === 'pancard_doc') ? 250 : 200;
-        showFilePreviewP($(this), this.files && this.files[0], maxKB, 5);
+        showFilePreviewP($(this), this.files && this.files[0], maxKB, 1);
     });
     </script>
 
@@ -827,7 +854,7 @@
 </select>
 <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;" required>
     <option value="0">Year</option>
-    ${[...Array(new Date().getFullYear() - 1979).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
+    ${[...Array(new Date().getFullYear() - 1952).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
 </select>
 </div></td>
 <td><input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" placeholder="Certificate No"></td>

@@ -1625,9 +1625,9 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Supervisor Competency Certificate - New Application</h5>
-                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம் - புதிய விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - S / Certificate C</span>
+                    <h5>APPLICATION FOR SUPERVISOR COMPETENCY CERTIFICATE</h5>
+                    <h5 class="tamil-title">மேற்பார்வையாளர் தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                    <span class="form-badge">FORM - S</span>
                 </div>
             </div>
 
@@ -1665,7 +1665,8 @@
                                         </div>
                                     </div>
                                     <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name"
-                                        type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80">
+                                        type="text" value="{{ isset($application) ? $application->fathers_name : '' }}" maxlength="80"
+                                        placeholder="e.g. Arun Srinivasakannan G">
                                     <span class="error-message text-danger" style="font-size:.78rem;"></span>
                                 </div>
                                 <div class="col-12 col-md-6 mb-2 mt-1">
@@ -1751,7 +1752,7 @@
                                     <span class="section-req">*</span>
                                     <span class="section-hint">(Upload the documents)</span>
                                 </div>
-                                <div class="fs-section-tamil">முந்தைய மற்றும் தற்போதைய  பணியனுபவ விவரங்கள் <span class="section-req">*</span> <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
+                                <div class="fs-section-tamil">முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள் <span class="section-req">*</span> <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             </div>
                         </div>
                         <div class="fs-section-body">
@@ -1846,7 +1847,7 @@
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-4">
                                         <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
-                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]*" data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
+                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]{5}" data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
                                             placeholder="Certificate Number" value="" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
                                         <span id="licenseError" class="text-danger" style="font-size:.78rem;"></span>   
@@ -1854,13 +1855,13 @@
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date" name="previously_issue_date" type="date"
-                                            data-error="#previouslyIssueDateError" value="">
+                                            data-error="#previouslyIssueDateError" max="{{ now()->toDateString() }}" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-valid-from" id="previously_valid_from" name="previously_valid_from" type="date"
-                                            data-error="#previouslyFromDateError" value="">
+                                            data-error="#previouslyFromDateError" max="{{ now()->toDateString() }}" value="">
                                         <span id="previouslyFromDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1906,10 +1907,10 @@
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
                                 <div class="row g-2 align-items-end">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
-                                        <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text"
-                                            data-type="supervisor" data-error="#certError" data-msg="#license_message"
-                                            placeholder="Certificate Number" maxlength="5" value="{{ $oldCertNo }}">
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 123456)</span></div>
+                                        <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text" inputmode="numeric" pattern="[0-9]{6}"
+                                            data-type="certificate" data-cert-digits="6" data-error="#certError" data-msg="#license_message"
+                                            placeholder="Certificate Number" maxlength="6" value="{{ $oldCertNo }}">
                                         <input type="hidden" id="cert_verify" name="cert_verify" value="0">
                                         <span id="license_message" class="mt-1"></span>
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
@@ -1917,13 +1918,13 @@
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input class="form-control verify-issue-date" id="certificate_issue_date" name="certificate_issue_date"
-                                            data-error="#certIssueDateError" type="date" value="">
+                                            data-error="#certIssueDateError" type="date" max="{{ now()->toDateString() }}" value="">
                                         <span id="certIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from"
-                                            data-error="#certFromDateError" type="date" value="">
+                                            data-error="#certFromDateError" type="date" max="{{ now()->toDateString() }}" value="">
                                         <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -2029,7 +2030,7 @@
                             <input type="checkbox" id="declarationCheckbox" required {{ isset($application) ? 'checked' : '' }}>
                             <span class="checkmark"></span>
                             <div class="decl-text">
-                                I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="section-req">*</span>
+                                I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="section-req">*</span>
                                 <span class="tamil">என் அறிவுக்கு எட்டியவரை மேலே குறிப்பிட்டுள்ள விவரங்கள் யாவும் சரியானவை எனவும் உண்மையானவை எனவும் உறுதி கூறுகிறேன்.</span>
                             </div>
                         </label>

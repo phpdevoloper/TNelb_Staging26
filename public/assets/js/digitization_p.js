@@ -45,23 +45,9 @@ $(document).ready(function () {
         });
     }
 
-    // Form P uses the contractor-licence gate, not the Form S Qualified Supervisor step.
+    // Form P enrolment has no Qualified Supervisor / contractor step
+    // (the contractor section is not rendered for Form P in include/header).
     $("#qc_section").hide().find(":input").prop("disabled", true);
-    $("#cl_section").show().find(":input").prop("disabled", false);
-
-    $('input[name="cl_det"]').on("change", function () {
-        if ($(this).val() === "yes") {
-            $("#cl_details").slideDown();
-            $("#cl_error").html("");
-        } else {
-            $("#cl_details").slideUp();
-            $("#w_cl_type").val("0");
-            $("#w_licence_no").val("");
-            $("#w_contractor_name").val("");
-            $("#w_qc_doc").val("");
-            $("#cl_section .error").html("");
-        }
-    });
 
     var path = window.location.pathname;
     var isFormPDigitizationPage = (
@@ -305,10 +291,7 @@ $(document).on("click", "#digitizationSubmit", function () {
     let fissue = $('input[name="fissue"]').val();
     let from_date = $('input[name="from_date"]').val();
     let to_date = $('input[name="to_date"]').val();
-    let clDet = $('input[name="cl_det"]:checked').val();
     let file = $('input[name="cc_doc"]')[0].files[0];
-    let clDocInput = document.getElementById("w_qc_doc");
-    let fileCl = clDocInput && clDocInput.files ? clDocInput.files[0] : null;
 
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
@@ -344,6 +327,18 @@ $(document).on("click", "#digitizationSubmit", function () {
             "To Date must be greater than or equal to From Date",
         );
         isValid = false;
+    } else if (from_date && to_date && !$("#to_date_error").text()) {
+        // Mirrors FormPController::storeDigitization (to_date <= from_date + 4 years).
+        let fromParts = from_date.split("-").map(Number);
+        let maxTo = new Date(fromParts[0] + 4, fromParts[1] - 1, fromParts[2]);
+        let toParts = to_date.split("-").map(Number);
+        let toObj = new Date(toParts[0], toParts[1] - 1, toParts[2]);
+        if (toObj > maxTo) {
+            $("#to_date_error").html(
+                "Validity To date should not exceed 4 years from Validity From date.",
+            );
+            isValid = false;
+        }
     }
 
     if (fissue && from_date && new Date(fissue) > new Date(from_date)) {
@@ -364,49 +359,6 @@ $(document).on("click", "#digitizationSubmit", function () {
         if (file.size > 250 * 1024) {
             $("#cc_doc_error").html("File size should not exceed 250 KB");
             isValid = false;
-        }
-    }
-
-    if (!clDet) {
-        $("#cl_error").html("Please select Yes or No");
-        isValid = false;
-    }
-
-    if (clDet === "yes") {
-        let cl_type = $("#w_cl_type").val();
-        let licence_no = ($("#w_licence_no").val() || "").trim();
-        let contractor_name = ($("#w_contractor_name").val() || "").trim();
-
-        if (cl_type === "" || cl_type === "0") {
-            $("#w_cl_type_error").html("Please select License Type");
-            isValid = false;
-        }
-
-        if (licence_no === "") {
-            $("#w_licence_no_error").html("License Number is required");
-            isValid = false;
-        } else if (!/^\d{1,5}$/.test(licence_no)) {
-            $("#w_licence_no_error").html("Licence Number must contain numbers only (1 to 5 digits)");
-            isValid = false;
-        }
-
-        if (contractor_name === "") {
-            $("#w_contractor_error").html("Contractor Name is required");
-            isValid = false;
-        }
-
-        if (!fileCl) {
-            $("#w_qc_doc_error").html("Please upload PDF document");
-            isValid = false;
-        } else {
-            if (fileCl.type !== "application/pdf") {
-                $("#w_qc_doc_error").html("Only PDF files are allowed");
-                isValid = false;
-            }
-            if (fileCl.size > 250 * 1024) {
-                $("#w_qc_doc_error").html("File size should not exceed 250 KB");
-                isValid = false;
-            }
         }
     }
 
@@ -462,7 +414,10 @@ $(document).on("click", "#digitizationSubmit", function () {
                     $("#certcode").val(response.certcode);
                 } else {
                     $("#certcode").val("");
-                    $("#applicants_address").val("");
+                    // Address is the structured block (applicant_address.js); just recompose it.
+                    if (typeof window.fsComposeApplicantAddress === "function") {
+                        window.fsComposeApplicantAddress();
+                    }
                 }
 
                 $("#digitizationForm")[0].reset();

@@ -3773,8 +3773,16 @@ class SupervisorController extends Controller
 
     public function approveApplication(Request $request)
     {
-
-        // dd($request->all()); exit;
+        // Server-side role check: only Secretary / President logins approve (S/W/WH competency approval).
+        // Mst_Logins::name is the role name (mst_roles.role_name), as used for $processed below.
+        $approver = Auth::guard('admin')->user();
+        if (! $approver || ! RoleHelper::matches((string) $approver->name, 'Secretary', 'President')) {
+            return response()->json([
+                'status' => 'error',
+                'error' => 'You are not allowed to approve applications.',
+                'message' => 'You are not allowed to approve applications.',
+            ], 403);
+        }
 
         $request->validate([
             'application_id' => 'required|string',
@@ -3789,6 +3797,21 @@ class SupervisorController extends Controller
 
         if (!$application) {
             return response()->json(['error' => 'Application not found.'], 404);
+        }
+
+        // Stage check (Form S only): approval needs a row that is waiting with the approver, i.e. forwarded
+        // (F), re-forwarded after resubmission (RF) or internally returned (PRE): the statuses
+        // CompetencyAdminQueryService::rolePendingApplications lists for Secretary / President. W / WH / P are
+        // left as before because their Secretary forward writes status A (resolveForwardStatus) before approval.
+        if (strtoupper(trim((string) ($application->form_name ?? ''))) === 'S') {
+            $approvalStage = strtoupper(trim((string) ($application->app_status ?? '')));
+            if (! in_array($approvalStage, ['F', 'RF', 'PRE'], true)) {
+                return response()->json([
+                    'status' => 'error',
+                    'error' => 'This application is not pending approval.',
+                    'message' => 'This application is not pending approval.',
+                ], 422);
+            }
         }
 
         $login_id = $application->login_id;

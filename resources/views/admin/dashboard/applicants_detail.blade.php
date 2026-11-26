@@ -39,7 +39,7 @@
                         <div class="widget-header applicant_details">
                             <div class="row">
                                 <div class="col-xl-12 col-md-12 col-sm-12 col-12">
-                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }} </span> D.O.B : <span style="color:#098501;">{{ $applicant->d_o_b }} ({{ $applicant->age }} years old) </span> Applied For : <span style="color:#098501;"> {{ $applicant->form_name }}  | License {{ $applicant->license_name }}</span> </h4>
+                                    <h4>Applicant Id : <span> {{ $applicant->application_id }}</span> Applicant Name : <span style="color:#098501;">{{ $applicant->applicant_name }} </span> D.O.B : <span style="color:#098501;">{{ $applicant->d_o_b }} ({{ $applicant->age }} years old) </span> Applied For : <span style="color:#098501;"> @if(\App\Support\FormDisplayName::isFormP($applicant->form_name ?? null)){{ \App\Support\FormDisplayName::FORM_P_ADMIN_TITLE }}@else{{ $applicant->form_name }}  | License {{ $applicant->license_name }}@endif</span> </h4>
                                 </div>
                             </div>
                         </div>

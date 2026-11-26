@@ -13,6 +13,12 @@
  |   $addressLocked bool         Section is locked (returned application, partial unlock): the
  |                               parts are rendered disabled and the JS never touches the hidden
  |                               value, so the saved address is posted unchanged.
+ |   $addressParts  array|null   Saved structured parts (line1..pincode). Defaults to
+ |                               $application_details->address_parts; preferred over parsing
+ |                               $addressSaved. Null (legacy rows) -> parse as before.
+ |   $addressNoProfileFallback bool  Never prefill from the registration profile and never read
+ |                               $application_details->address_parts implicitly; an explicit
+ |                               $addressParts (non-empty line1 + state) is still used.
  --}}
 @php
     /*
@@ -84,7 +90,46 @@
     $addrSavedRaw = trim((string) ($addressSaved ?? ''));
     $addrLegacy = null;
 
-    if ($addrSavedRaw !== '' || $addrNoFallback) {
+    /*
+     | Saved structured parts (backend: $application_details->address_parts, keys line1, line2,
+     | city, state, district, pincode; null for rows saved before the parts were stored).
+     | An explicit $addressParts parameter wins; otherwise the parent view's $application_details
+     | is used, except for the "no profile fallback" (alteration parent) block, whose address
+     | belongs to a different application.
+     */
+    $addrSavedParts = $addressParts ?? null;
+    if ($addrSavedParts === null && ! $addrNoFallback && isset($application_details) && is_object($application_details)) {
+        $addrSavedParts = $application_details->address_parts ?? null;
+    }
+    if (is_object($addrSavedParts)) {
+        $addrSavedParts = (array) $addrSavedParts;
+    }
+    if (is_array($addrSavedParts)) {
+        $addrSavedParts = [
+            'line1' => trim((string) ($addrSavedParts['line1'] ?? '')),
+            'line2' => trim((string) ($addrSavedParts['line2'] ?? '')),
+            'city' => trim((string) ($addrSavedParts['city'] ?? '')),
+            'state' => trim((string) ($addrSavedParts['state'] ?? '')),
+            'district' => trim((string) ($addrSavedParts['district'] ?? '')),
+            'pincode' => trim((string) ($addrSavedParts['pincode'] ?? '')),
+        ];
+        // Only usable when the core parts are present; otherwise fall back to parsing.
+        if ($addrSavedParts['line1'] === '' || $addrSavedParts['state'] === '') {
+            $addrSavedParts = null;
+        }
+    } else {
+        $addrSavedParts = null;
+    }
+
+    if ($addrSavedParts !== null && $addrSavedRaw !== '') {
+        // Edit views with stored parts: use them as-is (no parsing of the composed string).
+        $addrLine1 = $addrSavedParts['line1'];
+        $addrLine2 = $addrSavedParts['line2'];
+        $addrCity = $addrSavedParts['city'];
+        $addrState = $addrSavedParts['state'];
+        $addrDistrict = $addrSavedParts['district'];
+        $addrPincode = $addrSavedParts['pincode'];
+    } elseif ($addrSavedRaw !== '' || $addrNoFallback) {
         // Edit views: rebuild the parts from the saved application address.
         $addrParts = $addrSavedRaw === '' ? null : $addrParse($addrSavedRaw);
         if ($addrParts === null) {

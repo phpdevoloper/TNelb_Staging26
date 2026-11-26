@@ -7,6 +7,7 @@ use App\Models\CC_Board_Details;
 use App\Models\CC_Education;
 use App\Models\CC_Experience;
 use App\Models\CC_Forms_Meta;
+use App\Models\Competency\CC_Form_S_Meta;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -30,6 +31,20 @@ class FormSSubmissionGuard
     public const CARRY_OVER_APPL_TYPES = ['R', 'A', 'D'];
 
     public const FINALISED_PAYMENT_STATUSES = ['Y', 'B'];
+
+    /** Experience From date >= DOB + this many years: Form S New and Digitisation (ELB digitisation item 21). */
+    public const MIN_EXPERIENCE_AGE = 20;
+
+    /** Previous rule, kept for Form S renewal / alteration (R, A) until the Board extends the 20-year rule. */
+    public const LEGACY_MIN_EXPERIENCE_AGE = 18;
+
+    /** 18 for renewal / alteration (R, A), 20 for everything else (New N, Digitisation D, unknown). */
+    public static function minExperienceStartAge(mixed $applType): int
+    {
+        $type = is_scalar($applType) ? strtoupper(trim((string) $applType)) : '';
+
+        return in_array($type, ['R', 'A'], true) ? self::LEGACY_MIN_EXPERIENCE_AGE : self::MIN_EXPERIENCE_AGE;
+    }
 
     public static function allowsCarryOver(mixed $applType): bool
     {
@@ -123,7 +138,7 @@ class FormSSubmissionGuard
 
     public static function boardKey(string $dateYmd, string $no, string $org, string $member): string
     {
-        return $dateYmd.'|'.CC_Board_Details::normalizeMeetingNo($no).'|'.trim($org).'|'.trim($member);
+        return $dateYmd.'|'.CC_Board_Details::normalizeMeetingNo($no).'|'.mb_strtolower(trim((string) preg_replace('/\s+/', ' ', $org)), 'UTF-8').'|'.mb_strtolower(trim((string) preg_replace('/\s+/', ' ', $member)), 'UTF-8');
     }
 
     /**
@@ -135,8 +150,14 @@ class FormSSubmissionGuard
      * "Not in the future" is checked even without a Date of Birth; the DOB-relative rules need one.
      * Carried-over rows are only exempt while the Date of Birth is unchanged.
      */
-    public static function chronologyErrors(?string $dobYmd, array $edu, array $work, ?array $carried = null): array
-    {
+    public static function chronologyErrors(
+        ?string $dobYmd,
+        array $edu,
+        array $work,
+        ?array $carried = null,
+        ?int $minExperienceAge = null
+    ): array {
+        $minExperienceAge ??= self::LEGACY_MIN_EXPERIENCE_AGE;
         $dob = null;
         if ($dobYmd !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dobYmd)) {
             try {
@@ -151,7 +172,7 @@ class FormSSubmissionGuard
         }
 
         $today = Carbon::now()->startOfDay();
-        $earliestStart = $dob?->copy()->addYears(18);
+        $earliestStart = $dob?->copy()->addYears($minExperienceAge);
         $errors = [];
 
         foreach ($edu as $row) {
@@ -176,7 +197,9 @@ class FormSSubmissionGuard
             $from = self::dateOrNull($row['from']);
             if ($from !== null) {
                 if ($earliestStart !== null && $from->lt($earliestStart)) {
-                    $errors['work_date_from.'.$row['key']] = 'Experience cannot start before age 18 (Date of Birth: '.$dob->format('d-m-Y').').';
+                    $errors['work_date_from.'.$row['key']] = $minExperienceAge === self::LEGACY_MIN_EXPERIENCE_AGE
+                        ? 'Experience cannot start before age 18 (Date of Birth: '.$dob->format('d-m-Y').').'
+                        : 'Experience cannot start before the applicant is '.$minExperienceAge.' years old (Date of Birth: '.$dob->format('d-m-Y').').';
                 } elseif ($from->gt($today)) {
                     $errors['work_date_from.'.$row['key']] = 'Experience From date cannot be in the future.';
                 }
@@ -215,7 +238,10 @@ class FormSSubmissionGuard
             return 'Date of Meeting and Meeting details do not match the Board records.';
         }
 
-        if (! array_key_exists($org, $meeting) || ! in_array($member, $meeting[$org], true)) {
+        // Case-insensitive: lookupMeeting() merges "president" / "President", and rows saved before that
+        // keep whichever spelling the dropdown offered at the time.
+        $orgKey = CC_Board_Details::findOrganisation($meeting, $org);
+        if ($orgKey === null || ! CC_Board_Details::hasMember($meeting[$orgKey], $member)) {
             return 'Representing Organisation / Name of member does not match the Board records for this meeting.';
         }
 
@@ -227,8 +253,12 @@ class FormSSubmissionGuard
      *
      * @return array<string, string>
      */
-    public static function chronologyErrorsForRequest(Request $request, ?string $dobYmd, ?array $carried): array
-    {
+    public static function chronologyErrorsForRequest(
+        Request $request,
+        ?string $dobYmd,
+        ?array $carried,
+        ?int $minExperienceAge = null
+    ): array {
         $edu = [];
         $years = $request->input('year_of_passing', []);
         $months = $request->input('month_of_passing', $request->input('month_passing', []));
@@ -259,7 +289,7 @@ class FormSSubmissionGuard
             ];
         }
 
-        return self::chronologyErrors($dobYmd, $edu, $work, $carried);
+        return self::chronologyErrors($dobYmd, $edu, $work, $carried, $minExperienceAge);
     }
 
     /**
@@ -306,7 +336,7 @@ class FormSSubmissionGuard
      * Payment step: the application becomes "submitted" when PayU is initiated, so re-check the
      * SAVED data here. A client can post anything as a draft; it cannot skip this.
      */
-    public static function checkSavedApplication(CC_Forms_Meta $form): ?string
+    public static function checkSavedApplication(CC_Form_S_Meta $form): ?string
     {
         if (strtoupper(trim((string) ($form->form_name ?? ''))) !== 'S') {
             return null;
@@ -346,7 +376,13 @@ class FormSSubmissionGuard
             ];
         }
 
-        $errors = self::chronologyErrors($dobYmd, $edu, $work, $carried);
+        $errors = self::chronologyErrors(
+            $dobYmd,
+            $edu,
+            $work,
+            $carried,
+            self::minExperienceStartAge($form->appl_type ?? null)
+        );
         if ($errors !== []) {
             return reset($errors);
         }

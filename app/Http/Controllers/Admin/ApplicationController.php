@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use Illuminate\Support\Facades\DB;
+use App\Helpers\RoleHelper;
 use App\Models\Admin\SupervisorModel;
 use App\Models\Admin\WorkflowA;
 use Illuminate\Http\Request;
@@ -139,8 +140,16 @@ class ApplicationController extends Controller
 
     public function returntoSecretary(Request $request)
     {
-
-        // dd($request->all());exit;
+        // Server-side role check: only the President returns an application to the Secretary
+        // (the button is only rendered for President in applicants_detail_supervisor.blade.php).
+        $returner = Auth::guard('admin')->user();
+        if (! $returner || ! RoleHelper::matches((string) $returner->name, 'President')) {
+            return response()->json([
+                'status' => 'error',
+                'error' => 'You are not allowed to return applications to the Secretary.',
+                'message' => 'You are not allowed to return applications to the Secretary.',
+            ], 403);
+        }
 
         $applicationid = $request->application_id;
 

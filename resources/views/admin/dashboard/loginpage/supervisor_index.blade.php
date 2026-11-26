@@ -306,7 +306,7 @@
 
                                             <td class="" > {{ $application->licence_name }} 
                                                 <br>
-                                                <span class="badge badge-warning"> [{{ $application->form_name}} / License {{ $application->license_name }}]</span>
+                                                <span class="badge badge-warning"> [@if(\App\Support\FormDisplayName::isFormP($application->form_name ?? null)){{ \App\Support\FormDisplayName::FORM_P_ADMIN_TITLE }}@else{{ $application->form_name}} / License {{ $application->license_name }}@endif]</span>
                                                
                                             </td>
 
@@ -389,7 +389,7 @@
                                                 @endphp
 
                                                 <span class="badge {{ $badgeClass }}">
-                                                    [{{ $application->form_name }} / License {{ $application->license_name }}]
+                                                    [@if(\App\Support\FormDisplayName::isFormP($application->form_name ?? null)){{ \App\Support\FormDisplayName::FORM_P_ADMIN_TITLE }}@else{{ $application->form_name }} / License {{ $application->license_name }}@endif]
                                                 </span>
 
                                                

@@ -21,7 +21,30 @@ function hideDigitizationModalIfPresent() {
     $(".modal-backdrop").remove();
 }
 
+/**
+ * True when this page load is a reload / back-forward of the same page (not a fresh visit).
+ * A fresh visit to the digitisation page means a new enrolment, so a temp id left in
+ * sessionStorage from an earlier application must not suppress the enrolment modal.
+ */
+function isSamePageReturn() {
+    try {
+        var nav = performance.getEntriesByType && performance.getEntriesByType("navigation")[0];
+        if (nav && nav.type) {
+            return nav.type === "reload" || nav.type === "back_forward";
+        }
+        if (performance.navigation) {
+            return performance.navigation.type === 1 || performance.navigation.type === 2;
+        }
+    } catch (e) {
+        // ignore
+    }
+    return false;
+}
+
 $(document).ready(function () {
+    // Temp id rendered by the server (enrolment already linked to this page), read before
+    // restoreCcDigitizationTempId() copies the sessionStorage value into the field.
+    var serverLinkedTempId = String($("#cc_digitization_temp_id").val() || "").trim() !== "";
     restoreCcDigitizationTempId();
     initDigitizationDateFields();
 
@@ -55,9 +78,11 @@ $(document).ready(function () {
     var isFormSDigitizationPage = (path === "/apply-form-s_d" || path.endsWith("/apply-form-s_d"));
 
     if (digitizationModal) {
-        // For Form S digitization, always show on page load (even after refresh)
-        // so users who refreshed accidentally can continue with explicit confirmation.
-        if (isFormSDigitizationPage || !hasCcDigitizationTempId()) {
+        // Form S digitization: open the enrolment modal unless this page already has an
+        // enrolment (server-rendered temp id, or a reload/back of this page after enrolling).
+        var alreadyEnrolledHere = serverLinkedTempId || (isSamePageReturn() && hasCcDigitizationTempId());
+        var shouldOpenEnrolment = isFormSDigitizationPage ? !alreadyEnrolledHere : !hasCcDigitizationTempId();
+        if (shouldOpenEnrolment) {
             digitizationModal.show();
         } else {
             hideDigitizationModalIfPresent();
@@ -455,19 +480,14 @@ $(document).on("click", "#digitizationSubmit", function () {
                     );
                 }
 
-                // If certificate found, fill applicant name
-                if (response.is_matched == 1) {
+                // Certificate matched: keep the certificate code. An explicit
+                // `is_matched === false` clears only the certificate code; the address
+                // the applicant typed is never touched (nor on a missing flag).
+                if (response.is_matched === true || response.is_matched == 1) {
                     // $("#Applicant_Name").val(response.appname);
                     $("#certcode").val(response.certcode);
-                    // $("#applicants_address").val(response.address);
-                } else {
+                } else if (response.is_matched === false) {
                     $("#certcode").val("");
-                    $("#applicants_address").val("");
-                    $("#address_line1, #address_line2, #city, #state, #district, #pincode").val("");
-                    $("#state").trigger("change");
-                    if (typeof window.fsComposeApplicantAddress === "function") {
-                        window.fsComposeApplicantAddress();
-                    }
                 }
 
                 $("#digitizationForm")[0].reset();

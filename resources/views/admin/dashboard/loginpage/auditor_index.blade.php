@@ -60,7 +60,8 @@
                                         <div class="col-lg-9 col-9">
                                             <div class="balance-info">
                                                 <h6>{{ $form->form_name }}</h6>
-                                                <h5>License {{ $form->color_code }}</h5>
+                                                {{-- Display-only: Form P tile reads "Certificate D" (stored code stays P). --}}
+                                                <h5>{{ \App\Support\FormDisplayName::isFormP($form->color_code ?? null) || \App\Support\FormDisplayName::isFormP($form->form_name ?? null) ? 'Certificate ' . \App\Support\FormDisplayName::FORM_P_CERTIFICATE_LETTER : 'License ' . $form->color_code }}</h5>
                                             </div>
                                         </div>
 

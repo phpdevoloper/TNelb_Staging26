@@ -1983,7 +1983,7 @@ class PDFController extends Controller
 
         // Work Experience Section
         $pdf->SetFont('helvetica', '', 10);
-        $pdf->Cell(0, 10, '6. Details of Past and Present Experience', 0, 1, 'L');
+        $pdf->Cell(0, 10, '6. Details of Previous and Current Work experience', 0, 1, 'L');
         $pdf->SetFont('helvetica', '', 10);
 
         $pdf->SetFont('helvetica', '', 10);
@@ -2017,8 +2017,8 @@ class PDFController extends Controller
         }
         $pdf->Ln(1);
 
-        $pdf->Cell(100, 5, '8. Do you possess Wireman C.C / Wireman Helper C.C issued by this Board?', 0, 1, 'L');
-        $pdf->Cell(135, 5, 'If so, furnish the details and surrender the same.', 0, 0, 'L');
+        $pdf->Cell(100, 5, '8. Do you also possess Wireman Competency Certificate issued by this Board?', 0, 1, 'L');
+        $pdf->Cell(135, 5, 'If so furnish the details.', 0, 0, 'L');
 
         if ($form->wireman_details) {
             $pdf->Cell(20, 9, '', 0, 0);
@@ -2155,7 +2155,9 @@ class PDFController extends Controller
         $emailDisplay       = trim((string) ($form->applicant_email ?? ''));
         $emailDisplay       = $emailDisplay !== '' ? $emailDisplay : '—';
         $formCodeCompTa     = strtoupper((string) ($form->form_name ?? ''));
-        $showCompetencyEmailRowTa = in_array($formCodeCompTa, ['W', 'WH'], true);
+        // Form S shows the email row too, so the PDF items follow the form: 6 education, 7 experience,
+        // 8 Supervisor C.C, 9 Wireman C.C, 10 PAN (the form numbers these sections the same way).
+        $showCompetencyEmailRowTa = in_array($formCodeCompTa, ['S', 'W', 'WH'], true);
         $eduSectionNumTa    = $showCompetencyEmailRowTa ? '6' : '5';
         $expSectionNumTa  = $showCompetencyEmailRowTa ? '7' : '6';
         $formNameUpper      = mb_strtoupper($form->form_name ?? '', 'UTF-8');
@@ -2312,7 +2314,9 @@ class PDFController extends Controller
             <table style="width:100%; border-collapse:collapse; margin-top:8px;">
               <tr>
                 <td style="width:28pt; font-weight:normal; vertical-align:top; padding:4px 4px 4px 0; color:#1a1a1a; white-space:nowrap;">' . $expSectionNumTa . '.</td>
-                <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களைப் பற்றிய விவரங்கள்</td>
+                <td style="vertical-align:top; padding:4px 0; color:#1a1a1a;">' . ($isFormS
+                    ? 'முந்தைய மற்றும் தற்போதைய பணியனுபவ விவரங்கள்'
+                    : 'பெற்றுள்ள முந்தைய மற்றும் தற்போதைய அனுபவங்களைப் பற்றிய விவரங்கள்') . '</td>
               </tr>
             </table>
             <table class="tbl-data" style="margin-top:4px;">';
@@ -2470,15 +2474,17 @@ class PDFController extends Controller
         $html .= '<table style="width:100%; border-collapse:collapse; margin-top:10px;">';
 
         if ($form->form_name == 'S') {
-            $html .= $qRow('7', 'முன்பு ஏதேனும் விண்ணப்பம் செய்துள்ளீர்களா? ஆம் எனில், குறிப்பு எண் மற்றும் தேதியை குறிப்பிடவும்.', e($value));
+            // Numbered 8 / 9 / 10 as on the Form S page (Q8 Supervisor C.C, Q9 Wireman C.C); Q8 / Q9 wording
+            // matches partials/form-s-question-{8,9}-head (ELB "C New" item 15 for Q9).
+            $html .= $qRow('8', 'இந்த வாரியத்தால் வழங்கப்பட்ட மேற்பார்வையாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? ஆம் என்றால் அதன் குறிப்பு எண் மற்றும் தேதியை குறிப்பிடுக', e($value));
             if ($value === 'ஆம்') {
                 $html .= $certSubRowTa($previousRefNoTa ?: '-', $previousIssueDateTa, $previousValidityDateTa);
             }
-            $html .= $qRow('8', 'இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதி சான்றிதழ் / மின் கம்பி உதவியாளர் தகுதி சான்றிதழ் உங்களிடம் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கி, அதனை ஒப்படைக்கவும்.', e($certno));
+            $html .= $qRow('9', 'இந்த வாரியம் வழங்கிய மின்கம்பியாளர் தகுதிச் சான்றிதழ் உள்ளதா? இருந்தால், அதன் விவரங்களை வழங்கவும்.', e($certno));
             if ($certno === 'ஆம்') {
                 $html .= $certSubRowTa($certificateRefNoTa ?: '-', $certificateIssueDateTa, $certificateValidityDateTa);
             }
-            $html .= $qRow('9', 'நிரந்தர கணக்கு எண்', e($maskedPan));
+            $html .= $qRow('10', 'நிரந்தர கணக்கு எண்', e($maskedPan));
         } else {
             $no = '8';
             $certLabelTa = ($form->form_name == 'WH')

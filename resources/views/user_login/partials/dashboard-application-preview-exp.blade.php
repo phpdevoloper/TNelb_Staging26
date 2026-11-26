@@ -33,18 +33,18 @@
 @endphp
 <div class="dash-prv-exp-wrap">
     <div class="dash-prv-table-wrap dash-prv-exp-table-wrap">
-        <table class="dash-prv-table dash-prv-exp-table">
+        <table class="dash-prv-table dash-prv-exp-table {{ $hideVoltageFields ? 'is-compact' : '' }}">
             <thead>
                 <tr>
                     <th class="dash-prv-exp-sno">#</th>
-                    <th>Employment</th>
-                    <th>Organisation</th>
-                    <th>Designation</th>
+                    <th class="dash-prv-col-emp dash-prv-td-left">Employment</th>
+                    <th class="dash-prv-td-left">Organisation</th>
+                    <th class="dash-prv-col-desig dash-prv-td-left">Designation</th>
                     @unless($hideVoltageFields)
-                        <th>Nature / Voltage / kVA</th>
+                        <th class="dash-prv-col-nature dash-prv-td-left">Nature / Voltage / kVA</th>
                     @endunless
-                    <th>Period</th>
-                    <th>Documents</th>
+                    <th class="dash-prv-col-period dash-prv-td-left">Period</th>
+                    <th class="dash-prv-col-docs dash-prv-td-left">Documents</th>
                 </tr>
             </thead>
             <tbody>
@@ -147,12 +147,18 @@
                                 <div class="dash-prv-exp-sub">{{ $kvaTxt }}</div>
                             </td>
                         @endunless
-                        <td>
-                            <div>{{ $fromDisp }}</div>
-                            <div class="dash-prv-exp-sub">to {{ $toDisp }}</div>
+                        <td class="dash-prv-td-left dash-prv-exp-period">
                             @if ($durTxt !== '')
                                 <div class="dash-prv-exp-dur">{{ $durTxt }}</div>
                             @endif
+                            <div class="dash-prv-exp-date-row">
+                                <span class="dash-prv-exp-date-lbl">From</span>
+                                <span class="dash-prv-exp-date-val">{{ $fromDisp }}</span>
+                            </div>
+                            <div class="dash-prv-exp-date-row">
+                                <span class="dash-prv-exp-date-lbl">To</span>
+                                <span class="dash-prv-exp-date-val">{{ $toDisp }}</span>
+                            </div>
                         </td>
                         <td class="dash-prv-td-left">
                             <div class="dash-prv-exp-docs">
@@ -196,7 +202,7 @@
                 <tfoot>
                     <tr>
                         <td colspan="{{ $colCount - 2 }}" class="dash-prv-td-left"><strong>Total experience</strong></td>
-                        <td><strong>{{ $overallTxt }}</strong></td>
+                        <td class="dash-prv-td-left dash-prv-exp-total"><strong>{{ $overallTxt }}</strong></td>
                         <td></td>
                     </tr>
                 </tfoot>

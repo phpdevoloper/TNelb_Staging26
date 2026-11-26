@@ -360,9 +360,19 @@
             {{-- ── Card header ── --}}
             <div class="fs-card-header">
                 <div class="header-titles">
-                    <h5>Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
-                    <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
-                    <span class="form-badge">FORM - {{ $formName }} / Certificate {{ $formName }}</span>
+                    @php
+                        $isDigitizationDraft = strtoupper(trim((string) ($application_details->appl_type ?? ''))) === 'D';
+                    @endphp
+                    @if($isDigitizationDraft)
+                        {{-- Same wording as user_login/digitization/apply-form-p_d --}}
+                        <h5>Digitization of Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
+                        <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழை மின்னணுமயமாக்குதல்</h5>
+                        <span class="form-badge">Form P / Certificate D</span>
+                    @else
+                        <h5>Application for Power Generating Station Operation &amp; Maintenance Competency Certificate</h5>
+                        <h5 class="tamil-title">மின் உற்பத்தி நிலையம் செயலாக்கம் மற்றும் பராமரிப்புக்கான தகுதிச் சான்றிதழ் பெறுவதற்கான விண்ணப்பம்</h5>
+                        <span class="form-badge">Form {{ $formName }}</span>
+                    @endif
                     @if($isReturned)
                         <h5 class="draft-title">Returned Application</h5>
                     @else
@@ -470,7 +480,7 @@
                                 <div class="col-12 col-md-6">
                                     <div class="fs-field-label">2. Father's Name <span class="req">*</span></div>
                                     <div class="fs-field-tamil">தகப்பனார் பெயர்</div>
-                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application_details) ? $application_details->fathers_name : '' }}" maxlength="80">
+                                    <input autocomplete="off" class="form-control" id="Fathers_Name" name="fathers_name" type="text" value="{{ isset($application_details) ? $application_details->fathers_name : '' }}" maxlength="80" placeholder="e.g. Arun Srinivasakannan G">
                                     <span class="error-message text-danger"></span>
                                 </div>
                                 @php
@@ -597,7 +607,7 @@
                                                             <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                                 <option value="0" disabled {{ empty($edu->year_of_passing) ? 'selected' : '' }}>Select Year</option>
                                                                 @php $currentYear = date('Y'); @endphp
-                                                                @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                @for ($year = $currentYear; $year >= 1953; $year--)
                                                                     <option value="{{ $year }}" {{ $edu->year_of_passing == $year ? 'selected' : '' }}>{{ $year }}</option>
                                                                 @endfor
                                                             </select>
@@ -657,7 +667,7 @@
                                                         <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                             <option value="0">Select Year</option>
                                                             @php $currentYear = date('Y'); @endphp
-                                                            @for ($year = $currentYear; $year >= 1980; $year--)
+                                                            @for ($year = $currentYear; $year >= 1953; $year--)
                                                                 <option value="{{ $year }}">{{ $year }}</option>
                                                             @endfor
                                                         </select>
@@ -775,7 +785,7 @@
 
                             {{-- (iii) Power Station table --}}
                             <div class="fp-return-block{{ $retLockClass('experience') }}" data-return-section="experience">
-                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the applicant is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
                             <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
                                 Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
@@ -1319,7 +1329,7 @@
 
             let currentYear = new Date().getFullYear();
             let yearOptions = '<option value="">Select Year</option>';
-            for (let year = currentYear; year >= 1980; year--) {
+            for (let year = currentYear; year >= 1953; year--) {
                 yearOptions += `<option value="${year}">${year}</option>`;
             }
 
