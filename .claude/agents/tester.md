@@ -2,7 +2,7 @@
 name: tester
 description: Writes and runs PHPUnit tests for new backend features
 tools: Glob, Grep, Read, Edit, Write, Bash
-model: opus
+model: sonnet
 ---
 
 # Tester Agent

@@ -90,6 +90,10 @@ When adding a new form or feature to an existing form, follow this pattern preci
 - **Commit messages:** Write clear, present-tense summaries (e.g., `Add FormS renewal workflow` not `addformsrenew`). Provide context in the body if the change is non-obvious.
 - **PR/Merge:** Use the `/ai-dlc` command to orchestrate multi-step changes (plan → build → format → test → review). This ensures code quality gates run before merge.
 
+## Shared Task List
+
+See [TASKS.md](TASKS.md) for the current task board. All agents must read it before starting work and update it when they start (`[~]`) or finish (`[x]`) an item. `/ai-dlc` writes its plan there.
+
 ## Daily Workflow with AI-DLC
 
 Start your day's task with:

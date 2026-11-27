@@ -40,11 +40,21 @@ Rules that apply to every path:
 - State assumptions and open questions in the plan and wait at the first pause; do not build on a guess.
 - Read `.claude/skills/laravel-module-pattern/SKILL.md` before planning; it describes the real file layout.
 - Review judges the diff only; pre-existing hygiene problems are WARN, not FAIL.
+- **TASKS.md is the shared plan.** Read `TASKS.md` before planning. Write the approved plan there and keep it updated (see "Shared Task List" below). The orchestrator owns all edits to `TASKS.md` (some agents have no Edit/Write tools); agents report status and the orchestrator records it.
+
+## Shared Task List (TASKS.md)
+
+1. **Before planning:** read `TASKS.md`. If an existing `Current` section overlaps the new task, tell the user and ask whether to continue it or start a new one. Do not overwrite another in-progress task.
+2. **At the first pause (after PLAN):** write the plan under `## Current` as a `### <task title>` section with one checkbox line per step, tagged with the agent, e.g. `- [ ] Controller + routes (laravel-backend)`. Include the format, test and review steps. Show it to the user as part of the plan.
+3. **During BUILD:** set the line to `[~]` when an agent starts and `[x]` when it finishes. Assign agents to disjoint files so parallel agents never edit the same file.
+4. **After FORMAT / TEST / REVIEW:** tick each step as it completes. If review returns FAIL, add a `- [ ] Fix: <issue> (laravel-backend)` line and leave the review line unticked until it passes.
+5. **At the final pause:** move the finished `###` section to `## Done` with the date. Anything out of scope or deferred goes to `## Backlog`.
+6. Keep entries to one line each. Do not paste code or diffs into `TASKS.md`.
 
 ## How It Works
 
 ### Phase 1: Plan
-The orchestrator receives your task description and produces a **plan** that includes:
+The orchestrator reads `TASKS.md`, receives your task description and produces a **plan** (written to `TASKS.md` under `## Current`) that includes:
 - What backend components are needed (controllers, models, migrations, services)
 - What UI components are needed (Blade views, jQuery scripts, CSS updates)
 - Which existing patterns to follow (Form module pattern, RBAC conventions, etc.)

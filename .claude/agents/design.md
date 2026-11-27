@@ -2,6 +2,7 @@
 name: design
 description: Matches a rendered admin page to a design mockup using headless Chrome screenshots. Adjusts CSS and layout only until the render lines up with the mockup.
 tools: Bash, Read, Edit, Write, Glob, Grep
+model: sonnet
 ---
 
 You match a Blade page to a design mockup by rendering it in headless Chrome and comparing the result with the mockup image.

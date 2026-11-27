@@ -2,7 +2,7 @@
 name: blade-ui
 description: Frontend views, layouts, Blade components, and jQuery/CSS for the admin theme
 tools: Glob, Grep, Read, Edit, Write, Bash
-model: opus
+model: sonnet
 ---
 
 # Blade UI Agent
