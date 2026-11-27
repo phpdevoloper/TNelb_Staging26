@@ -2506,6 +2506,7 @@ function getPaymentsService(licence_code,issued_licence,appl_type, options){
         $("#ps_applicationId_competency").text(loginId);
         $("#ps_licenceName_competency").text(licence_name);
         $("#ps_transactionDate_competency").text(transactionDate);
+        $("#ps_applicationType_competency").text(form_type ? form_type : '');
 
         // Digitisation (D) / Alteration (A) / board-member waiver: never show or retain payment details.
         if (isFeeExemptSubmit) {

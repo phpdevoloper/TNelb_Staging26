@@ -134,7 +134,7 @@ class FormWController extends BaseController
             'cert_name' => FormWSchema::LICENSE_NAME,
         ]);
         $request->validate([
-            'ccnumber' => 'required|digits_between:1,5',
+            'ccnumber' => 'required|digits_between:1,6',
             'fissue' => 'required|date',
             'from_date' => 'required|date|after_or_equal:fissue',
             'to_date' => 'required|date|after_or_equal:from_date',
@@ -143,6 +143,8 @@ class FormWController extends BaseController
             'form_name' => 'required|in:W',
             'cert_name' => 'required|in:B',
         ], [
+            'ccnumber.required' => 'Certificate Number is required',
+            'ccnumber.digits_between' => 'Certificate Number must be 1 to 6 digits only (numbers only).',
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
         ]);
 

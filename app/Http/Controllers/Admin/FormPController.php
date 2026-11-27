@@ -55,7 +55,6 @@ class FormPController extends Controller
     public function view_application_formp($applicant_id)
     {
 
-
         $returnForwardUser = null;
         $bundle = $this->loadFormPAdminBundle($applicant_id);
         $applicant = $bundle['applicant'];
@@ -69,8 +68,6 @@ class FormPController extends Controller
         $uploadedPhoto = $bundle['photo'];
         $uploadedSign = $bundle['sign'];
         $institute_details = $bundle['institutes'];
-
-
 
 
         // Get the current user's role ID
@@ -140,6 +137,7 @@ class FormPController extends Controller
         $checkedList_1 = $checklistState['checked'];
         $verifyList = $checklistState['verify'];
         $alterationPreview = $this->formPAlterationPreview($applicant, $workExperience);
+        $cc_digitization = (strtoupper(trim((string) ($applicant->appl_type ?? ''))) === 'D') ? $this->formPDigitizationRow((string) $applicant_id, (string) ($applicant->login_id ?? '')) : null;
 
         // Determine view based on user role
         $view = match ($staff->name) {
@@ -149,7 +147,7 @@ class FormPController extends Controller
             default                                => abort(403, 'Unauthorized'),
         };
 
-        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details', 'checklist', 'checkedList_1', 'verifyList', 'alterationPreview'));
+        return view($view, compact('applicant', 'educationalQualifications', 'workExperience', 'uploadedPhoto', 'uploadedSign', 'documents', 'nextForwardUser', 'returnForwardUser', 'workflows', 'queries', 'user_entry', 'staff','institute_details', 'checklist', 'checkedList_1', 'verifyList', 'alterationPreview', 'cc_digitization'));
     }
 
     /**
@@ -183,6 +181,7 @@ class FormPController extends Controller
         $checkedList_1 = $checklistState['checked'];
         $verifyList = $checklistState['verify'];
         $alterationPreview = $this->formPAlterationPreview($applicant, $workExperience);
+        $cc_digitization = (strtoupper(trim((string) ($applicant->appl_type ?? ''))) === 'D') ? $this->formPDigitizationRow((string) $applicant_id, (string) ($applicant->login_id ?? '')) : null;
 
         return view('admin.dashboard.formp.applicants_detail_completed', compact(
             'applicant',
@@ -199,7 +198,8 @@ class FormPController extends Controller
             'checklist',
             'checkedList_1',
             'verifyList',
-            'alterationPreview'
+            'alterationPreview',
+            'cc_digitization'
         ));
     }
 
@@ -1807,7 +1807,7 @@ class FormPController extends Controller
 
         if ($applicant && $fromCc) {
             $edu = Schema::hasTable('cc_edu')
-                ? DB::table('cc_edu')->where('application_id', $applicantId)->get()
+                ? DB::table('cc_edu')->where('application_id', $applicantId)->orderByDesc('edu_id')->get()
                 : collect();
             $exp = Schema::hasTable('cc_exp')
                 ? DB::table('cc_exp')->where('application_id', $applicantId)->get()

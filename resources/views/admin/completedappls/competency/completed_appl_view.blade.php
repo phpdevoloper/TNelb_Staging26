@@ -1022,7 +1022,7 @@
 
         <div class="summary-card">
             <div class="summary-heading">
-                <div class="bi-en">{{ $isFormP ? '(iii) Power Station to which the applicant is attached at present' : '7. Details of Previous and Current Work experiences' }}</div>
+                <div class="bi-en">{{ $isFormP ? '(iii) Power Station to which the application is attached at present' : '7. Details of Previous and Current Work experiences' }}</div>
                 <div class="bi-ta" lang="ta">{{ $isFormP ? 'விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் & பணிக்காலம்' : 'அனுபவ விவரங்கள்' }}</div>
             </div>
             <table class="summary-table">

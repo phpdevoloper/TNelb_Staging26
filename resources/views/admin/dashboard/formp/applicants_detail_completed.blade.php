@@ -76,6 +76,62 @@
                         </div>
                     </div>
                 </div>
+                @if (!empty($cc_digitization) && strtoupper(trim((string) ($applicant->appl_type ?? ''))) === 'D')
+                <div class="col-lg-12 layout-spacing">
+                    <div class="statbox widget box box-shadow">
+                        <div class="widget-header">
+                            <div class="row">
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                    <h4 class="text-info">Details of Competency Certificate</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget-content widget-content-area">
+                            @php
+                                $ccdFmt = function ($v) {
+                                    if (empty($v)) {
+                                        return '-';
+                                    }
+                                    try {
+                                        return \Carbon\Carbon::parse($v)->format('d-m-Y');
+                                    } catch (\Throwable $e) {
+                                        return '-';
+                                    }
+                                };
+                                $ccdDocUrl = data_get($cc_digitization, 'cc_doc') ? digitization_document_url(data_get($cc_digitization, 'cc_doc'), 'scc') : '';
+                            @endphp
+                            <div class="row">
+                                <div class="col-lg-9">
+                                    <div class="row">
+                                        <div class="col-lg-6">
+                                            <p><strong>Certificate Number:</strong></p>
+                                            <p><strong>Date of First Issue:</strong></p>
+                                            <p><strong>Validity From:</strong></p>
+                                            <p><strong>Validity To:</strong></p>
+                                            <p><strong>Certificate Document:</strong></p>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <p>{{ data_get($cc_digitization, 'ccnumber') ?: '-' }}</p>
+                                            <p>{{ $ccdFmt(data_get($cc_digitization, 'fissue')) }}</p>
+                                            <p>{{ $ccdFmt(data_get($cc_digitization, 'from_date')) }}</p>
+                                            <p>{{ $ccdFmt(data_get($cc_digitization, 'to_date')) }}</p>
+                                            <p>
+                                                @if (!empty($ccdDocUrl))
+                                                    <a href="{{ $ccdDocUrl }}" target="_blank" rel="noopener noreferrer">
+                                                        <i class="fa fa-file-pdf-o text-danger"></i> View Document
+                                                    </a>
+                                                @else
+                                                    -
+                                                @endif
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <div id="tabsSimple" class="col-xl-7 col-6 layout-spacing">
                     <div class="statbox widget box box-shadow">
@@ -327,7 +383,7 @@
                                                         <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ ($applicant->appl_type ?? 'N') === 'R' ? 'Renewal Application' : 'New Application' }}</p>
+                                                        <p>{{ ['D' => 'Digitization Application', 'A' => 'Alteration Application', 'R' => 'Renewal Application'][strtoupper(trim((string) ($applicant->appl_type ?? '')))] ?? 'New Application' }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Application Fees</strong></p>

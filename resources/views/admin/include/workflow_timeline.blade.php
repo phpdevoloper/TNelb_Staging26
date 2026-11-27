@@ -188,7 +188,7 @@
                         <div class="t-dot t-dot-warning"></div>
                         <div class="t-text">
                             <p>Received from Applicant</p>
-                            <p class="t-meta-time">Form: {{ $user_entry->form_name }}, License: {{ $user_entry->license_name }}</p>
+                            <p class="t-meta-time">Form: {{ $user_entry->form_name }}, Certificate: {{ $user_entry->license_name }}</p>
                         </div>
                     </div>
                 </div>

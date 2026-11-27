@@ -409,8 +409,7 @@
                                 <div class="col-12 col-md-6 mb-3 mb-md-0">
                                     <div class="fs-field-label">3. Address of the applicant <span class="req">*</span> <span style="font-weight:400;font-size:.78rem;">(To be clear)</span></div>
                                     <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருக்க வேண்டும்)</span></div>
-                                    <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ isset($application_details) ? $application_details->applicants_address : Auth::user()->address }}</textarea>
-                                    <span id="applicants_address_error" class="text-danger error"></span>
+                                    @include('user_login.partials.applicant-address-fields', ['addressSaved' => isset($application_details) ? trim((string) ($application_details->applicants_address ?? $application_details->applicant_address ?? '')) : '', 'addressLocked' => false])
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <div class="row">
@@ -675,7 +674,7 @@
                             </div>
 
                             {{-- (iii) Power Station table --}}
-                            <div class="fs-field-label mb-2">(iii) Power Station to which the applicant is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
+                            <div class="fs-field-label mb-2">(iii) Power Station to which the application is attached at present <span style="font-weight:400;font-size:.78rem;">(Upload the documents)</span></div>
                             <div class="fs-field-tamil mb-2">விண்ணப்பதாரர் தற்போது பணிபுரியும் மின் உற்பத்தி நிலையத்தின் பெயர் &amp; பணிக்காலம் <span style="font-size:.72rem;">(ஆவணங்களை பதிவேற்ற வேண்டும்)</span></div>
                             <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
                                 Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
@@ -1023,6 +1022,8 @@
 <footer class="main-footer">
     @include('include.footer')
 </footer>
+{{-- Structured applicant address (compose / validate / submit guard); needs jQuery from the footer. --}}
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
 
 <script>
     window.returnApplicationQueryReasons = @json(isset($queryReasonsForValidation) ? $queryReasonsForValidation : []);
@@ -1487,7 +1488,7 @@
         $sections.each(function(){
             total++;
             var $sec = $(this);
-            var requiredEls = $sec.find('input[required], select[required], textarea[required], input.form-control[name="applicant_name"], input.form-control[name="fathers_name"], textarea[name="applicants_address"], input[name="d_o_b"]');
+            var requiredEls = $sec.find('input[required], select[required], textarea[required], input.form-control[name="applicant_name"], input.form-control[name="fathers_name"], textarea[name="applicants_address"], input[name="applicants_address"], input[name="d_o_b"]');
             // If section has no explicit required, count it complete if any visible input has a value
             if (!requiredEls.length) {
                 var $any = $sec.find('input.form-control:not([type=hidden]), select.form-control, textarea.form-control').filter(':visible').first();

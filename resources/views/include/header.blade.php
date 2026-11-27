@@ -1486,15 +1486,9 @@ use Illuminate\Support\Facades\Auth;
                                 <div class="digi-field">
                                     <label class="digi-field-label" for="digi_ccnumber">Certificate Number <span class="fill">*</span></label>
                                     <div class="digi-field-control">
-                                        @if(($form_name ?? '') === 'P')
-                                        <input type="text" class="form-control" id="digi_ccnumber" name="ccnumber"
-                                            placeholder="Enter certificate number (up to 20 letters/digits)"
-                                            maxlength="20" autocomplete="off">
-                                        @else
                                         <input type="text" class="form-control" id="digi_ccnumber" name="ccnumber"
                                             placeholder="Enter certificate number (1–6 digits)"
                                             inputmode="numeric" maxlength="6" pattern="[0-9]{1,6}" autocomplete="off">
-                                        @endif
                                         <span class="error text-danger" id="ccnumber_error"></span>
                                     </div>
                                 </div>

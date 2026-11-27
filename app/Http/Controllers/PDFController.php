@@ -562,6 +562,46 @@ class PDFController extends Controller
 
         $employerUpper = mb_strtoupper(trim($form->employer_detail ?? '') !== '' ? trim($form->employer_detail) : 'NIL', 'UTF-8');
 
+        // Digitisation only: existing competency certificate details (empty string for New/Renewal)
+        $digiRowsHtml = '';
+        if ($applTypeCode === 'D') {
+            $digi = Tnelb_CC_Digitization::where('application_id', $newApplicationId)->first();
+            if ($digi) {
+                $digiDate = function ($value) {
+                    if ($value === null || trim((string) $value) === '') {
+                        return '-';
+                    }
+                    try {
+                        return format_date($value);
+                    } catch (\Throwable $e) {
+                        return (string) $value;
+                    }
+                };
+                $digiCcNumber = trim((string) ($digi->ccnumber ?? ''));
+                $digiRows = [
+                    'CERTIFICATE NUMBER' => $digiCcNumber !== '' ? $digiCcNumber : '-',
+                    'DATE OF FIRST ISSUE' => $digiDate($digi->fissue),
+                    'VALIDITY FROM' => $digiDate($digi->from_date),
+                    'VALIDITY TO' => $digiDate($digi->to_date),
+                ];
+                $digiRowsHtml = '<tr>
+            <td class="fp-num"></td>
+            <td class="fp-section-span" colspan="4">DETAILS OF COMPETENCY CERTIFICATE</td>
+        </tr>
+        ';
+                foreach ($digiRows as $label => $value) {
+                    $digiRowsHtml .= '<tr>
+            <td class="fp-num"></td>
+            <td class="fp-label">' . $label . '</td>
+            <td class="fp-colon">:</td>
+            <td class="fp-val">' . e(mb_strtoupper($value, 'UTF-8')) . '</td>
+            <td class="fp-photo">&nbsp;</td>
+        </tr>
+        ';
+                }
+            }
+        }
+
         $mpdf = new Mpdf([
             'mode' => 'utf-8',
             'format' => 'A4',
@@ -661,7 +701,7 @@ class PDFController extends Controller
             </tr>
             <tr>
                 <td style="font-size:11pt; font-weight:bold;">
-                    FORM "' . $formNameUpper . ($applTypeCode === 'R' ? '" - RENEWAL' : '"') . '
+                    FORM "' . $formNameUpper . ($applTypeCode === 'R' ? '" - RENEWAL' : ($applTypeCode === 'D' ? '" - DIGITIZATION' : '"')) . '
                 </td>
             </tr>
             <tr>
@@ -833,7 +873,7 @@ class PDFController extends Controller
             <td class="fp-val">' . e($employerUpper) . '</td>
             <td class="fp-photo">&nbsp;</td>
         </tr>
-        <tr class="form-p-q6">
+        ' . $digiRowsHtml . '<tr class="form-p-q6">
             <td class="fp-num">6.</td>
             <td class="fp-label">HAVE YOU MADE ANY PREVIOUS APPLICATION? IF SO, STATE REFERENCE NO. AND DATE</td>
             <td class="fp-colon">:</td>

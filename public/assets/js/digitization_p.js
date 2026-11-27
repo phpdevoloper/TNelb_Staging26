@@ -296,8 +296,8 @@ $(document).on("click", "#digitizationSubmit", function () {
     if (ccnumber === "") {
         $("#ccnumber_error").html("Certificate Number is required");
         isValid = false;
-    } else if (!/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,19}$/.test(ccnumber)) {
-        $("#ccnumber_error").html("Certificate Number must be up to 20 letters, numbers, hyphen, or slash");
+    } else if (!/^\d{1,6}$/.test(ccnumber)) {
+        $("#ccnumber_error").html("Certificate Number must be 1 to 6 digits only");
         isValid = false;
     }
 
@@ -450,7 +450,7 @@ $(document).on("click", "#digitizationSubmit", function () {
 });
 
 $(document).on("input", 'input[name="ccnumber"]', function () {
-    const cleaned = ($(this).val() || "").replace(/[^A-Za-z0-9\-\/]/g, "").slice(0, 20);
+    const cleaned = ($(this).val() || "").replace(/\D/g, "").slice(0, 6);
     if ($(this).val() !== cleaned) {
         $(this).val(cleaned);
     }

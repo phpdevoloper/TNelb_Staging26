@@ -112,6 +112,8 @@ class FormSDigitizationController extends BaseController
             'form_name'       => 'required|in:S',
             'cert_name'       => 'required|in:C',
         ], [
+            'ccnumber.required' => 'Certificate Number is required',
+            'ccnumber.digits_between' => 'Certificate Number must be 1 to 6 digits only (numbers only).',
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
             'fissue.before_or_equal' => 'Date of First Issue cannot be a future date.',
             'from_date.before_or_equal' => 'Validity From date cannot be a future date.',

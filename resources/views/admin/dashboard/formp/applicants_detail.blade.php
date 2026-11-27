@@ -110,6 +110,62 @@
 
                     </div>
                 </div>
+                @if (!empty($cc_digitization) && strtoupper(trim((string) ($applicant->appl_type ?? ''))) === 'D')
+                <div class="col-lg-12 layout-spacing">
+                    <div class="statbox widget box box-shadow">
+                        <div class="widget-header">
+                            <div class="row">
+                                <div class="col-xl-12 col-md-12 col-sm-12 col-12">
+                                    <h4>Details of Competency Certificate</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget-content widget-content-area">
+                            @php
+                                $ccdFmt = function ($v) {
+                                    if (empty($v)) {
+                                        return '-';
+                                    }
+                                    try {
+                                        return \Carbon\Carbon::parse($v)->format('d-m-Y');
+                                    } catch (\Throwable $e) {
+                                        return '-';
+                                    }
+                                };
+                                $ccdDocUrl = data_get($cc_digitization, 'cc_doc') ? digitization_document_url(data_get($cc_digitization, 'cc_doc'), 'scc') : '';
+                            @endphp
+                            <div class="row">
+                                <div class="col-lg-9">
+                                    <div class="row">
+                                        <div class="col-lg-6">
+                                            <p><strong>Certificate Number:</strong></p>
+                                            <p><strong>Date of First Issue:</strong></p>
+                                            <p><strong>Validity From:</strong></p>
+                                            <p><strong>Validity To:</strong></p>
+                                            <p><strong>Certificate Document:</strong></p>
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <p>{{ data_get($cc_digitization, 'ccnumber') ?: '-' }}</p>
+                                            <p>{{ $ccdFmt(data_get($cc_digitization, 'fissue')) }}</p>
+                                            <p>{{ $ccdFmt(data_get($cc_digitization, 'from_date')) }}</p>
+                                            <p>{{ $ccdFmt(data_get($cc_digitization, 'to_date')) }}</p>
+                                            <p>
+                                                @if (!empty($ccdDocUrl))
+                                                    <a href="{{ $ccdDocUrl }}" target="_blank" rel="noopener noreferrer">
+                                                        <i class="fa fa-file-pdf-o text-danger"></i> View Document
+                                                    </a>
+                                                @else
+                                                    -
+                                                @endif
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
                 <div id="tabsSimple" class="col-xl-8 col-md-12 col-sm-12 col-12 layout-spacing">
                     <div class="statbox widget box box-shadow">
                         <div class="widget-header">
@@ -406,7 +462,7 @@
                                                 </table>
                                             </div>
 
-                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which the applicant is attached at present</h6>
+                                            <h6 class="mt-2 mb-2 fw-bold">Power Station to which the application is attached at present</h6>
                                             <div class="table-responsive">
                                                 <table class="table table-bordered">
                                                     <thead>
@@ -634,7 +690,7 @@
                                                         <p><strong>Application Type</strong></p>
                                                     </div>
                                                     <div class="col-lg-6">
-                                                        <p>{{ $applicant->appl_type == 'R'?'Renewal Application':'New Application' }}</p>
+                                                        <p>{{ ['D' => 'Digitization Application', 'A' => 'Alteration Application', 'R' => 'Renewal Application'][strtoupper(trim((string) ($applicant->appl_type ?? '')))] ?? 'New Application' }}</p>
                                                     </div>
                                                     <div class="col-lg-6">
                                                         <p><strong>Application Fees</strong></p>
@@ -1079,7 +1135,7 @@
 <script>
     // President warning (ELB item 25). PLACEHOLDER wording: replace this one string when ELB supplies the text.
     // Shown in the approval confirmation and again right after a successful approval.
-    var PRESIDENT_APPROVAL_WARNING = 'Please note: once approved, the certificate is issued and the application cannot be changed.';
+    // var PRESIDENT_APPROVAL_WARNING = 'Please note: once approved, the certificate is issued and the application cannot be changed.';
 
     $('#remarks').maxlength({
         placement: "top"
@@ -1211,7 +1267,7 @@
                 //         </label>
                 //     </div>
                 // `,
-                text: 'Confirm to this application has been reviewed and approved. ' + PRESIDENT_APPROVAL_WARNING,
+                text: 'Confirm to this application has been reviewed and approved. ',
                 showCancelButton: true,
                 confirmButtonText: "Approved",
                 cancelButtonText: "Cancel",

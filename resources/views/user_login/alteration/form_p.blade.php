@@ -1346,7 +1346,17 @@
                                 $emailVal = trim((string) (Auth::user()->email ?? ''));
                             }
                         }
-                        $addressVal = isset($application_details) ? $application_details->applicant_address : Auth::user()->address;
+                        $addressVal = isset($application_details)
+                            ? trim((string) ($application_details->applicant_address ?? $application_details->applicants_address ?? ''))
+                            : (string) (Auth::user()->address ?? '');
+                        // The locked alteration block shows the PARENT's address (what is posted while "Edit" is
+                        // off) - never the draft's address or the registration profile.
+                        $altParentAddress = isset($parent_application_details)
+                            ? trim((string) ($parent_application_details->applicant_address ?? $parent_application_details->applicants_address ?? ''))
+                            : $addressVal;
+                        if (strcasecmp($altParentAddress, 'Not provided') === 0) {
+                            $altParentAddress = '';
+                        }
                         $dobIsoVal = !empty($application_details->d_o_b) ? \Carbon\Carbon::parse($application_details->d_o_b)->format('Y-m-d') : '';
                         $dobDisplayVal = $dobIsoVal ? \Carbon\Carbon::parse($dobIsoVal)->format('d-m-Y') : '';
                         $ageVal = isset($application_details) ? $application_details->age : '';
@@ -1428,14 +1438,24 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி</div>
                                             </div>
                                         </div>
-                                        <div @unless($isAlterationMode) class="fs-view-grid-value-box" @endunless>
+                                        @if($isAlterationMode)
+                                            {{-- Structured address, locked until "Edit" is chosen (alteration.js toggles
+                                                 data-address-locked); applicant_address.js composes the hidden #applicants_address. --}}
+                                            @include('user_login.partials.applicant-address-fields', [
+                                                'addressSaved' => $altParentAddress,
+                                                'addressLocked' => true,
+                                                'addressNoProfileFallback' => true,
+                                                'addressParts' => $parent_address_parts
+                                                    ?? (empty($alteration_draft) ? ($application_details->address_parts ?? null) : null),
+                                            ])
+                                        @else
+                                        <div class="fs-view-grid-value-box">
                                             <textarea rows="3"
                                                 class="form-control"
-                                                id="applicants_address"
-                                                name="applicants_address"
                                                 maxlength="255"
-                                                @unless($isAlterationMode) readonly @endunless>{{ $isAlterationMode ? $addressVal : ($addressVal ?: 'Not provided') }}</textarea>
+                                                readonly>{{ $addressVal ?: 'Not provided' }}</textarea>
                                         </div>
+                                        @endif
                                         @if($isAlterationMode)
                                         @include('user_login.alteration.partials.alt-proof-upload', [
                                             'panelId' => 'fsAltAddressProofPanel',
@@ -1524,8 +1544,12 @@
                                                 <div class="fs-field-tamil">விண்ணப்பதாரர் முகவரி <span style="font-size:.72rem;">(தெளிவாக இருத்தல் வேண்டும்)</span></div>
                                             </div>
                                         </div>
-                                        <textarea rows="3" class="form-control" id="applicants_address" name="applicants_address" maxlength="250">{{ $addressVal }}</textarea>
-                                        <span id="applicants_address_error" class="text-danger" style="font-size:.78rem;"></span>
+                                        {{-- Structured address; applicant_address.js composes it into hidden #applicants_address. --}}
+                                        @include('user_login.partials.applicant-address-fields', [
+                                            'addressSaved' => $addressVal,
+                                            'addressLocked' => false,
+                                            'addressParts' => $application_details->address_parts ?? null,
+                                        ])
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <div class="row">
@@ -1865,7 +1889,7 @@
                         <div class="fs-section-header">
                             <div>
                                 <div class="fs-section-title">
-                                    (iii) Power Station to which the applicant is attached at present
+                                    (iii) Power Station to which the application is attached at present
                                     <span class="section-hint">(Upload the documents)</span>
                                     @if($isAlterationMode)
                                     <button type="button" class="badge badge-danger fs-alt-edit-badge" id="fsAltBadgeWork" data-alt-opt="work" aria-pressed="false" title="Edit power station experience">
@@ -1877,6 +1901,10 @@
                             </div>
                         </div>
                         <div class="fs-section-body">
+                            <div class="text-danger mb-2" style="font-size:.78rem;" id="work-experience-certificate-note">
+                                Requirement: You must upload a valid experience certificate issued by the Head of the Power Generating Station (not below the rank of Chief Engineer).
+                                <br><span class="tamil-note" lang="ta">தேவை: மின் உற்பத்தி நிலையத் தலைவரால் (தலைமைப் பொறியாளர் நிலைக்குக் குறையாத அதிகாரி) வழங்கப்பட்ட செல்லுபடியாகும் அனுபவச் சான்றிதழைப் பதிவேற்ற வேண்டும்.</span>
+                            </div>
                             <div class="fs-table-wrap">
                                 <table class="table table-bordered" id="work-table">
                                     <thead>
@@ -2711,9 +2739,8 @@
                             <span class="checkmark"></span>
                             <div class="decl-text">
                                 @if ($isAlterationMode && $formName === 'P')
-                                    I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<span class="req">*</span><br>
-                                    I request that the selected alteration(s) to my Power Generating Station Operation and Maintenance Competency Certificate may be processed.
-                                    <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.<br>எனது மின்சாரம் உற்பத்தி நிலையத்தின் செயல்பாடு மற்றும் பராமரிப்பு திறன் சான்றிதழில் தேர்ந்தெடுத்த மாற்றம்(கள்) செயல்படுத்தப்பட வேண்டும் என்று கேட்டுக்கொள்கிறேன்.</span>
+                                    I hereby declare that all the details mentioned above are correct and true to the best of my knowledge.<span class="req">*</span>
+                                    <span class="tamil">என் அறிவின் படி மேலே குறிப்பிட்டுள்ள விவரங்கள் அனைத்தும் சரியானதும் உண்மையானதுமாக இருப்பதாக நான் இங்கே அறிவிக்கிறேன்.</span>
                                 @elseif ($isAlterationMode)
                                     I hereby declare that the particulars stated above are correct and true to the best of my knowledge.<br>
                                     I request that the selected alteration(s) to my Supervisor Competency Certificate may be processed.<span class="req">*</span>
@@ -2882,6 +2909,7 @@
     })();
 </script>
 @endif
+<script src="{{ url('assets/js/applicant_address.js') }}?v={{ filemtime(public_path('assets/js/applicant_address.js')) }}"></script>
 <script src="{{ url('assets/js/alteration.js') }}"></script>
 
 <script>

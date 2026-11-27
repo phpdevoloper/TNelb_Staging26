@@ -14,6 +14,7 @@ use App\Models\TnelbAppsInstitute;
 use App\Models\TnelbFormP;
 use App\Services\ApplicationOwnerResolver;
 use App\Services\CcDigitizationLinkService;
+use App\Services\Competency\ApplicantAddressParts;
 use App\Services\Competency\CompetencyCertificateService;
 use App\Services\Competency\CompetencyDocumentSupport;
 use App\Services\Competency\FormPSchema;
@@ -155,7 +156,7 @@ class FormPController extends BaseController
             'cert_name' => FormPSchema::LICENSE_NAME,
         ]);
         $request->validate([
-            'ccnumber' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9][A-Za-z0-9\-\/]{0,19}$/'],
+            'ccnumber' => ['required', 'digits_between:1,6'],
             // Date of First Issue / Validity From cannot be in the future (Validity To may be).
             'fissue' => 'required|date|before_or_equal:today',
             'from_date' => 'required|date|before_or_equal:today|after_or_equal:fissue',
@@ -180,6 +181,8 @@ class FormPController extends BaseController
             'form_name' => 'required|in:P',
             'cert_name' => 'required|in:P',
         ], [
+            'ccnumber.required' => 'Certificate Number is required',
+            'ccnumber.digits_between' => 'Certificate Number must be 1 to 6 digits only (numbers only).',
             'from_date.after_or_equal' => 'Date of First Issue must be less than or equal to Validity From date.',
             'fissue.before_or_equal' => 'Date of First Issue cannot be a future date.',
             'from_date.before_or_equal' => 'Validity From date cannot be a future date.',
@@ -981,6 +984,11 @@ class FormPController extends BaseController
             } else {
             $application_details = $legacy;
         }
+        // Saved structured address of the row that fills the form (renewal draft, parent, or edited row) for
+        // the applicant-address-fields partial; null when none (the partial parses applicants_address).
+        if (is_object($application_details)) {
+            $application_details->address_parts = $this->formPAddressPartsForDisplay($application_details);
+        }
 
         $edu_details = CC_Education::where('application_id', $appl_id)
             ->orderByDesc('year_of_passing')
@@ -1082,6 +1090,30 @@ class FormPController extends BaseController
             'proof_doc',
             'institutes'
         );
+    }
+
+    /**
+     * Saved parts (address_line1 ... pincode) in the partial's shape (line1 ... pincode); null when none are stored
+     * (legacy tnelb_form_p rows have no part columns). Mirrors FormController::normalizeCcMetaRowForEdit.
+     *
+     * @return array<string, string>|null
+     */
+    private function formPAddressPartsForDisplay(object $row): ?array
+    {
+        $attributes = $row instanceof \Illuminate\Database\Eloquent\Model ? $row->getAttributes() : (array) $row;
+        $savedParts = ApplicantAddressParts::payload($attributes);
+        if ($savedParts === []) {
+            return null;
+        }
+
+        return [
+            'line1' => (string) ($savedParts['address_line1'] ?? ''),
+            'line2' => (string) ($savedParts['address_line2'] ?? ''),
+            'city' => (string) ($savedParts['city'] ?? ''),
+            'state' => (string) ($savedParts['state'] ?? ''),
+            'district' => (string) ($savedParts['district'] ?? ''),
+            'pincode' => (string) ($savedParts['pincode'] ?? ''),
+        ];
     }
 
     private function findFormPRenewalDraft(string $parentId, string $loginId)
