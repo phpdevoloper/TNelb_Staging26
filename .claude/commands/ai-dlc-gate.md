@@ -25,7 +25,7 @@ The gate runs:
 2. **Test** — PHPUnit on affected test files (or all tests if unsure)
 3. **Review** — Security + correctness gate
 
-Then pauses with a summary:
+After each phase it ticks the matching line in `TASKS.md` (see below). Then it pauses with a summary:
 - What was formatted
 - Test results (pass/fail)
 - Review results (pass/warn/fail)
@@ -34,6 +34,17 @@ If any phase fails:
 - **Format issues:** Show what would be reformatted; you can re-run manually if needed
 - **Test failures:** Show the failing test output; backend agent can fix, then re-run
 - **Review failures (FAIL):** Show blocking issues; must be fixed before code is safe
+
+## Updating TASKS.md
+
+The gate reads `TASKS.md` first and records its results there. The orchestrator owns all edits to the file (the formatter and reviewer agents have no Edit/Write tools).
+
+1. **Find the matching task:** look under `## Current` for a `### <task>` section that covers the changed files. If there is exactly one active task, use it. If there are several, ask the user which one. If there is none, skip the update and do not create a section.
+2. **Tick the gate steps:** mark the task's Format, Test and Review lines `[x]` as each phase passes. If a step line is missing, add it, e.g. `- [x] Format with Pint/Prettier (formatter)`.
+3. **On failure:** leave the step unticked and add `- [ ] Fix: <short issue> (laravel-backend)` for each failing test or review FAIL. Review WARN findings do not block ticking, but add them as `- [ ] Warn: <short issue>` lines.
+4. **When everything passes:** do not move the section to `## Done`. That happens only when the user confirms the work is finished.
+5. **Re-runs:** when the gate is re-run after fixes, tick the Fix lines that are now resolved.
+6. Keep entries to one line each. No code, diffs or test output in `TASKS.md`.
 
 ## Typical Workflow
 
