@@ -791,7 +791,7 @@
                 <div class="header-titles">
                     <h5>Digitization of Supervisor Competency Certificate</h5>
                     <h5 class="tamil-title">மேற்பார்வையாளர் தகுதிச் சான்றிதழை மின்னணுமயமாக்குதல்</h5>
-                    <span class="form-badge">FORM - C</span>
+                    <span class="form-badge">FORM - S</span>
                 </div>
             </div>
 
@@ -948,10 +948,10 @@
                                 </div>
                             </div>
                             <div id="previously_details" class="fs-toggle-panel" style="display:none;">
-                                <div class="row g-2 align-items-end">
+                                <div class="row g-2 align-items-start">
                                     <div class="col-12 col-md-4">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
-                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]{5}"
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
+                                        <input autocomplete="off" class="form-control verify-input" id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]{1,5}"
                                             data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
                                             placeholder="Certificate Number" value="" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="0">
@@ -960,13 +960,13 @@
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-issue-date" id="previously_issue_date" name="previously_issue_date" type="date"
-                                            data-error="#previouslyIssueDateError" max="{{ now()->toDateString() }}" value="">
+                                            data-error="#previouslyIssueDateError" value="">
                                         <span id="previouslyIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input autocomplete="off" class="form-control verify-valid-from" id="previously_valid_from" name="previously_valid_from" type="date"
-                                            data-error="#previouslyFromDateError" max="{{ now()->toDateString() }}" value="">
+                                            data-error="#previouslyFromDateError" value="">
                                         <span id="previouslyFromDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1015,12 +1015,12 @@
                                 </div>
                             </div>
                             <div id="wireman_details" class="fs-toggle-panel" style="display:{{ $hasOldPrefill ? 'block' : 'none' }};">
-                                <div class="row g-2 align-items-end">
+                                <div class="row g-2 align-items-start">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 123456)</span></div>
-                                        <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text" inputmode="numeric" pattern="[0-9]{6}"
-                                            data-type="certificate" data-cert-digits="6" data-error="#certError" data-msg="#license_message"
-                                            placeholder="Certificate Number" maxlength="6" value="{{ $oldCertNo }}">
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
+                                        <input class="form-control verify-input" id="certificate_no" name="competency_certificate_no" type="text" inputmode="numeric" pattern="[0-9]{1,5}"
+                                            data-type="certificate" data-cert-digits="5" data-error="#certError" data-msg="#license_message"
+                                            placeholder="Certificate Number" maxlength="5" value="{{ $oldCertNo }}">
                                         <input type="hidden" id="cert_verify" name="cert_verify" value="0">
                                         <span id="license_message" class="mt-1"></span>
                                         <span id="certError" class="text-danger" style="font-size:.78rem;"></span>
@@ -1028,13 +1028,13 @@
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">Date of First Issue <span class="req">*</span></div>
                                         <input class="form-control verify-issue-date" id="certificate_issue_date" name="certificate_issue_date"
-                                            data-error="#certIssueDateError" type="date" max="{{ now()->toDateString() }}" value="">
+                                            data-error="#certIssueDateError" type="date" value="">
                                         <span id="certIssueDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
                                         <div class="fs-field-label">From date <span class="req">*</span></div>
                                         <input class="form-control verify-valid-from" id="certificate_valid_from" name="certificate_valid_from"
-                                            data-error="#certFromDateError" type="date" max="{{ now()->toDateString() }}" value="">
+                                            data-error="#certFromDateError" type="date" value="">
                                         <span id="certFromDateError" class="text-danger" style="font-size:.78rem;"></span>
                                     </div>
                                     <div class="col-12 col-md-2">
@@ -1316,9 +1316,13 @@
 
         function clearLocalPreview($fileInput) {
             var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-            var $preview = $wrap.next('.local-file-preview');
-            var oldUrl = $preview.data('blobUrl');
-            if (oldUrl) URL.revokeObjectURL(oldUrl);
+            /* nextAll, not next: a submit-time error message (e.g. "File size permitted only 5 KB to 200 KB")
+               can sit between the upload box and an earlier preview, which left a stale second "View Document". */
+            var $preview = $wrap.nextAll('.local-file-preview');
+            $preview.each(function () {
+                var oldUrl = $(this).data('blobUrl');
+                if (oldUrl) URL.revokeObjectURL(oldUrl);
+            });
             $preview.remove();
             $fileInput.removeAttr('data-has-local-file');
         }

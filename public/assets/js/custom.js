@@ -21,7 +21,7 @@ $(document).ready(function () {
         }
     });
 
-    // Form S certificate numbers (Q8 supervisor = 5 digits, Q9 wireman = 6 digits, no C/W prefix).
+    // Form S certificate numbers (Q8 supervisor and Q9 wireman = 1 to 5 digits, no C/W prefix).
     // Only inputs that carry data-cert-digits are checked here; Form W/WH/P inputs keep the old behaviour.
     const FS_CERT_INVALID_MSG = "Invalid certificate number";
     const FS_CERT_REQUIRED_MSG = "Certificate Number is required";
@@ -34,7 +34,8 @@ $(document).ready(function () {
     }
 
     function fsCertNumberIsValid(value, digits) {
-        return /^[0-9]+$/.test(value) && value.length === digits;
+        // `digits` is the MAX length; 1..digits numeric characters are valid.
+        return /^[0-9]+$/.test(value) && value.length >= 1 && value.length <= digits;
     }
 
     /* True when the Yes option that opens this input's panel is selected (or the input has no Yes/No toggle). */
@@ -101,7 +102,7 @@ $(document).ready(function () {
             } else if (!/^[0-9]+$/.test(certValue) || certValue.length > certDigits) {
                 $certErr.text(FS_CERT_INVALID_MSG);
             } else {
-                // Too few digits is reported on blur / submit, not while typing.
+                // Any 1..max digit number is valid.
                 $certErr.text("");
             }
             return;
@@ -149,6 +150,136 @@ $(document).ready(function () {
             $(target).find(".verify-issue-date, .verify-valid-from, .verify-date").val("");
         }
     });
+
+    /* ------------------------------------------------------------------
+     * Form S Q8 (#previously_details) / Q9 (#wireman_details) basic date rules.
+     *   Date of First Issue : real date, 1900-01-01 .. today
+     *   From date           : real date, >= Date of First Issue, <= today
+     *   To date             : real date, > From date, <= 2099-12-31
+     * Only active when #form_name is S (W/WH/P share the classes but are left untouched).
+     * Empty values are not reported here (the "is required" handlers own that).
+     * ------------------------------------------------------------------ */
+    const FS_DATE_SECTIONS = "#previously_details, #wireman_details";
+    const FS_DATE_MIN = "1900-01-01";
+    const FS_DATE_MAX_TO = "2099-12-31";
+
+    function fsIsFormS() {
+        return String($("#form_name").val() || "").trim().toUpperCase() === "S";
+    }
+
+    function fsTodayIso() {
+        const t = new Date();
+        return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
+    }
+
+    function fsAddDaysIso(iso, days) {
+        const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return "";
+        const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + days));
+        return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+    }
+
+    /* Returns {empty:true} | {valid:false} | {valid:true, iso}. Accepts yyyy-mm-dd and dd-mm-yyyy / dd/mm/yyyy. */
+    function fsParseCertDate($el) {
+        if (!$el || !$el.length) return { empty: true };
+        const raw = String($el.val() || "").trim();
+        if (raw === "") return { empty: true };
+        let y, mo, d, m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (m) {
+            y = +m[1]; mo = +m[2]; d = +m[3];
+        } else if ((m = raw.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/))) {
+            d = +m[1]; mo = +m[2]; y = +m[3];
+        } else {
+            return { valid: false };
+        }
+        const dt = new Date(Date.UTC(y, mo - 1, d));
+        if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return { valid: false };
+        return { valid: true, iso: String(y).padStart(4, "0") + "-" + String(mo).padStart(2, "0") + "-" + String(d).padStart(2, "0") };
+    }
+
+    function fsCertDateEditable($el) {
+        return $el.length && !$el.prop("disabled") && !$el.prop("readonly") && !$el.closest(".fs-return-section-locked").length;
+    }
+
+    function fsSectionDateFields($section) {
+        return {
+            issue: $section.find(".verify-issue-date").first(),
+            from: $section.find(".verify-valid-from").first(),
+            to: $section.find(".verify-date").first(),
+        };
+    }
+
+    /* Validate one field; returns the error message ("" when fine or empty). */
+    function fsCertDateMessage(kind, f) {
+        const today = fsTodayIso();
+        const $el = f[kind];
+        const p = fsParseCertDate($el);
+        if (p.empty) return "";
+        if (!p.valid) return "Enter a valid date";
+        if (kind === "issue") {
+            if (p.iso < FS_DATE_MIN) return "Date of First Issue cannot be before 01-01-1900";
+            if (p.iso > today) return "Date of First Issue cannot be in the future";
+            return "";
+        }
+        if (kind === "from") {
+            if (p.iso < FS_DATE_MIN) return "From date cannot be before 01-01-1900";
+            const issue = fsParseCertDate(f.issue);
+            if (issue.valid && p.iso < issue.iso) return "From date cannot be before Date of First Issue";
+            if (p.iso > today) return "From date cannot be in the future";
+            return "";
+        }
+        // to
+        const base = f.from.length ? fsParseCertDate(f.from) : fsParseCertDate(f.issue);
+        if (base.valid && p.iso <= base.iso) return "To date must be after " + (f.from.length ? "From date" : "Date of First Issue");
+        if (p.iso > FS_DATE_MAX_TO) return "To date cannot be after 31-12-2099";
+        return "";
+    }
+
+    function fsWriteCertDateMessage($el, msg) {
+        const $err = $($el.data("error"));
+        if ($err.length) $err.text(msg);
+        return msg;
+    }
+
+    /**
+     * Validates the Q8/Q9 date fields of $section (default: both sections) and writes inline errors.
+     * Sections whose Yes option is not selected, and locked/readonly fields, are skipped.
+     * Returns true when everything checked is valid. window.fsLastInvalidCertDate holds the first bad input.
+     */
+    function fsValidateCertificateDates($section) {
+        window.fsLastInvalidCertDate = null;
+        if (!fsIsFormS()) return true;
+        const $secs = $section && $section.length ? $section : $(FS_DATE_SECTIONS);
+        let ok = true;
+        $secs.each(function () {
+            const f = fsSectionDateFields($(this));
+            const $probe = f.to.length ? f.to : (f.issue.length ? f.issue : f.from);
+            if (!$probe.length || !fsCertYesSelected($probe)) return;
+            ["issue", "from", "to"].forEach(function (kind) {
+                const $el = f[kind];
+                if (!$el.length || !fsCertDateEditable($el)) return;
+                if (fsParseCertDate($el).empty) return;
+                const msg = fsWriteCertDateMessage($el, fsCertDateMessage(kind, f));
+                if (msg) {
+                    ok = false;
+                    if (!window.fsLastInvalidCertDate) window.fsLastInvalidCertDate = $el;
+                }
+            });
+        });
+        return ok;
+    }
+    window.fsValidateCertificateDates = fsValidateCertificateDates;
+
+    // Live validation: re-check the changed field and the ones that depend on it.
+    $(document).on("change", FS_DATE_SECTIONS.split(", ").map(function (s) {
+        return s + " .verify-issue-date, " + s + " .verify-valid-from, " + s + " .verify-date";
+    }).join(", "), function () {
+        if (!fsIsFormS()) return;
+        const $section = $(this).closest(FS_DATE_SECTIONS);
+        if (!$section.length) return;
+        fsValidateCertificateDates($section);
+    });
+
 
     // ✅ Common Verify Button AJAX
     $(document).on("click", ".verify-btn", function () {
@@ -243,6 +374,11 @@ $(document).ready(function () {
         }
 
         if (!validateDateInput(toDate, "To date is required")) {
+            isValid = false;
+        }
+
+        // Form S: range / ordering rules (no-op on other forms)
+        if (isValid && section.length && !fsValidateCertificateDates(section)) {
             isValid = false;
         }
 
@@ -487,6 +623,12 @@ $(document).ready(function () {
         const $badCertNo = fsValidateCertNumbers($('#competency_form_ws'));
         if ($badCertNo) {
             if (!firstErrorField) firstErrorField = $badCertNo;
+            isValid = false;
+        }
+
+        // Form S Q8/Q9 date rules (only when "Yes" is chosen; no-op on other forms).
+        if (!fsValidateCertificateDates()) {
+            if (!firstErrorField) firstErrorField = window.fsLastInvalidCertDate;
             isValid = false;
         }
 

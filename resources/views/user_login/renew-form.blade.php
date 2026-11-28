@@ -577,9 +577,18 @@
         padding: 6px 14px;
         white-space: nowrap;
     }
+    /* Rows are top-aligned so inline errors do not shift sibling inputs; if a button column is re-enabled, offset it by the label height. */
+    .fs-verify-grid > [class*="col-"] > .fs-verify-actions {
+        align-items: flex-start;
+        min-height: 0;
+        margin-top: 22px;
+    }
     @media (max-width: 767.98px) {
         .fs-verify-actions {
             min-height: 0;
+        }
+        .fs-verify-grid > [class*="col-"] > .fs-verify-actions {
+            margin-top: 0;
         }
     }
 
@@ -1297,7 +1306,7 @@
                                                 <select name="year_of_passing[]" class="form-control">
                                                     <option value="0" disabled {{ empty($eduRow->year_of_passing) ? 'selected' : '' }}>Select Year</option>
                                                     @php $currentYear = date('Y'); @endphp
-                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                         <option value="{{ $year }}" {{ $eduRow->year_of_passing == $year ? 'selected' : '' }}>{{ $year }}</option>
                                                     @endfor
                                                 </select>
@@ -1377,7 +1386,7 @@
                                                 <select name="year_of_passing[]" class="form-control">
                                                     <option value="0">Select Year</option>
                                                     @php $currentYear = date('Y'); @endphp
-                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                         <option value="{{ $year }}">{{ $year }}</option>
                                                     @endfor
                                                 </select>
@@ -1580,14 +1589,14 @@
                                 </div>
                             </div>
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasPrevScc ? 'block' : 'none' }};">
-                                <div class="row g-2 align-items-end fs-verify-grid">
+                                <div class="row g-2 align-items-start fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. C1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
-                                               id="previously_number" name="previously_number" type="text"
-                                               data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
+                                               id="previously_number" name="previously_number" type="text" inputmode="numeric" pattern="[0-9]{1,5}"
+                                               data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
                                                placeholder="Certificate Number" {{ $hasPrevScc ? 'readonly' : '' }}
-                                               value="{{ $prevSccNo }}" maxlength="80">
+                                               value="{{ $prevSccNo }}" maxlength="5">
                                         <input type="hidden" id="l_verify" name="l_verify" value="{{ $application_details->license_verify ?? ($hasPrevScc ? 1 : 0) }}">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
@@ -1687,13 +1696,13 @@
                                 </div>
                             </div>
                             <div class="fs-toggle-panel mt-2" id="wireman_details" style="display: {{ $hasWiremanCert ? 'block' : 'none' }};">
-                                <div class="row g-2 align-items-end fs-verify-grid">
+                                <div class="row g-2 align-items-start fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
                                         <input class="form-control text-box single-line verify-input"
-                                               id="certificate_no" name="competency_certificate_no" type="text"
-                                               data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
-                                               placeholder="Certificate Number" maxlength="80"
+                                               id="certificate_no" name="competency_certificate_no" type="text" inputmode="numeric" pattern="[0-9]{1,5}"
+                                               data-type="{{ $cert_type }}" data-cert-digits="5" data-error="#certError" data-msg="#license_message"
+                                               placeholder="Certificate Number" maxlength="5"
                                                value="{{ $wiremanCertNo }}"
                                                {{ $hasWiremanCert ? 'readonly' : '' }}>
                                         <span id="license_message" class="mt-1"></span>
@@ -2028,10 +2037,9 @@
     function clearLocalPreview($fileInput) {
         var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
         var $preview = $wrap.length
-            ? $wrap.nextAll('.local-file-preview').first()
-            : $fileInput.nextAll('.local-file-preview').first();
-        var oldUrl = $preview.data('blobUrl');
-        if (oldUrl) URL.revokeObjectURL(oldUrl);
+            ? $wrap.nextAll('.local-file-preview')
+            : $fileInput.nextAll('.local-file-preview');
+            $preview.each(function () { var oldUrl = $(this).data('blobUrl'); if (oldUrl) URL.revokeObjectURL(oldUrl); });
         $preview.remove();
         $fileInput.removeAttr('data-has-local-file');
     }
@@ -2205,7 +2213,7 @@
 
             let currentYear = new Date().getFullYear();
             let yearOptions = '<option value="">Select Year</option>';
-            for (let year = currentYear; year >= 1980; year--) {
+            for (let year = currentYear; year >= 1900; year--) {
                 yearOptions += `<option value="${year}">${year}</option>`;
             }
 

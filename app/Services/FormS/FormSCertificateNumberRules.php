@@ -5,8 +5,8 @@ namespace App\Services\FormS;
 /**
  * Form S questions 8 and 9: previously issued certificate numbers.
  *
- *  - Q8 supervisor certificate (`previously_number`, flag `previous_license`): exactly 5 digits.
- *  - Q9 wireman certificate (`competency_certificate_no`, flag `previous_certificate`): exactly 6 digits.
+ *  - Q8 supervisor certificate (`previously_number`, flag `previous_license`): 1 to 5 digits.
+ *  - Q9 wireman certificate (`competency_certificate_no`, flag `previous_certificate`): 1 to 5 digits.
  *
  * Digits only. A "C" / "W" (or any other) prefix is rejected, never stripped.
  * The check runs only when the applicant chose "Yes" for that question; "No" clears the number on save.
@@ -25,13 +25,13 @@ final class FormSCertificateNumberRules
     public const SUPERVISOR_FLAG = 'previous_license';
 
     // \A...\z (not ^...$): "$" would also accept a trailing newline.
-    public const SUPERVISOR_PATTERN = '/\A[0-9]{5}\z/';
+    public const SUPERVISOR_PATTERN = '/\A[0-9]{1,5}\z/';
 
     public const WIREMAN_FIELD = 'competency_certificate_no';
 
     public const WIREMAN_FLAG = 'previous_certificate';
 
-    public const WIREMAN_PATTERN = '/\A[0-9]{6}\z/';
+    public const WIREMAN_PATTERN = '/\A[0-9]{1,5}\z/';
 
     public static function appliesTo(mixed $formName): bool
     {

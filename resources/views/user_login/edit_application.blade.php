@@ -430,9 +430,18 @@
         padding: 6px 14px;
         white-space: nowrap;
     }
+    /* Rows are top-aligned so inline errors do not shift sibling inputs; if a button column is re-enabled, offset it by the label height. */
+    .fs-verify-grid > [class*="col-"] > .fs-verify-actions {
+        align-items: flex-start;
+        min-height: 0;
+        margin-top: 22px;
+    }
     @media (max-width: 767.98px) {
         .fs-verify-actions {
             min-height: 0;
+        }
+        .fs-verify-grid > [class*="col-"] > .fs-verify-actions {
+            margin-top: 0;
         }
     }
 
@@ -1417,7 +1426,7 @@
                                                                     @php
                                                                         $currentYear = date('Y');
                                                                     @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                                         <option value="{{ $year }}" {{ $edu_details->year_of_passing == $year ? 'selected' : '' }}>
                                                                             {{ $year }}
                                                                         </option>
@@ -1538,7 +1547,7 @@
                                                                     @php
                                                                         $currentYear = date('Y');
                                                                     @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                                         <option value="{{ $year }}">{{ $year }}</option>
                                                                     @endfor
                                                                 </select>
@@ -1802,9 +1811,9 @@
                                 </div>
                             </div>
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ $hasSupervisorCert ? 'block' : 'none' }};">
-                                <div class="row g-2 align-items-end fs-verify-grid">
+                                <div class="row g-2 align-items-start fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 12345)</span></div>
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text" inputmode="numeric"
                                                data-type="license" data-cert-digits="5" data-error="#licenseError" data-msg="#license_messagdfde"
@@ -1919,13 +1928,13 @@
                                                                 $cert_type = 'certificate';
                                                             }
                                                         @endphp
-                                <div class="row g-2 align-items-end fs-verify-grid">
+                                <div class="row g-2 align-items-start fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S') <span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. 123456)</span>@endif</div>
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span>@if($application_details->form_name == 'S') <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span>@endif</div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
-                                                                   @if($application_details->form_name == 'S') data-cert-digits="6" inputmode="numeric" maxlength="6" @else maxlength="80" @endif
+                                                                   @if($application_details->form_name == 'S') data-cert-digits="5" inputmode="numeric" pattern="[0-9]{1,5}" maxlength="5" @else maxlength="80" @endif
                                                                    placeholder="Certificate Number"
                                                                    value="{{ $q9Number }}" {{ $renewLockWiremanCert ? 'readonly' : '' }}>
                                                             <span id="licenseError" class="text-danger"></span>
@@ -2271,9 +2280,8 @@
 <script>
     function clearLocalPreview($fileInput) {
         var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-        var $preview = $wrap.next('.local-file-preview');
-        var oldUrl = $preview.data('blobUrl');
-        if (oldUrl) URL.revokeObjectURL(oldUrl);
+        var $preview = $wrap.nextAll('.local-file-preview');
+        $preview.each(function () { var oldUrl = $(this).data('blobUrl'); if (oldUrl) URL.revokeObjectURL(oldUrl); });
         $preview.remove();
         $fileInput.removeAttr('data-has-local-file');
     }
@@ -2460,7 +2468,7 @@
 
             let currentYear = new Date().getFullYear();
             let yearOptions = '<option value="">Select Year</option>';
-            for (let year = currentYear; year >= 1980; year--) {
+            for (let year = currentYear; year >= 1900; year--) {
                 yearOptions += `<option value="${year}">${year}</option>`;
             }
 

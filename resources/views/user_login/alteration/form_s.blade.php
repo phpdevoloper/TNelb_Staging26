@@ -702,9 +702,18 @@
         padding: 6px 14px;
         white-space: nowrap;
     }
+    /* Rows are top-aligned so inline errors do not shift sibling inputs; if a button column is re-enabled, offset it by the label height. */
+    .fs-verify-grid > [class*="col-"] > .fs-verify-actions {
+        align-items: flex-start;
+        min-height: 0;
+        margin-top: 22px;
+    }
     @media (max-width: 767.98px) {
         .fs-verify-actions {
             min-height: 0;
+        }
+        .fs-verify-grid > [class*="col-"] > .fs-verify-actions {
+            margin-top: 0;
         }
     }
 
@@ -1997,13 +2006,15 @@
                                 </div>
                             </div>
                             <div class="fs-toggle-panel mt-2" id="previously_details" style="display: {{ !empty($application_details->previous_scc_no) ? 'block' : 'none' }};">
-                                <div class="row g-2 align-items-end fs-verify-grid">
+                                <div class="row g-2 align-items-start fs-verify-grid">
                                     <div class="col-12 col-md-3">
-                                        <div class="fs-field-label">Certificate Number <span class="req">*</span></div>
+                                        @php $q8CertDigitsOk = preg_match('/^[0-9]{0,5}$/', trim((string) ($application_details->previous_scc_no ?? ''))) === 1; @endphp
+                                        <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
                                         <input autocomplete="off" class="form-control text-box single-line verify-input"
                                                id="previously_number" name="previously_number" type="text"
+                                               @if($q8CertDigitsOk) inputmode="numeric" pattern="[0-9]{1,5}" data-cert-digits="5" @endif
                                                data-type="license" data-error="#licenseError" data-msg="#license_messagdfde"
-                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="80">
+                                               placeholder="Certificate Number" value="{{ $application_details->previous_scc_no }}" maxlength="{{ $q8CertDigitsOk ? 5 : 80 }}">
                                         <span id="licenseError" class="text-danger"></span>
                                         <span id="verify_result"></span>
                                         <span id="license_messagdfde" class="mt-1"></span>
@@ -2103,13 +2114,15 @@
                                                                 $cert_type = 'certificate';
                                                             }
                                                         @endphp
-                                <div class="row g-2 align-items-end fs-verify-grid">
+                                <div class="row g-2 align-items-start fs-verify-grid">
                                                         <div class="col-12 col-md-3">
-                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span><span class="text-muted" style="font-size:.75rem;font-weight:400;">(eg. W1234 / H1234, LB2026041234 / LWH2026041234)</span></div>
+                                                            @php $q9CertDigitsOk = preg_match('/^[0-9]{0,5}$/', trim((string) ($application_details->wcc_no ?? ''))) === 1; @endphp
+                                                            <div class="fs-field-label">Certificate Number <span class="req">*</span> <span class="text-muted" style="font-size:.75rem;font-weight:400;">(1 to 5 digits, eg. 12345)</span></div>
                                                             <input class="form-control text-box single-line verify-input"
                                                                    id="certificate_no" name="competency_certificate_no" type="text"
+                                                                   @if($q9CertDigitsOk) inputmode="numeric" pattern="[0-9]{1,5}" data-cert-digits="5" @endif
                                                                    data-type="{{ $cert_type }}" data-error="#certError" data-msg="#license_message"
-                                                                   placeholder="Certificate Number" maxlength="80"
+                                                                   placeholder="Certificate Number" maxlength="{{ $q9CertDigitsOk ? 5 : 80 }}"
                                                                    value="{{ $application_details->wcc_no }}"
                                                                    >
                                                             <span id="licenseError" class="text-danger"></span>
@@ -2556,9 +2569,8 @@
 <script>
     function clearLocalPreview($fileInput) {
         var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-        var $preview = $wrap.next('.local-file-preview');
-        var oldUrl = $preview.data('blobUrl');
-        if (oldUrl) URL.revokeObjectURL(oldUrl);
+        var $preview = $wrap.nextAll('.local-file-preview');
+        $preview.each(function () { var oldUrl = $(this).data('blobUrl'); if (oldUrl) URL.revokeObjectURL(oldUrl); });
         $preview.remove();
         $fileInput.removeAttr('data-has-local-file');
     }

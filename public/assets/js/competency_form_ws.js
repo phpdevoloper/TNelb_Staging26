@@ -4014,21 +4014,10 @@
             return $first;
         }
 
-        function fsApplyCertDateMax() {
-            if (($('#form_name').val() || '').toString().trim().toUpperCase() !== 'S') return;
-            const today = fsTodayIso();
-            $(FS_CERT_PAST_DATE_SELECTOR).each(function () {
-                if (this.type === 'date') {
-                    this.setAttribute('max', today);
-                } else if (this._flatpickr) {
-                    this._flatpickr.set('maxDate', 'today');
-                }
-            });
-        }
-        fsApplyCertDateMax();
-
         $(document).on('change', FS_CERT_PAST_DATE_SELECTOR, function () {
             if (($('#form_name').val() || '').toString().trim().toUpperCase() !== 'S') return;
+            // custom.js (fsValidateCertificateDates) owns the change-time messages; this stays as a fallback only.
+            if (typeof window.fsValidateCertificateDates === 'function') return;
             const $el = $(this);
             const iso = fsCertDateIso($el);
             if (iso !== '' && iso > fsTodayIso()) {
@@ -4378,7 +4367,7 @@
                 if (String(el.value || '').trim() !== '') return true;
                 if (String(el.getAttribute('data-has-local-file') || '') === '1') return true;
                 const $wrap = $input.closest('.form-s-file-upload-wrap');
-                if ($wrap.length && $wrap.next('.local-file-preview').find('.preview-link').length) return true;
+                if ($wrap.length && $wrap.nextAll('.local-file-preview').find('.preview-link').length) return true;
                 return false;
             }
 
@@ -4993,6 +4982,11 @@
                 const $badCertDate = fsValidateCertPastDates();
                 if ($badCertDate) {
                     if (!firstErrorField) firstErrorField = $badCertDate;
+                    isValid = false;
+                }
+                /* Full range/ordering rules (custom.js); runs after the future-date check so its messages win. */
+                if (typeof window.fsValidateCertificateDates === 'function' && !window.fsValidateCertificateDates()) {
+                    if (!firstErrorField) firstErrorField = window.fsLastInvalidCertDate;
                     isValid = false;
                 }
             }

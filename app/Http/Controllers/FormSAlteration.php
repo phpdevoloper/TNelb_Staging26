@@ -9,9 +9,12 @@ namespace App\Http\Controllers;
 use App\Services\Competency\FormWSchema;
 use App\Services\Competency\FormWHSchema;
 use App\Services\Competency\FormPSchema;
+use App\Services\Competency\CertificateDateRules;
 use App\Services\FormS\FormSAlterationService;
+use App\Services\FormS\FormSCertificateNumberRules;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -309,6 +312,7 @@ class FormSAlteration extends BaseController
             'address_alteration_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
         ]);
+        $this->validateWiremanCertificateDates($request);
 
 
 
@@ -377,6 +381,7 @@ class FormSAlteration extends BaseController
             'address_alteration_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:200',
 
         ]);
+        $this->validateWiremanCertificateDates($request);
 
 
 
@@ -440,6 +445,28 @@ class FormSAlteration extends BaseController
     }
 
 
+
+    /**
+     * Form S alteration: Q9 wireman certificate dates are saved from the post (alterationWccSnapshot), so they
+     * get the same CertificateDateRules as New / edit when "Yes" is chosen. Q8 is copied from the parent
+     * certificate (posted values are not saved), so it is not checked here. 422 like $request->validate().
+     */
+    private function validateWiremanCertificateDates(Request $request): void
+    {
+        if (! FormSCertificateNumberRules::appliesTo($request->input('form_name', $this->resolveFormCode($request)))) {
+            return;
+        }
+
+        $errors = CertificateDateRules::errors(
+            $request->all(),
+            now()->toDateString(),
+            [CertificateDateRules::WIREMAN]
+        );
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
 
     private function resolveFormCode(Request $request): string
 

@@ -52,6 +52,7 @@ use App\Services\FormS\FormSWorkTillDate;
 use App\Services\FormS\SensitiveProofCryptService;
 use App\Services\DocumentVersion\DocumentStorageService;
 use App\Services\Competency\ApplicantAddressParts;
+use App\Services\Competency\CertificateDateRules;
 use App\Services\Competency\CompetencyApplicationService;
 use App\Services\Competency\CompetencyDocumentReviewService;
 use App\Services\Competency\CompetencyWorkflowService;
@@ -7131,11 +7132,16 @@ public function update(Request $request, $id)
         bool $applyNewApplicationRules = true
     ): void {
         $input = $request->all();
-        // New / Digitisation / edit only: Q8 / Q9 number format and no future issue / from dates.
-        // Renewal passes false (it shows the stored legacy values read-only).
+        $today = now()->toDateString();
+        // New / Digitisation / edit only: Q8 / Q9 number format and dates. Answered "Yes": the full
+        // CertificateDateRules (range / order, same as custom.js); flag not posted: only no future issue /
+        // from date (unchanged legacy check). Renewal passes false (it shows the stored legacy values read-only).
         $errors = ($applyNewApplicationRules
                 ? FormSCertificateNumberRules::errors($input, $requireComplete)
-                    + FormSApplicantRules::futureDateErrors($input, now()->toDateString())
+                    + (FormSCertificateNumberRules::appliesTo($input['form_name'] ?? null)
+                        ? CertificateDateRules::errors($input, $today)
+                        : [])
+                    + FormSApplicantRules::futureDateErrors($input, $today)
                 : [])
             + ApplicantAddressParts::errors($input, $requireComplete);
 
