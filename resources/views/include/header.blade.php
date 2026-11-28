@@ -1467,7 +1467,7 @@ use Illuminate\Support\Facades\Auth;
                             </svg>
                         </span>
                         <div>
-                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Form {{ $digi_title_letter }} Digitization </h5>
+                            <h5 class="modal-title" id="competencyInstructionsModalLabel">Certificate {{ $digi_title_letter }} Digitization </h5>
                             <small class="modal-subtitle">Enroll your Competency Certificate Details.</small>
                         </div>
                     </div>

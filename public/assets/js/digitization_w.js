@@ -458,6 +458,15 @@ $(document).on("click", "#digitizationSubmit", function () {
                 $("#declaration-error-renew").addClass("d-none");
 
                 showContractorDetails(response.contractorDetails);
+
+                // Show the Instructions & Declaration popup after certificate details are saved.
+                if (typeof competencyModal !== "undefined" && competencyModal) {
+                    $("#competencyInstructionsModal .modal-subtitle").text(
+                        "Please read the instructions below and confirm the declaration to continue.",
+                    );
+                    await loadInstructions();
+                    competencyModal.show();
+                }
             }
         },
         error: function (xhr) {

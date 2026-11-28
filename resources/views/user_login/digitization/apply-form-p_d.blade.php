@@ -384,7 +384,7 @@
                                                     <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;">
                                                         <option value="0">Year</option>
                                                         @php $currentYear = date('Y'); @endphp
-                                                        @for ($year = $currentYear; $year >= 1953; $year--)
+                                                        @for ($year = $currentYear; $year >= 1900; $year--)
                                                             <option value="{{ $year }}">{{ $year }}</option>
                                                         @endfor
                                                     </select>
@@ -740,9 +740,8 @@
 
     function clearLocalPreviewP($inp) {
         clearFileErrorP($inp);
-        var $prev = $inp.next('.local-file-preview');
-        var old = $prev.data('blobUrl');
-        if (old) URL.revokeObjectURL(old);
+        var $prev = $inp.nextAll('.local-file-preview');
+        $prev.each(function () { var old = $(this).data('blobUrl'); if (old) URL.revokeObjectURL(old); });
         $prev.remove();
         $inp.removeAttr('data-has-local-file');
     }
@@ -814,7 +813,7 @@
 </select>
 <select name="year_of_passing[]" class="form-control" style="flex:1;min-width:0;" required>
     <option value="0">Year</option>
-    ${[...Array(new Date().getFullYear() - 1952).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
+    ${[...Array(new Date().getFullYear() - 1899).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
 </select>
 </div></td>
 <td><input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" placeholder="Certificate No"></td>

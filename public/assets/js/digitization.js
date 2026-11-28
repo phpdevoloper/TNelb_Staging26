@@ -500,6 +500,15 @@ $(document).on("click", "#digitizationSubmit", function () {
 
                 showContractorDetails(response.contractorDetails);
 
+                // Show the Instructions & Declaration popup after certificate details are saved.
+                if (typeof competencyModal !== "undefined" && competencyModal) {
+                    $("#competencyInstructionsModal .modal-subtitle").text(
+                        "Please read the instructions below and confirm the declaration to continue.",
+                    );
+                    await loadInstructions();
+                    competencyModal.show();
+                }
+
                 // Digitisation has no payment step — continue on the form after certificate details are saved.
             }
         },
