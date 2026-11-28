@@ -17,11 +17,8 @@
 
     function clearLocalPreview($fileInput) {
         var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-        var $preview = $wrap.next('.local-file-preview');
-        var oldUrl = $preview.data('blobUrl');
-        if (oldUrl) {
-            URL.revokeObjectURL(oldUrl);
-        }
+        var $preview = $wrap.nextAll('.local-file-preview');
+        $preview.each(function () { var oldUrl = $(this).data('blobUrl'); if (oldUrl) URL.revokeObjectURL(oldUrl); });
         $preview.remove();
         $fileInput.removeAttr('data-has-local-file');
     }

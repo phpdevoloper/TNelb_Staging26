@@ -327,7 +327,7 @@
 
     function yearOptions() {
         var html = '<option value="">Select Year</option>';
-        for (var y = currentYear; y >= 1980; y--) {
+        for (var y = currentYear; y >= 1900; y--) {
             html += '<option value="' + y + '">' + y + '</option>';
         }
         return html;

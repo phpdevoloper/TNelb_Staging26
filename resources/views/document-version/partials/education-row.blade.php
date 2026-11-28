@@ -30,7 +30,7 @@
                     $gradeVal = trim($gm[1]);
                 }
             @endphp
-            @for ($y = $currentYear; $y >= 1980; $y--)
+            @for ($y = $currentYear; $y >= 1900; $y--)
                 <option value="{{ $y }}" @selected((string) $yearVal === (string) $y)>{{ $y }}</option>
             @endfor
         </select>

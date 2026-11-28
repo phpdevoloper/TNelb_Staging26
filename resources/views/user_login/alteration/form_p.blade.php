@@ -1691,7 +1691,7 @@
                                                                     @php
                                                                         $currentYear = date('Y');
                                                                     @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                                         <option value="{{ $year }}" {{ $edu_details->year_of_passing == $year ? 'selected' : '' }}>
                                                                             {{ $year }}
                                                                         </option>
@@ -1808,7 +1808,7 @@
                                                                     @php
                                                                         $currentYear = date('Y');
                                                                     @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                                         <option value="{{ $year }}">{{ $year }}</option>
                                                                     @endfor
                                                                 </select>
@@ -2997,9 +2997,8 @@
 <script>
     function clearLocalPreview($fileInput) {
         var $wrap = $fileInput.closest('.form-s-file-upload-wrap');
-        var $preview = $wrap.next('.local-file-preview');
-        var oldUrl = $preview.data('blobUrl');
-        if (oldUrl) URL.revokeObjectURL(oldUrl);
+        var $preview = $wrap.nextAll('.local-file-preview');
+        $preview.each(function () { var oldUrl = $(this).data('blobUrl'); if (oldUrl) URL.revokeObjectURL(oldUrl); });
         $preview.remove();
         $fileInput.removeAttr('data-has-local-file');
     }
@@ -3176,7 +3175,7 @@
 
             let currentYear = new Date().getFullYear();
             let yearOptions = '<option value="">Select Year</option>';
-            for (let year = currentYear; year >= 1980; year--) {
+            for (let year = currentYear; year >= 1900; year--) {
                 yearOptions += `<option value="${year}">${year}</option>`;
             }
 

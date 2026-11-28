@@ -478,7 +478,7 @@
                                                 <select name="year_of_passing[]" class="form-control">
                                                     <option value="0">Select Year</option>
                                                     @php $currentYear = date('Y'); @endphp
-                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                         <option value="{{ $year }}">{{ $year }}</option>
                                                     @endfor
                                                 </select>
@@ -1027,7 +1027,7 @@
 </select></td>
 <td><select name="year_of_passing[]" class="form-control" required>
     <option value="0">Select Year</option>
-    ${[...Array(new Date().getFullYear() - 1979).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
+    ${[...Array(new Date().getFullYear() - 1899).keys()].map(i => `<option value="${new Date().getFullYear() - i}">${new Date().getFullYear() - i}</option>`).join('')}
 </select></td>
 <td><input type="text" class="form-control certificate-input" name="certificate_no[]" maxlength="20" required>
 <span class="error text-danger certificate-error" style="font-size:.75rem;"></span></td>

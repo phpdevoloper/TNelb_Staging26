@@ -299,7 +299,7 @@
                                                                     @php
                                                                         $currentYear = date('Y');
                                                                     @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                                         <option value="{{ $year }}" {{ $edu_details->year_of_passing == $year ? 'selected' : '' }}>
                                                                             {{ $year }}
                                                                         </option>
@@ -357,7 +357,7 @@
                                                                     @php
                                                                         $currentYear = date('Y');
                                                                     @endphp
-                                                                    @for ($year = $currentYear; $year >= 1980; $year--)
+                                                                    @for ($year = $currentYear; $year >= 1900; $year--)
                                                                         <option value="{{ $year }}">{{ $year }}</option>
                                                                     @endfor
                                                                 </select>
@@ -866,7 +866,7 @@
 
             let currentYear = new Date().getFullYear();
             let yearOptions = '<option value="">Select Year</option>';
-            for (let year = currentYear; year >= 1980; year--) {
+            for (let year = currentYear; year >= 1900; year--) {
                 yearOptions += `<option value="${year}">${year}</option>`;
             }
 

@@ -49,7 +49,7 @@
         <select name="year_of_passing[]" class="form-control">
             {{-- Renewal/alteration use "" (browser "required" can block it, arrays stay aligned); new/digitization keep "0". --}}
             <option value="{{ $eduTracksIds ? '' : '0' }}" {{ empty($eduYear) ? 'selected' : '' }}>Select Year</option>
-            @for ($year = $eduYearMax; $year >= 1980; $year--)
+            @for ($year = $eduYearMax; $year >= 1900; $year--)
                 <option value="{{ $year }}" {{ (string) $eduYear === (string) $year ? 'selected' : '' }}>{{ $year }}</option>
             @endfor
         </select>
